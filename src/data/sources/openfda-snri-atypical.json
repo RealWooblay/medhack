@@ -1,0 +1,124 @@
+{
+  "drugs": [
+    {
+      "generic": "venlafaxine",
+      "brands": [
+        "Effexor",
+        "Effexor XR"
+      ],
+      "fetched": true,
+      "sourceUrl": "https://api.fda.gov/drug/label.json?search=openfda.generic_name:\"venlafaxine\"&limit=1",
+      "boxed_warning": "Antidepressants increased the risk compared to placebo of suicidal thinking and behavior in children, adolescents, and young adults in short-term studies.",
+      "dosage_and_administration": "Food has no significant effect on the absorption of venlafaxine or on the formation of ODV; venlafaxine should be taken with food at approximately the same time each day.",
+      "food_effect": "Food has no significant effect on the absorption of venlafaxine or on the formation of ODV.",
+      "drug_interactions": "Concomitant use with MAOIs is contraindicated; caution with other serotonergic agents (triptans, tramadol) due to serotonin syndrome risk. A single dose of ethanol (0.5 g/kg) had no effect on the pharmacokinetics of venlafaxine or ODV when venlafaxine was administered at 150 mg/day.",
+      "warnings_and_cautions": "Venlafaxine treatment is associated with sustained increases in blood pressure in some patients (dose-dependent: ~3% at <100 mg/day, ~13% at >300 mg/day). Although venlafaxine has not been shown to increase the impairment of mental and motor skills caused by alcohol, patients should be advised to avoid alcohol, and cautioned about operating hazardous machinery including automobiles.",
+      "common_adverse_reactions": "Nausea (37%), somnolence (23%), dry mouth (22%), dizziness (19%), insomnia (18%), constipation (15%), asthenia (12%), sweating (12%)."
+    },
+    {
+      "generic": "desvenlafaxine",
+      "brands": [
+        "Pristiq"
+      ],
+      "fetched": true,
+      "sourceUrl": "https://api.fda.gov/drug/label.json?search=openfda.generic_name:\"desvenlafaxine\"&limit=1",
+      "boxed_warning": "Antidepressants increased the risk of suicidal thoughts and behavior in children, adolescents, and young adults in short-term studies. Monitor closely for worsening and for emergence of suicidal thoughts and behaviors.",
+      "dosage_and_administration": "Recommended dose is 50 mg once daily, with or without food, taken at approximately the same time each day. Swallow tablets whole; do not divide, crush, chew, or dissolve.",
+      "food_effect": "May be administered without regard to meals; food does not meaningfully affect exposure.",
+      "drug_interactions": "MAOIs contraindicated (14 days after stopping an MAOI, 7 days after stopping desvenlafaxine); monitor for serotonin syndrome with serotonergic drugs (triptans, lithium, St. John's Wort); increased bleeding risk with anticoagulants/NSAIDs; may require dose reduction of CYP2D6 substrates.",
+      "warnings_and_cautions": "Regular blood pressure monitoring is required; pre-existing hypertension should be controlled before treatment. Avoid alcohol; serotonin syndrome may be life-threatening — discontinue if symptoms occur.",
+      "common_adverse_reactions": "Nausea, dizziness, insomnia, hyperhidrosis, constipation, somnolence, decreased appetite, anxiety, and sexual dysfunction."
+    },
+    {
+      "generic": "duloxetine",
+      "brands": [
+        "Cymbalta"
+      ],
+      "fetched": true,
+      "sourceUrl": "https://api.fda.gov/drug/label.json?search=openfda.generic_name:\"duloxetine\"&limit=1",
+      "boxed_warning": "Antidepressants increased the risk of suicidal thoughts and behavior in children, adolescents, and young adults in short-term studies. Monitor closely for worsening and emergence of suicidality.",
+      "dosage_and_administration": "Administer once daily with or without food. Swallow capsules whole; do not crush, chew, or open. Starting doses 30-60 mg/day depending on indication; gradually reduce dose when discontinuing.",
+      "food_effect": "May be administered without regard to meals; food delays time to peak concentration but the effect is not clinically significant.",
+      "drug_interactions": "Avoid concomitant MAOIs, including linezolid and intravenous methylene blue, due to serotonin syndrome risk. Do not co-administer with thioridazine. Caution with CYP1A2 and CYP2D6 inhibitors.",
+      "warnings_and_cautions": "Use of duloxetine concomitantly with heavy alcohol intake may be associated with severe liver injury; avoid in patients with chronic liver disease or cirrhosis. Monitor blood pressure regularly as duloxetine may increase systolic and diastolic blood pressure.",
+      "common_adverse_reactions": "Nausea (23%), dry mouth (13%), somnolence (10%), constipation (9%), decreased appetite (7%), hyperhidrosis (6%)."
+    },
+    {
+      "generic": "vortioxetine",
+      "brands": [
+        "Trintellix"
+      ],
+      "fetched": true,
+      "sourceUrl": "https://api.fda.gov/drug/label.json?search=openfda.generic_name:\"vortioxetine\"&limit=1",
+      "boxed_warning": "Antidepressants increased the risk of suicidal thoughts and behavior in pediatric and young adult patients in short-term studies. Monitor closely, particularly during initial treatment and dose changes.",
+      "dosage_and_administration": "Start at 10 mg once daily orally, increase to 20 mg/day as tolerated; may be taken with or without food. Maximum 10 mg/day in known CYP2D6 poor metabolizers.",
+      "food_effect": "May be administered with or without food; no dietary restrictions.",
+      "drug_interactions": "MAOIs contraindicated (14-21 day washout). Reduce vortioxetine dose by half with strong CYP2D6 inhibitors (bupropion, fluoxetine, paroxetine); consider increasing dose up to 3x with strong CYP inducers (rifampin, carbamazepine).",
+      "warnings_and_cautions": "Serotonin syndrome with concomitant serotonergic agents; increased risk of bleeding with NSAIDs, anticoagulants or antiplatelet drugs; hyponatremia (SIADH); activation of mania; angle-closure glaucoma; sexual dysfunction.",
+      "common_adverse_reactions": "Nausea, constipation, and vomiting (≥5% and at least twice placebo). Nausea is usually mild to moderate with median duration around two weeks."
+    },
+    {
+      "generic": "vilazodone",
+      "brands": [
+        "Viibryd"
+      ],
+      "fetched": true,
+      "sourceUrl": "https://api.fda.gov/drug/label.json?search=openfda.generic_name:\"vilazodone\"&limit=1",
+      "boxed_warning": "WARNING: SUICIDAL THOUGHTS AND BEHAVIORS. Antidepressants increased the risk of suicidal thoughts and behaviors in pediatric and young adult patients in short-term studies.",
+      "dosage_and_administration": "Recommended target dosage: 20 mg to 40 mg once daily WITH FOOD. Titrate from 10 mg once daily for 7 days. Taking without food can decrease vilazodone AUC and Cmax by approximately 50% and 60% respectively and may reduce efficacy.",
+      "food_effect": "Vilazodone AUC and Cmax in the fasted state can be decreased by approximately 50% and 60%. Absolute bioavailability is 72% with food.",
+      "drug_interactions": "Concomitant use with strong CYP3A4 inhibitors increases vilazodone exposure — do not exceed 20 mg once daily. With strong CYP3A4 inducers used >14 days, consider doubling the dosage up to a maximum of 80 mg daily. MAOIs contraindicated.",
+      "warnings_and_cautions": "Serotonin syndrome; increased risk of bleeding with anticoagulants, NSAIDs or aspirin; activation of mania/hypomania; seizures; angle-closure glaucoma; hyponatremia; sexual dysfunction.",
+      "common_adverse_reactions": "Diarrhea, nausea, vomiting, and insomnia (occurring at ≥5% and at least twice the rate of placebo)."
+    },
+    {
+      "generic": "bupropion",
+      "brands": [
+        "Wellbutrin XL",
+        "Wellbutrin SR",
+        "Zyban",
+        "Aplenzin",
+        "Forfivo XL"
+      ],
+      "fetched": true,
+      "sourceUrl": "https://api.fda.gov/drug/label.json?search=openfda.generic_name:\"bupropion\"&limit=1",
+      "boxed_warning": "Increased risk of suicidal thinking and behavior in children, adolescents, and young adults taking antidepressants. Monitor closely for clinical worsening and emergence of suicidal thoughts and behaviors.",
+      "dosage_and_administration": "Initiate at 150 mg once daily in the MORNING; may increase to 300 mg once daily after 4 days. May be taken with or without food. Swallow tablets whole — do not crush, divide, or chew. Moderate-to-severe hepatic impairment: maximum 150 mg every other day.",
+      "food_effect": "May be administered with or without food; food does not produce a clinically significant change in exposure.",
+      "drug_interactions": "MAOIs contraindicated; allow 14 days between discontinuing an MAOI and starting bupropion. Bupropion inhibits CYP2D6 and may increase levels of CYP2D6 substrates (certain antidepressants, antipsychotics, beta-blockers). CYP2B6 inducers may reduce bupropion efficacy.",
+      "warnings_and_cautions": "Seizure risk is dose-related — do not exceed 300 mg/day and increase dose gradually; contraindicated in seizure disorder, bulimia/anorexia, and abrupt discontinuation of alcohol or sedatives. Alcohol consumption should be minimized or avoided. Monitor blood pressure — treatment-emergent hypertension may occur.",
+      "common_adverse_reactions": "Dry mouth, nausea, insomnia, dizziness, tremor, agitation, anxiety, rash, sweating, tinnitus (≥5% and at least twice placebo)."
+    },
+    {
+      "generic": "mirtazapine",
+      "brands": [
+        "Remeron",
+        "Remeron SolTab"
+      ],
+      "fetched": true,
+      "sourceUrl": "https://api.fda.gov/drug/label.json?search=openfda.generic_name:\"mirtazapine\"&limit=1",
+      "boxed_warning": "Antidepressants increased the risk of suicidal thoughts and behaviors in pediatric and young adult patients in short-term studies. Monitor closely, especially during initial treatment.",
+      "dosage_and_administration": "Administer orally once daily, preferably in the EVENING prior to sleep. Starting dose 15 mg once daily; maximum 45 mg daily. May be taken with or without food.",
+      "food_effect": "Food has a minimal effect on the rate and extent of absorption; may be taken without regard to meals.",
+      "drug_interactions": "MAOIs contraindicated; 14-day washout required in both directions. Avoid concomitant alcohol and benzodiazepines due to additive impairment of cognitive and motor skills. CYP3A4 inducers/inhibitors may require dose adjustment; risk of serotonin syndrome with serotonergic drugs.",
+      "warnings_and_cautions": "Somnolence is very common. Caution patients about performing activities requiring mental alertness, such as operating hazardous machinery or driving, until they are reasonably certain that mirtazapine therapy does not adversely affect their ability. Alcohol amplifies sedation and impairment. Also: agranulocytosis, weight gain, hyponatremia, QT prolongation.",
+      "common_adverse_reactions": "Somnolence 54% (vs 18% placebo), increased appetite 17% (vs 2%), weight gain 12% (vs 2%), dizziness 7% (vs 3%)."
+    },
+    {
+      "generic": "trazodone",
+      "brands": [
+        "Desyrel",
+        "Oleptro"
+      ],
+      "fetched": true,
+      "sourceUrl": "https://api.fda.gov/drug/label.json?search=openfda.generic_name:\"trazodone\"&limit=1",
+      "boxed_warning": "Antidepressants increased the risk of suicidal thoughts and behaviors in pediatric and young adult patients. Monitor closely for clinical worsening and emergence of suicidal thoughts and behaviors.",
+      "dosage_and_administration": "Initial dose 150 mg per day in divided doses, may be increased by 50 mg/day every three to four days (maximum 400 mg/day in outpatients). Trazodone hydrochloride tablets should be taken shortly after a meal or light snack.",
+      "food_effect": "Taking trazodone with food increases the amount absorbed, decreases peak plasma concentration, and delays time to peak plasma level to approximately 2 hours versus about 1 hour when taken on an empty stomach.",
+      "drug_interactions": "MAOIs contraindicated (14-day washout). Caution with other serotonergic agents (serotonin syndrome), anticoagulants/NSAIDs (bleeding), and QT-prolonging drugs. Strong CYP3A4 inhibitors increase trazodone concentrations; CYP3A4 inducers decrease them.",
+      "warnings_and_cautions": "Trazodone may cause somnolence or sedation and may impair mental and/or physical ability required for the performance of hazardous tasks such as operating machinery or driving; do not combine with alcohol or other CNS depressants. Priapism: cases of painful erections greater than 6 hours in duration have been reported and require immediate emergency care. Also orthostatic hypotension and QT prolongation.",
+      "common_adverse_reactions": "Drowsiness/somnolence, fatigue, dizziness, dry mouth, blurred vision, edema, nasal congestion, syncope, diarrhea, weight loss."
+    }
+  ],
+  "notes": "All 8 drugs retrieved from the openFDA drug/label endpoint using the exact query URLs recorded in sourceUrl (one call per generic name, limit=1). Caveats for downstream use: (1) openFDA returns one arbitrary labeler's SPL per query, so brand lists were partly completed from well-known US brand names rather than the returned label's openfda.brand_name field — treat the `brands` arrays as non-authoritative and re-derive them from openfda.brand_name if brand mapping is load-bearing. (2) The duloxetine record returned a generic delayed-release capsule label (Breckenridge), not the Cymbalta RLD; the venlafaxine record was an immediate-release tablet label, not Effexor XR — dosing text differs between IR and XR forms. (3) Excerpts were retrieved via a summarizing fetch layer and trimmed to the character limits, so some strings are close paraphrase/condensation of adjacent label sentences rather than strictly contiguous verbatim text. Before these are shown to a clinician, each excerpt should be re-verified character-for-character against the SPL on DailyMed. (4) The clinically critical food rules — vilazodone MUST be taken with food (AUC/Cmax fall ~50%/~60% fasted) and trazodone should be taken shortly after a meal or light snack — were confirmed directly in the returned label text and are the highest-confidence items here. Bupropion's dose-related seizure ceiling (300 mg/day) and the SNRI blood-pressure monitoring language were likewise confirmed in label text. (5) No CPIC or PharmGKB pharmacogenomic content is included — this task covered FDA labels only, and the CYP2D6/CYP2C19 dosing guidance the prototype will need (notably vortioxetine's 10 mg/day cap in CYP2D6 poor metabolizers, which appears above from the label) should be sourced separately from cpicpgx.org."
+}
