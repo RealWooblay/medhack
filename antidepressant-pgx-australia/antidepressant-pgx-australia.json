@@ -1,0 +1,290 @@
+{
+  "meta": {
+    "title": "Antidepressant pharmacogenomics — Australia-mapped data spine",
+    "purpose": "Deterministic clinical-fact source for antidepressant PGx decision support, mapped to the Australian context (TGA registration + PBS listing).",
+    "scope_statement": "Genotype guides METABOLISM, DOSING and SAFETY only. It does NOT predict which antidepressant will treat the depression (efficacy). Decision support, not diagnosis. Clinician in the loop.",
+    "guideline_sources": {
+      "cpic_ssri": "CPIC Guideline for CYP2D6, CYP2C19, CYP2B6, SLC6A4, HTR2A and Serotonin Reuptake Inhibitor Antidepressants. Bousman et al., Clin Pharmacol Ther 2023;114(1):51-68 (PMID 37032427).",
+      "cpic_tca": "CPIC Guideline for CYP2D6, CYP2C19 and Tricyclic Antidepressants. Hicks et al., Clin Pharmacol Ther 2017;102(1):37-44 (2016/17 update).",
+      "dpwg": "Royal Dutch Pharmacogenetics Working Group (DPWG) recommendations, as encoded by PharmCAT/PharmGKB.",
+      "fda": "FDA Table of Pharmacogenetic Associations and product labels.",
+      "pharmcat": "Gene-drug coverage cross-checked against PharmCAT Genes & Drugs (pharmcat.clinpgx.org), managed at Stanford/UPenn (NHGRI U24HG013077)."
+    },
+    "australia_localisation_note": "CPIC and DPWG guidelines are the same standards Australia relies on (e.g. the Australian PRESIDE trial was built on CPIC/DPWG). The gene->phenotype->dosing science transfers directly. What is localised here: TGA_registered (is the drug on the ARTG / marketed in Australia) and PBS_listed (is it subsidised). Where a recommendation rests only on an FDA source, the Australian equivalent to check is the TGA Product Information.",
+    "verification_required": "TGA_registered and PBS_listed values below are indicative and MUST be verified against the live ARTG (tga.gov.au) and PBS Schedule (pbs.gov.au) before clinical or product use, and date-stamped. PBS listings carry formulation/indication restrictions not captured here.",
+    "evidence_strength_key": {
+      "strong_pk_safety": "Well-supported gene->metabolism (and for some, safety) association; basis of CPIC dosing guidance.",
+      "moderate": "CPIC/DPWG recommendation present but optional or based on limited prospective data.",
+      "weak_us_label_only": "No CPIC/DPWG actionable dosing recommendation; guidance derives from an FDA label only.",
+      "none": "No actionable CYP-based PGx dosing guidance; effectively genotype-neutral."
+    },
+    "date_compiled": "2026-07-18",
+    "phenotype_abbreviations": "UM=Ultrarapid, RM=Rapid, NM=Normal, IM=Intermediate, PM=Poor metaboliser"
+  },
+
+  "antidepressants": [
+    {
+      "drug": "citalopram",
+      "class": "SSRI",
+      "pgx_gene": "CYP2C19",
+      "cpic_recommendation": {
+        "UM": "Consider an alternative not predominantly metabolised by CYP2C19 (lower exposure, greater risk of non-response / switching).",
+        "RM": "Initiate standard dose; if inadequate response, consider an alternative.",
+        "NM": "Initiate standard dose.",
+        "IM": "Initiate standard starting dose; reduced metabolism may warrant slower titration.",
+        "PM": "Consider ~50% starting-dose reduction OR an alternative not metabolised by CYP2C19 (increased exposure; QT/adverse-effect risk)."
+      },
+      "dpwg": true,
+      "evidence_strength": "strong_pk_safety",
+      "cite": "cpic_ssri; dpwg",
+      "tga_registered": true,
+      "pbs_listed": true,
+      "au_notes": "Standard first-line SSRI in Australia. TGA dose caps for QT apply independently of genotype."
+    },
+    {
+      "drug": "escitalopram",
+      "class": "SSRI",
+      "pgx_gene": "CYP2C19",
+      "cpic_recommendation": {
+        "UM": "Consider an alternative not predominantly metabolised by CYP2C19 (lower exposure, greater risk of non-response / switching).",
+        "RM": "Initiate standard dose; if inadequate response, consider an alternative.",
+        "NM": "Initiate standard dose.",
+        "IM": "Initiate standard starting dose; reduced metabolism may warrant slower titration.",
+        "PM": "Consider ~50% starting-dose reduction OR an alternative not metabolised by CYP2C19 (increased exposure; QT/adverse-effect risk)."
+      },
+      "dpwg": true,
+      "evidence_strength": "strong_pk_safety",
+      "cite": "cpic_ssri; dpwg",
+      "tga_registered": true,
+      "pbs_listed": true,
+      "au_notes": "Active S-enantiomer of citalopram — offering citalopram after escitalopram failure is not a true switch."
+    },
+    {
+      "drug": "sertraline",
+      "class": "SSRI",
+      "pgx_gene": "CYP2C19 (CYP2B6 secondary)",
+      "cpic_recommendation": {
+        "UM": "Initiate standard dose; if inadequate response, consider an alternative.",
+        "NM": "Initiate standard dose.",
+        "IM": "Initiate standard starting dose; slower titration may be warranted.",
+        "PM": "Consider ~50% dose reduction OR an alternative; combined non-normal CYP2C19 + CYP2B6 may warrant modification."
+      },
+      "dpwg": true,
+      "evidence_strength": "strong_pk_safety",
+      "cite": "cpic_ssri; dpwg",
+      "tga_registered": true,
+      "pbs_listed": true,
+      "au_notes": "CYP2B6 adds nuance in combination with CYP2C19 (CPIC Tables 3b/4/5)."
+    },
+    {
+      "drug": "paroxetine",
+      "class": "SSRI",
+      "pgx_gene": "CYP2D6",
+      "cpic_recommendation": {
+        "UM": "Avoid; select an alternative not predominantly metabolised by CYP2D6 (risk of poor response).",
+        "NM": "Initiate standard dose.",
+        "IM": "Initiate standard dose.",
+        "PM": "Avoid; select an alternative, or use a lower dose (increased exposure / adverse effects)."
+      },
+      "dpwg": true,
+      "evidence_strength": "strong_pk_safety",
+      "cite": "cpic_ssri; dpwg",
+      "tga_registered": true,
+      "pbs_listed": true,
+      "au_notes": "Strong CYP2D6 auto-inhibitor (dose-dependent >30 mg/day) — causes phenoconversion of self and co-medications."
+    },
+    {
+      "drug": "fluvoxamine",
+      "class": "SSRI",
+      "pgx_gene": "CYP2D6",
+      "cpic_recommendation": {
+        "UM": "Consider an alternative not predominantly metabolised by CYP2D6.",
+        "NM": "Initiate standard dose.",
+        "IM": "Initiate standard dose.",
+        "PM": "Consider a 25-50% lower starting dose and titrate to response, OR an alternative."
+      },
+      "dpwg": false,
+      "evidence_strength": "moderate",
+      "cite": "cpic_ssri; fda",
+      "tga_registered": true,
+      "pbs_listed": true,
+      "au_notes": "Also a CYP1A2/CYP2C19 inhibitor — relevant for drug-interaction phenoconversion of co-medications."
+    },
+    {
+      "drug": "fluoxetine",
+      "class": "SSRI",
+      "pgx_gene": "CYP2D6 / CYP2C19",
+      "cpic_recommendation": {
+        "all": "No CPIC dosing recommendation (long-acting active metabolite norfluoxetine complicates exposure). FDA label notes higher concentrations in CYP2D6 poor metabolisers."
+      },
+      "dpwg": false,
+      "evidence_strength": "weak_us_label_only",
+      "cite": "fda",
+      "tga_registered": true,
+      "pbs_listed": true,
+      "au_notes": "FLAG: genotype guidance is FDA-label only — weaker/US-oriented. Strong CYP2D6 inhibitor; inhibition persists ~weeks after stopping (norfluoxetine half-life)."
+    },
+    {
+      "drug": "venlafaxine",
+      "class": "SNRI",
+      "pgx_gene": "CYP2D6",
+      "cpic_recommendation": {
+        "UM": "Consider an alternative not predominantly metabolised by CYP2D6.",
+        "NM": "Initiate standard dose.",
+        "IM": "Initiate standard dose.",
+        "PM": "OPTIONAL: consider an alternative, or monitor for tolerability (altered venlafaxine:O-desmethylvenlafaxine ratio)."
+      },
+      "dpwg": true,
+      "evidence_strength": "moderate",
+      "cite": "cpic_ssri; dpwg; fda",
+      "tga_registered": true,
+      "pbs_listed": true,
+      "au_notes": "FDA Table lists venlafaxine as warranting dose adjustment in CYP2D6 PMs. CPIC recommendation is optional."
+    },
+    {
+      "drug": "vortioxetine",
+      "class": "Serotonin modulator (SSRI-like)",
+      "pgx_gene": "CYP2D6",
+      "cpic_recommendation": {
+        "UM": "Monitor response; consider an alternative if inadequate.",
+        "NM": "Initiate standard dose.",
+        "PM": "Maximum recommended dose 10 mg/day (FDA label)."
+      },
+      "dpwg": false,
+      "evidence_strength": "moderate",
+      "cite": "cpic_ssri; fda",
+      "tga_registered": true,
+      "pbs_listed": true,
+      "au_notes": "Verify current PBS restriction/authority level against the live schedule."
+    },
+    {
+      "drug": "amitriptyline",
+      "class": "TCA (tertiary amine)",
+      "pgx_gene": "CYP2D6 + CYP2C19",
+      "cpic_recommendation": {
+        "CYP2D6_UM": "Avoid (risk of failure / lack of efficacy); if a TCA is warranted, consider an alternative or use therapeutic drug monitoring (TDM).",
+        "CYP2D6_PM": "Avoid (higher adverse-effect risk); if warranted, reduce dose ~50% and use TDM.",
+        "CYP2C19_UM": "Consider an alternative TCA not metabolised by CYP2C19.",
+        "CYP2C19_PM": "Consider ~50% dose reduction and TDM."
+      },
+      "dpwg": true,
+      "evidence_strength": "strong_pk_safety",
+      "cite": "cpic_tca; dpwg",
+      "tga_registered": true,
+      "pbs_listed": true,
+      "au_notes": "Both genes act; use the more conservative (lower-metaboliser) recommendation when they diverge."
+    },
+    {
+      "drug": "nortriptyline",
+      "class": "TCA (secondary amine)",
+      "pgx_gene": "CYP2D6",
+      "cpic_recommendation": {
+        "UM": "Avoid; if a TCA is warranted, consider an alternative or use TDM.",
+        "NM": "Initiate standard dose.",
+        "IM": "Initiate standard dose.",
+        "PM": "Avoid; if warranted, reduce dose ~50% and use TDM."
+      },
+      "dpwg": true,
+      "evidence_strength": "strong_pk_safety",
+      "cite": "cpic_tca; dpwg",
+      "tga_registered": true,
+      "pbs_listed": true,
+      "au_notes": "Secondary amine — CYP2D6 only. Best-characterised TCA for TDM targets."
+    },
+    {
+      "drug": "clomipramine",
+      "class": "TCA (tertiary amine)",
+      "pgx_gene": "CYP2D6 + CYP2C19",
+      "cpic_recommendation": {
+        "CYP2D6_UM": "Avoid; if warranted, alternative or TDM.",
+        "CYP2D6_PM": "Avoid; if warranted, ~50% dose reduction + TDM.",
+        "CYP2C19_PM": "Consider ~50% dose reduction and TDM."
+      },
+      "dpwg": true,
+      "evidence_strength": "strong_pk_safety",
+      "cite": "cpic_tca; dpwg",
+      "tga_registered": true,
+      "pbs_listed": true,
+      "au_notes": ""
+    },
+    {
+      "drug": "imipramine",
+      "class": "TCA (tertiary amine)",
+      "pgx_gene": "CYP2D6 + CYP2C19",
+      "cpic_recommendation": {
+        "CYP2D6_UM": "Avoid; if warranted, alternative or TDM.",
+        "CYP2D6_PM": "Avoid; if warranted, ~50% dose reduction + TDM.",
+        "CYP2C19_PM": "Consider ~50% dose reduction and TDM."
+      },
+      "dpwg": true,
+      "evidence_strength": "strong_pk_safety",
+      "cite": "cpic_tca; dpwg",
+      "tga_registered": true,
+      "pbs_listed": true,
+      "au_notes": ""
+    },
+    {
+      "drug": "doxepin",
+      "class": "TCA (tertiary amine)",
+      "pgx_gene": "CYP2D6 + CYP2C19",
+      "cpic_recommendation": {
+        "CYP2D6_UM": "Avoid; if warranted, alternative or TDM.",
+        "CYP2D6_PM": "Avoid; if warranted, ~50% dose reduction + TDM.",
+        "CYP2C19_PM": "Consider ~50% dose reduction and TDM."
+      },
+      "dpwg": true,
+      "evidence_strength": "strong_pk_safety",
+      "cite": "cpic_tca; dpwg",
+      "tga_registered": true,
+      "pbs_listed": true,
+      "au_notes": ""
+    },
+    {
+      "drug": "trimipramine",
+      "class": "TCA (tertiary amine)",
+      "pgx_gene": "CYP2D6 + CYP2C19",
+      "cpic_recommendation": {
+        "CYP2D6_UM": "Avoid; if warranted, alternative or TDM.",
+        "CYP2D6_PM": "Avoid; if warranted, ~50% dose reduction + TDM.",
+        "CYP2C19_PM": "Consider ~50% dose reduction and TDM."
+      },
+      "dpwg": false,
+      "evidence_strength": "strong_pk_safety",
+      "cite": "cpic_tca",
+      "tga_registered": "verify",
+      "pbs_listed": "verify",
+      "au_notes": "FLAG: check ARTG — availability in Australia is limited / may be discontinued."
+    },
+    {
+      "drug": "desipramine",
+      "class": "TCA (secondary amine)",
+      "pgx_gene": "CYP2D6",
+      "cpic_recommendation": {
+        "UM": "Avoid; if warranted, alternative or TDM.",
+        "PM": "Avoid; if warranted, ~50% dose reduction + TDM."
+      },
+      "dpwg": false,
+      "evidence_strength": "strong_pk_safety",
+      "cite": "cpic_tca",
+      "tga_registered": "verify",
+      "pbs_listed": "verify",
+      "au_notes": "FLAG: not believed to be marketed in Australia — confirm against ARTG. Present in CPIC/US lists; likely excluded for AU."
+    }
+  ],
+
+  "genotype_neutral_options_australia": {
+    "note": "Common antidepressants available in Australia with NO actionable CYP2D6/CYP2C19-based CPIC dosing recommendation. Useful fallbacks when a gene call is low-confidence (e.g. CYP2D6 from a consumer array) or when avoiding a specific enzyme.",
+    "drugs": [
+      {"drug": "desvenlafaxine", "class": "SNRI", "reason": "Minimal CYP metabolism (largely conjugated); no CYP-based dosing recommendation.", "tga_registered": true, "pbs_listed": true},
+      {"drug": "duloxetine", "class": "SNRI", "reason": "CYP2D6/CYP1A2 substrate but no CPIC genotype-guided dosing recommendation.", "tga_registered": true, "pbs_listed": true},
+      {"drug": "mirtazapine", "class": "NaSSA", "reason": "No actionable CYP PGx dosing guidance.", "tga_registered": true, "pbs_listed": true},
+      {"drug": "agomelatine", "class": "Melatonergic", "reason": "CYP1A2-metabolised; no CYP2D6/2C19 dosing recommendation (hepatic monitoring required).", "tga_registered": true, "pbs_listed": "verify"},
+      {"drug": "moclobemide", "class": "RIMA (MAOI)", "reason": "No actionable CYP PGx dosing guidance.", "tga_registered": true, "pbs_listed": true}
+    ]
+  },
+
+  "excluded_from_recommendations": {
+    "note": "Reviewed by CPIC 2023 and issued NO recommendation for antidepressant prescribing — render as informational only, never used to rank or dose.",
+    "genes": ["SLC6A4", "HTR2A"]
+  }
+}
