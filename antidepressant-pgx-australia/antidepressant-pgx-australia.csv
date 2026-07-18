@@ -1,0 +1,21 @@
+Drug,Class,PGx gene,CPIC key recommendation (actionable phenotypes),DPWG,Evidence strength,TGA registered,PBS listed,Cite,Australia note
+citalopram,SSRI,CYP2C19,"PM: ~50% dose cut or non-CYP2C19 alternative (QT/AE risk). UM: alternative (low exposure, non-response).",Yes,Strong (PK/safety),Yes,Yes,CPIC SSRI 2023; DPWG,First-line SSRI; TGA QT dose caps apply regardless of genotype
+escitalopram,SSRI,CYP2C19,"PM: ~50% dose cut or non-CYP2C19 alternative. UM: alternative.",Yes,Strong (PK/safety),Yes,Yes,CPIC SSRI 2023; DPWG,Active enantiomer of citalopram — not a true switch from it
+sertraline,SSRI,CYP2C19 (+CYP2B6),"PM: ~50% dose cut or alternative. UM: standard; alternative if no response.",Yes,Strong (PK/safety),Yes,Yes,CPIC SSRI 2023; DPWG,CYP2B6 modifies in combination with CYP2C19
+paroxetine,SSRI,CYP2D6,"PM: avoid / alternative / lower dose. UM: avoid / non-CYP2D6 alternative.",Yes,Strong (PK/safety),Yes,Yes,CPIC SSRI 2023; DPWG,Strong CYP2D6 auto-inhibitor (dose-dependent >30 mg)
+fluvoxamine,SSRI,CYP2D6,"PM: 25-50% lower start or alternative. UM: alternative.",No,Moderate,Yes,Yes,CPIC SSRI 2023; FDA,Also CYP1A2/2C19 inhibitor (interaction phenoconversion)
+fluoxetine,SSRI,CYP2D6/CYP2C19,"No CPIC dosing rec; FDA label notes higher levels in CYP2D6 PM.",No,Weak (US label only),Yes,Yes,FDA label,FLAG: FDA-only guidance; inhibition persists ~weeks after stopping
+venlafaxine,SNRI,CYP2D6,"PM (optional): alternative or monitor tolerability. UM: alternative.",Yes,Moderate,Yes,Yes,CPIC SSRI 2023; DPWG; FDA,FDA lists dose adjustment in CYP2D6 PM; CPIC rec is optional
+vortioxetine,Serotonin modulator,CYP2D6,"PM: max 10 mg/day (FDA). UM: monitor / alternative.",No,Moderate,Yes,Yes,CPIC SSRI 2023; FDA,Verify current PBS authority/restriction
+amitriptyline,TCA (tertiary),CYP2D6 + CYP2C19,"CYP2D6 PM: avoid or -50% + TDM; UM: avoid. CYP2C19 PM: -50% + TDM.",Yes,Strong (PK/safety),Yes,Yes,CPIC TCA 2017; DPWG,Use the more conservative rec when the two genes diverge
+nortriptyline,TCA (secondary),CYP2D6,"PM: avoid or -50% + TDM. UM: avoid / alternative.",Yes,Strong (PK/safety),Yes,Yes,CPIC TCA 2017; DPWG,Secondary amine — CYP2D6 only; best-characterised TDM targets
+clomipramine,TCA (tertiary),CYP2D6 + CYP2C19,"CYP2D6 PM: avoid or -50% + TDM; UM: avoid. CYP2C19 PM: -50% + TDM.",Yes,Strong (PK/safety),Yes,Yes,CPIC TCA 2017; DPWG,
+imipramine,TCA (tertiary),CYP2D6 + CYP2C19,"CYP2D6 PM: avoid or -50% + TDM; UM: avoid. CYP2C19 PM: -50% + TDM.",Yes,Strong (PK/safety),Yes,Yes,CPIC TCA 2017; DPWG,
+doxepin,TCA (tertiary),CYP2D6 + CYP2C19,"CYP2D6 PM: avoid or -50% + TDM; UM: avoid. CYP2C19 PM: -50% + TDM.",Yes,Strong (PK/safety),Yes,Yes,CPIC TCA 2017; DPWG,
+trimipramine,TCA (tertiary),CYP2D6 + CYP2C19,"CYP2D6 PM: avoid or -50% + TDM; UM: avoid. CYP2C19 PM: -50% + TDM.",No,Strong (PK/safety),Verify,Verify,CPIC TCA 2017,FLAG: limited/discontinued availability in Australia — check ARTG
+desipramine,TCA (secondary),CYP2D6,"PM: avoid or -50% + TDM. UM: avoid / alternative.",No,Strong (PK/safety),Verify,Verify,CPIC TCA 2017,FLAG: likely not marketed in Australia — confirm ARTG
+desvenlafaxine,SNRI,none actionable,"No CYP-based dosing rec (minimal CYP metabolism).",No,None (genotype-neutral),Yes,Yes,CPIC SSRI 2023,Fallback when a gene call is low-confidence
+duloxetine,SNRI,none actionable,"No CPIC genotype-guided dosing rec.",No,None (genotype-neutral),Yes,Yes,CPIC SSRI 2023,Fallback / enzyme-avoidance option
+mirtazapine,NaSSA,none actionable,"No actionable CYP PGx dosing guidance.",No,None (genotype-neutral),Yes,Yes,-,Fallback when a gene call is low-confidence
+agomelatine,Melatonergic,none actionable,"CYP1A2-metabolised; no CYP2D6/2C19 dosing rec.",No,None (genotype-neutral),Yes,Verify,-,Requires hepatic monitoring (non-genetic)
+moclobemide,RIMA (MAOI),none actionable,"No actionable CYP PGx dosing guidance.",No,None (genotype-neutral),Yes,Yes,-,MAOI interaction rules apply (non-genetic)
