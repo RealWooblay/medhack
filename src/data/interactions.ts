@@ -10,9 +10,9 @@
  * Two classifications here are worth reading twice, because they are the reason the demo
  * patient's result looks the way it does:
  *
- *  - Fluoxetine is a strong inhibitor of BOTH CYP2D6 and CYP2C19. A patient on fluoxetine
- *    is therefore functionally a poor metaboliser on both of the enzymes that drive almost
- *    every CPIC antidepressant recommendation, at once.
+ *  - The captured table classifies fluoxetine as a strong inhibitor of CYP2D6 and CYP2C19.
+ *    This engine applies the supported CYP2D6 activity-score method only. CYP2C19 is flagged
+ *    as unresolved; it is not converted to a poor-metaboliser phenotype.
  *  - CYP2D6 has no clinically relevant inducers at all. The engine never shifts a CYP2D6
  *    phenotype upward on the basis of a co-medication, because there is nothing to shift it.
  */

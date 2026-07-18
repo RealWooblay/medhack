@@ -2,9 +2,9 @@
  * Extension 1 — the phenoconversion engine.
  *
  * PharmCAT tells you what a patient's genes say. It does not know what else the patient is
- * swallowing every morning. A genetically normal CYP2D6 metaboliser taking fluoxetine is,
- * functionally, a poor metaboliser — and the next CYP2D6-dependent drug prescribed at a
- * standard dose is effectively an overdose.
+ * taking. A supported CYP2D6 inhibitor adjustment can therefore differ from the genetic
+ * phenotype and change the applicable gene–drug guidance. It does not by itself establish
+ * exposure, toxicity or a treatment decision.
  *
  * Where this engine deliberately does LESS than it could:
  *

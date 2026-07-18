@@ -19,6 +19,8 @@
 
 import type {
   AnalysisResult,
+  CareContext,
+  DepressionSummary,
   Draft,
   DraftClaim,
   DrugAssessment,
@@ -33,6 +35,8 @@ export interface NarrativeFacts {
   history: TrialReconstruction[]
   protocol: LifestyleProtocol | null
   currentMedications: string[]
+  care: CareContext
+  depression: DepressionSummary
 }
 
 /* ------------------------------------------------------------------ */
@@ -41,6 +45,49 @@ export interface NarrativeFacts {
 
 /** Sentence-initial capitalisation for generic drug names, which are stored lowercase. */
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+const GOAL_LABELS: Record<CareContext['goals'][number], string> = {
+  feel_more_like_myself: 'feel more like yourself',
+  sleep_better: 'sleep better',
+  restore_energy: 'restore your energy',
+  think_more_clearly: 'think more clearly',
+  return_to_work_or_study: 'get back to work or study',
+  reconnect_with_people: 'reconnect with people',
+  reduce_side_effects: 'reduce side effects',
+}
+
+function journeyClaims(facts: NarrativeFacts): DraftClaim[] {
+  const claims: DraftClaim[] = [
+    {
+      section: 'journey_summary',
+      text:
+        `Your PHQ-9 check-in score is ${facts.depression.score} out of 27, which falls in the ` +
+        `${facts.depression.severity.replace('_', ' ')} symptom range. This is a baseline for tracking ` +
+        'change with your clinician, not a diagnosis and not a prediction of which treatment will work.',
+      citationIds: facts.depression.interpretation.citationIds,
+    },
+  ]
+
+  if (facts.care.goals.length) {
+    const labels = facts.care.goals.map((goal) => GOAL_LABELS[goal])
+    const readable = labels.length > 1 ? `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}` : labels[0]
+    claims.push({
+      section: 'journey_summary',
+      text:
+        `The outcomes you want back are concrete: ${readable}. Those goals belong beside the symptom score ` +
+        'when you and your clinician judge whether a plan is helping.',
+      citationIds: ['nice-depression-2022'],
+    })
+  }
+
+  claims.push({
+    section: 'monitoring_plan',
+    text: facts.depression.monitoringNote.text,
+    citationIds: facts.depression.monitoringNote.citationIds,
+  })
+
+  return claims
+}
 
 /**
  * Patient register.
@@ -65,10 +112,11 @@ function phenoconversionClaims(facts: NarrativeFacts): DraftClaim[] {
       claims.push({
         section: 'phenoconversion_explainer',
         text:
-          `Your ${gene.gene} genes are perfectly ordinary. What changes the picture is ${cause.drug}, ` +
-          `which you are taking now — it is a strong blocker of ${gene.gene}, so for as long as you are on ` +
-          `it your body handles these medicines as though that enzyme were barely working. That is not a ` +
-          `problem with you, and it reverses once ${cause.drug} is out of your system.`,
+          `Your genetic ${gene.gene} result is ${gene.geneticPhenotype}. ${cap(cause.drug)} is recorded as ` +
+          `current and is classified as a ${cause.effect.replaceAll('_', ' ')} of ${gene.gene}. Using the ` +
+          `captured CYP2D6 method, the activity score changes from ${gene.geneticActivityScore} to ` +
+          `${gene.functionalActivityScore} during concurrent use. This is dosing context for a clinician, ` +
+          `not a prediction of benefit or harm.`,
         citationIds: gene.explanation.citationIds,
       })
     }
@@ -90,8 +138,9 @@ function phenoconversionClaims(facts: NarrativeFacts): DraftClaim[] {
     claims.push({
       section: 'phenoconversion_explainer',
       text:
-        `Nothing you currently take interferes with the enzymes that clear antidepressants, so how your ` +
-        `body handles them today matches what your genes predict.`,
+        `None of the current medicines you recorded matched an inhibitor or inducer in this evidence ` +
+        `snapshot. That does not prove there is no interaction; it depends on a complete medicine list and ` +
+        `the limits of the captured source.`,
       citationIds: ['fda-interaction-table'],
     })
   }
@@ -101,68 +150,33 @@ function phenoconversionClaims(facts: NarrativeFacts): DraftClaim[] {
 
 function trialClaims(facts: NarrativeFacts): DraftClaim[] {
   return facts.history.map((trial) => ({
-    section: 'why_trials_failed' as const,
+    section: 'treatment_history' as const,
     text: trial.patientSummary,
     citationIds: trial.mechanism?.citationIds ?? ['cpic-2023-sri'],
   }))
 }
 
 function whatNextClaims(facts: NarrativeFacts): DraftClaim[] {
-  const top = facts.shortlist.filter((d) => !d.isCurrentMedication)[0]
-  if (!top) return []
-
   const claims: DraftClaim[] = [
     {
       section: 'what_next',
       text:
-        `Taking your metabolism and your past attempts together, ${top.drug} is the option that fits you ` +
-        `best on the evidence available. This is something to take to your prescriber, not a prescription — ` +
-        `the decision is theirs and yours together.`,
-      citationIds: top.citationIds,
+        `The medication view shows the captured CPIC gene–drug findings for each option. It is listed for ` +
+        `review, not as a prediction of efficacy or a treatment recommendation. Your clinician needs the ` +
+        `diagnosis, treatment details, comorbidities, preferences and full medicine history to agree a plan.`,
+      citationIds: ['cpic-2023-sri'],
     },
   ]
 
-  // Why it works, in plain terms: the blocked enzyme is not the one that clears it.
   const blocked = facts.genes.find((g) => g.converted)
-  if (blocked && top.enzymeIndependence.length) {
+  if (blocked?.explanation) {
     claims.push({
       section: 'what_next',
       text:
-        `The reason it suits you is specific rather than generic: ${top.drug} is not cleared by ` +
-        `${blocked.gene}, the enzyme that ${blocked.modifiers[0]?.drug ?? 'your current medication'} has ` +
-        `switched off. The problem that rules out several of the other options simply does not apply to it.`,
-      citationIds: top.enzymeIndependence[0].citationIds,
-    })
-  }
-
-  // The washout, which is the part people get wrong.
-  if (top.washoutNote) {
-    const cause = blocked?.modifiers[0]?.drug
-    claims.push({
-      section: 'what_next',
-      text:
-        `One thing worth raising explicitly: ${cause ?? 'the medicine you are on'} does not leave your ` +
-        `system the day you stop taking it, and neither does its effect on your enzymes. Ask your ` +
-        `prescriber how they want to handle the overlap, because the timing of a switch changes what dose ` +
-        `is right at the start.`,
-      citationIds: top.washoutNote.citationIds,
-    })
-  }
-
-  // The ones to be careful with, gathered into a single sentence.
-  const avoided = facts.shortlist.filter((d) => d.verdict === 'avoid')
-  if (avoided.length) {
-    const names = avoided.map((d) => d.drug)
-    const list = names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names.at(-1)}` : names[0]
-    const finding = avoided[0].geneFindings[0]
-    claims.push({
-      section: 'what_next',
-      text:
-        `The ${names.length > 1 ? 'ones' : 'one'} to be most careful with ${names.length > 1 ? 'are' : 'is'} ` +
-        `${list}. These lean on ${finding?.gene ?? 'the affected enzyme'} to be cleared, and with that enzyme ` +
-        `effectively switched off the guidance is to pick something else rather than try to adjust the dose ` +
-        `around it.`,
-      citationIds: finding?.citationIds ?? top.citationIds,
+        `A current medicine changes the supported functional ${blocked.gene} calculation in this report. ` +
+        `Raise that finding before any switch or dose decision; this app does not create a washout, taper or ` +
+        `cross-taper plan.`,
+      citationIds: blocked.explanation.citationIds,
     })
   }
 
@@ -232,6 +246,7 @@ export function composeNarrative(facts: NarrativeFacts): Draft {
     generator: 'deterministic-template',
     model: 'offline composer (no model call)',
     claims: [
+      ...journeyClaims(facts),
       ...phenoconversionClaims(facts),
       ...trialClaims(facts),
       ...whatNextClaims(facts),
@@ -279,7 +294,7 @@ export function adversarialProbe(facts: NarrativeFacts): Draft {
       citationIds: ['cpic-2023-sri'],
     },
     {
-      section: 'why_trials_failed',
+      section: 'treatment_history',
       text:
         `Your results indicate a reduced ability to metabolise this class, so a lower dose should be used from ` +
         `the outset.`,
@@ -305,7 +320,7 @@ export function adversarialProbe(facts: NarrativeFacts): Draft {
 
 export type NarrativeFactsFrom = Pick<
   AnalysisResult,
-  'genes' | 'shortlist' | 'history' | 'protocol' | 'input'
+  'genes' | 'shortlist' | 'history' | 'protocol' | 'input' | 'care' | 'depression'
 >
 
 export function factsFrom(result: NarrativeFactsFrom): NarrativeFacts {
@@ -315,5 +330,7 @@ export function factsFrom(result: NarrativeFactsFrom): NarrativeFacts {
     history: result.history,
     protocol: result.protocol,
     currentMedications: result.input.currentMedications,
+    care: result.care,
+    depression: result.depression,
   }
 }

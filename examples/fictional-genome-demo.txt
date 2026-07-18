@@ -1,0 +1,10 @@
+# FICTIONAL DATA FOR SOFTWARE VALIDATION ONLY.
+# This is not a patient, laboratory or PharmCAT result.
+# Four columns: rsid, chromosome, GRCh38 position, genotype.
+# rsid	chromosome	position	genotype
+rs4244285	10	94781859	AG
+rs4986893	10	94780653	GG
+rs12248560	10	94761900	CC
+rs3892097	22	42128945	GG
+rs1065852	22	42130692	GG
+rs3745274	19	41006936	GG

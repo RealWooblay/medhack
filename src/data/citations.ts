@@ -37,6 +37,24 @@ export const CITATIONS: Record<string, Citation> = {
     url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC7226310/',
     year: '2020',
   },
+  'nice-depression-2022': {
+    id: 'nice-depression-2022',
+    label: 'NICE NG222',
+    kind: 'literature',
+    title:
+      'NICE NG222 — Depression in adults: treatment and management. Assessment, shared decision making, monitoring and follow-up recommendations.',
+    url: 'https://www.nice.org.uk/guidance/ng222/chapter/Recommendations',
+    year: '2022',
+  },
+  'phq9-validation': {
+    id: 'phq9-validation',
+    label: 'PHQ-9 validation',
+    kind: 'literature',
+    title:
+      'Kroenke K, Spitzer RL, Williams JBW. The PHQ-9: Validity of a Brief Depression Severity Measure. Journal of General Internal Medicine.',
+    url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC1495268/',
+    year: '2001',
+  },
 
   /* ---- Regulatory ---------------------------------------------------- */
   'fda-interaction-table': {

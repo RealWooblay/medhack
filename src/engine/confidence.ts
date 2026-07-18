@@ -1,35 +1,21 @@
 /**
  * Extension 3 — confidence and coverage scoring.
  *
- * PharmCAT reports which expected positions were missing from the VCF. It does not tell
- * you what that means. This module turns coverage into a per-gene trust score.
+ * Confidence is limited by the evidence actually supplied to this build. Reporter JSON
+ * alone does not include PharmCAT's separate missing-position VCF, and the reduced tag-SNP
+ * prototype is not a clinical allele caller. Neither is allowed to look complete.
  *
- * The load-bearing case: CYP2C19 calls cleanly from consumer array data, CYP2D6 does not.
- * Copy number variants, gene duplications and CYP2D6-CYP2D7 hybrids are not measurable
- * from a SNP array at all, so a CYP2D6 phenotype derived from one can be confidently
- * wrong. We surface that as a trust score rather than hiding it, and the ranking layer
- * consumes the score directly — a low-confidence gene call actively pushes the shortlist
- * toward drugs whose safety does not depend on that call.
+ * CYP2D6 copy number, duplications and CYP2D6-CYP2D7 hybrids cannot be resolved by the
+ * reduced SNP path. The UI therefore shows categorical limitations. These tiers are
+ * transparency labels, not calibrated probabilities and do not order medicines.
  */
 
 import type { AssayType, Claim, ConfidenceLevel, GeneCall, GeneConfidence } from './types'
-
-const ASSAY_FACTOR: Record<AssayType, number> = {
-  'consumer-array': 0.9,
-  wgs: 1.0,
-  'targeted-pgx': 1.0,
-}
 
 const ASSAY_LABEL: Record<AssayType, string> = {
   'consumer-array': 'consumer SNP array export',
   wgs: 'whole genome sequencing',
   'targeted-pgx': 'targeted pharmacogenomic panel',
-}
-
-function levelFor(score: number): ConfidenceLevel {
-  if (score >= 0.8) return 'high'
-  if (score >= 0.55) return 'moderate'
-  return 'low'
 }
 
 const HEADLINE: Record<ConfidenceLevel, string> = {
@@ -40,49 +26,64 @@ const HEADLINE: Record<ConfidenceLevel, string> = {
 
 export function scoreGene(gene: GeneCall, assayType: AssayType): GeneConfidence {
   const reasons: Claim[] = []
-  let score = 1.0
 
   // 1. Structural variation the assay cannot see. This dominates everything else.
   if (gene.structuralVariationUnresolved) {
-    score *= 0.45
     reasons.push({
       text:
-        `Copy number is not callable from a ${ASSAY_LABEL[assayType]}. ${gene.gene} gene deletions, ` +
-        `duplications and ${gene.gene}-CYP2D7 hybrid alleles change enzyme activity but are not ` +
-        `represented on a SNP array, so this phenotype could be confidently wrong. A duplication of a ` +
-        `functional allele would raise the true activity; a hybrid or deletion would lower it.`,
+        `${gene.gene} structural variation is unresolved in this result. For CYP2D6, an ordinary VCF or ` +
+        `small SNP set cannot reliably resolve deletions, duplications, copy number and CYP2D6-CYP2D7 ` +
+        `hybrids. Clinical use requires an appropriate validated call, supplied to PharmCAT as an outside call.`,
       citationIds: ['pharmgkb-cyp2d6-structural', 'cpic-activity-score'],
+    })
+  }
+
+  if (gene.coverageScope === 'report-json-only') {
+    reasons.push({
+      text:
+        `A PharmCAT Reporter JSON was parsed for ${gene.gene}, but the separate missing-position VCF was not ` +
+        `supplied to this app. Coverage completeness is therefore unknown; no missing position is assumed ` +
+        `to be the reference allele.`,
+      citationIds: ['pharmcat'],
+    })
+  } else if (gene.coverageScope === 'reduced-prototype') {
+    reasons.push({
+      text:
+        `This exploratory call checks only the prototype's small tag-variant set for ${gene.gene}. It is not ` +
+        `a PharmCAT or clinical laboratory call and cannot establish a complete star-allele result.`,
+      citationIds: ['pharmcat'],
+    })
+  } else if (gene.coverageScope === 'fixture') {
+    reasons.push({
+      text:
+        `${gene.gene} comes from a fictional known-result fixture. It demonstrates the report flow and must ` +
+        `not be interpreted as patient assay confidence.`,
+      citationIds: ['pharmcat'],
     })
   }
 
   // 2. Positions PharmCAT expected and did not find.
   const expected = gene.positionsCalled + gene.positionsMissing
   if (expected > 0 && gene.positionsMissing > 0) {
-    const missingFraction = gene.positionsMissing / expected
-    score *= 1 - Math.min(0.35, missingFraction * 0.7)
     reasons.push({
       text:
-        `${gene.positionsMissing} of ${expected} positions PharmCAT expects for ${gene.gene} were absent ` +
+        `${gene.positionsMissing} of ${expected} positions checked by this input path for ${gene.gene} were absent ` +
         `from the uploaded file (${gene.missingPositionLabels.slice(0, 4).join(', ')}` +
-        `${gene.missingPositionLabels.length > 4 ? ', and others' : ''}). Absent positions are treated as ` +
-        `reference by the caller, which can mask a reduced-function allele.`,
+        `${gene.missingPositionLabels.length > 4 ? ', and others' : ''}). Missing does not mean reference; ` +
+        `the result remains incomplete.`,
       citationIds: ['pharmcat'],
     })
   }
 
-  // 3. Assay class.
-  score *= ASSAY_FACTOR[assayType]
-
-  // 4. An indeterminate call is barely a call.
+  // An indeterminate call is not usable for a gene-driven recommendation.
   if (gene.phenotype === 'Indeterminate') {
-    score *= 0.5
     reasons.push({
       text: `${gene.gene} could not be resolved to a phenotype from the supplied data, so no ${gene.gene}-driven recommendation is made.`,
       citationIds: ['pharmcat'],
     })
   }
 
-  if (!reasons.length) {
+  if (!reasons.length && gene.coverageScope === 'pharmcat-complete') {
     reasons.push({
       text:
         `All positions PharmCAT expects for ${gene.gene} were present, and ${gene.gene} has no clinically ` +
@@ -91,26 +92,23 @@ export function scoreGene(gene: GeneCall, assayType: AssayType): GeneConfidence 
     })
   }
 
-  const rounded = Math.round(score * 100) / 100
-  const level = levelFor(rounded)
+  const level: ConfidenceLevel =
+    gene.phenotype === 'Indeterminate' ||
+    gene.structuralVariationUnresolved ||
+    gene.coverageScope === 'reduced-prototype'
+      ? 'low'
+      : gene.coverageScope === 'report-json-only' ||
+          gene.coverageScope === 'fixture' ||
+          gene.positionsMissing > 0
+        ? 'moderate'
+        : 'high'
 
   return {
     gene: gene.gene,
     level,
-    score: rounded,
     headline: gene.structuralVariationUnresolved
-      ? `${HEADLINE[level]} — copy number not callable from this file type`
+      ? `${HEADLINE[level]} — CYP2D6 structural variation unresolved`
       : HEADLINE[level],
     reasons,
   }
-}
-
-/**
- * Confidence weight applied to a drug's ranking score when its recommendation depends on
- * a given gene. A high-confidence call is worth its full weight; a low-confidence call is
- * discounted, which is what makes an enzyme-independent drug rise to the top when the
- * enzyme call itself is shaky.
- */
-export function rankingWeight(confidence: GeneConfidence): number {
-  return 0.4 + 0.6 * confidence.score
 }

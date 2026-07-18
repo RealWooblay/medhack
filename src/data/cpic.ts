@@ -6,10 +6,9 @@
  * data rather than retyped here, so the provenance chain from PDF to rendered badge stays
  * intact and reviewable.
  *
- * This table is the guideline knowledge PharmCAT itself embeds. We query it twice per
- * drug: once with the genetic phenotype, which reproduces what PharmCAT alone would say,
- * and once with the phenoconverted functional phenotype, which is the part PharmCAT
- * cannot do because it has never been told what else the patient is taking.
+ * This is a local captured CPIC lookup. It must not be described as the imported
+ * PharmCAT report's own drug-recommendation section. The engine applies it to the genetic
+ * phenotype and, where supported, to a functional CYP2D6 phenotype for comparison.
  */
 
 import sriSource from './sources/cpic-sri-2023.json'
@@ -213,10 +212,7 @@ export const DRUG_PROFILES: DrugProfile[] = [
     secondaryGenes: [],
     cpicCovered: false,
     metabolicNote:
-      'Desvenlafaxine is the already-formed active metabolite of venlafaxine. It is cleared primarily by ' +
-      'UGT conjugation and renal excretion with minimal cytochrome P450 involvement, so it largely bypasses ' +
-      'both CYP2D6 and CYP2C19. CPIC makes no dosing recommendation for it, so there is no guideline-backed ' +
-      'dose here — only the observation that the enzymes in question are not the ones that clear it.',
+      'CPIC does not provide a gene-guided antidepressant dosing recommendation for desvenlafaxine in the captured guideline.',
     citationIds: ['cpic-2023-sri'],
   },
   {
@@ -234,7 +230,7 @@ export const DRUG_PROFILES: DrugProfile[] = [
     primaryGenes: [],
     secondaryGenes: ['CYP3A4'],
     cpicCovered: false,
-    metabolicNote: 'Predominantly CYP3A4. Absorption depends substantially on being taken with food.',
+    metabolicNote: 'CPIC does not provide a gene-guided antidepressant dosing recommendation for vilazodone in the captured guideline.',
     citationIds: ['cpic-2023-sri'],
   },
   {
@@ -253,8 +249,7 @@ export const DRUG_PROFILES: DrugProfile[] = [
     secondaryGenes: ['CYP2B6'],
     cpicCovered: false,
     metabolicNote:
-      'A CYP2B6 substrate, and itself a strong CYP2D6 inhibitor — so starting bupropion would sustain a ' +
-      'functional CYP2D6 poor-metaboliser state rather than resolve one.',
+      'The captured interaction table classifies bupropion as a strong CYP2D6 inhibitor. This build has no CPIC antidepressant dosing recommendation for bupropion.',
     citationIds: ['fda-interaction-table'],
   },
   {
@@ -263,7 +258,7 @@ export const DRUG_PROFILES: DrugProfile[] = [
     primaryGenes: [],
     secondaryGenes: ['CYP2D6', 'CYP3A4', 'CYP1A2'],
     cpicCovered: false,
-    metabolicNote: 'Cleared by CYP2D6, CYP3A4 and CYP1A2 in parallel, which buffers the effect of any single enzyme.',
+    metabolicNote: 'This build has no CPIC antidepressant dosing recommendation for mirtazapine.',
     citationIds: ['cpic-2023-sri'],
   },
   {
@@ -290,7 +285,7 @@ export function profileOf(drug: string): DrugProfile | undefined {
   return DRUG_PROFILES.find((p) => p.drug.toLowerCase() === drug.toLowerCase())
 }
 
-/** The candidate set the ranking engine considers when asked "what should I give?". */
+/** Medicines for which this prototype displays the available PGx evidence. */
 export const SHORTLIST_CANDIDATES: string[] = [
   'sertraline', 'escitalopram', 'citalopram', 'paroxetine', 'fluvoxamine', 'fluoxetine',
   'venlafaxine', 'desvenlafaxine', 'duloxetine', 'vortioxetine', 'vilazodone',

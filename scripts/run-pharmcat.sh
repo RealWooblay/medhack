@@ -19,7 +19,8 @@ set -euo pipefail
 
 VCF="${1:?usage: run-pharmcat.sh <sample.vcf> [outdir]}"
 OUTDIR="${2:-pharmcat-out}"
-IMAGE="pgkb/pharmcat"
+# PharmCAT 3.4.0, pinned to the multi-architecture image digest published 2026-07-14.
+IMAGE="pgkb/pharmcat:3.4.0@sha256:bc498d55c33094002bd7e14221a6b3fcd7243a587675369bc1a5ecf6ac0e5319"
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "error: docker is required but not on PATH" >&2
@@ -69,19 +70,20 @@ Implement PharmCATAdapter (src/engine/pharmcat/adapter.ts) against *.report.json
 
 Consumer array data
 -------------------
-Add `--missing-to-ref` to force absent positions to reference. Read the caveat first: an
-array-derived "*1" means only "no tested variant found", so a true *2/*4 poor metaboliser
-can be reported as *1/*2 intermediate. That is precisely why this app reports a per-gene
-confidence score rather than a bare phenotype.
+Do not add `--missing-to-ref` in the production path. PharmCAT treats missing positions as
+no-calls by default, which is the safe meaning unless the upstream laboratory has explicitly
+established that every absent position is a true reference call. Import the
+`*.missing_pgx_var.vcf` beside the Reporter JSON and keep the limitation visible.
 
 PharmCAT explicitly recommends AGAINST calling CYP2D6 from a VCF, because structural and
 copy-number variation dominate the phenotype and are invisible to SNP/INDEL data. For
 CYP2D6, supply an outside call instead:
 
   printf 'CYP2D6\t*1/*1\n' > outside.tsv
-  docker run --rm -v "$PWD:/pharmcat/data" pgkb/pharmcat \
+  docker run --rm -v "$PWD:/pharmcat/data" \
+    pgkb/pharmcat:3.4.0@sha256:bc498d55c33094002bd7e14221a6b3fcd7243a587675369bc1a5ecf6ac0e5319 \
     pharmcat_pipeline /pharmcat/data/sample.vcf -o /pharmcat/data/out \
-    -reporterJson --missing-to-ref -po /pharmcat/data/outside.tsv
+    -reporterJson -po /pharmcat/data/outside.tsv
 
 That sets callSource=OUTSIDE on the gene report, which keeps the provenance visible.
 

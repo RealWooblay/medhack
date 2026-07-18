@@ -1,11 +1,10 @@
 /**
  * Core type contract.
  *
- * The architectural rule this file encodes: a clinical claim is a `Claim`, and a
- * `Claim` cannot exist without at least one `citationId`. Nothing in the UI renders
- * clinical text that is not a `Claim`. The LLM produces `Draft` prose; the validator
- * turns `Draft` into `ValidatedProse` or rejects it. There is no path from model
- * output to the screen that skips the validator.
+ * The architectural rule this file encodes: a clinical claim carries citation metadata.
+ * The LLM produces only `Draft` prose; the validator turns that draft into
+ * `ValidatedProse` or rejects it. There is no path from model-produced prose to the screen
+ * that skips the validator.
  */
 
 /* ------------------------------------------------------------------ */
@@ -68,6 +67,8 @@ export interface GeneCall {
   positionsMissing: number
   /** Human-readable identifiers of the missing positions, for the confidence panel. */
   missingPositionLabels: string[]
+  /** What this build genuinely knows about assay coverage for the call. */
+  coverageScope: 'pharmcat-complete' | 'report-json-only' | 'reduced-prototype' | 'fixture'
   /**
    * True when the assay structurally cannot resolve copy number / hybrid alleles for
    * this gene. This is the CYP2D6-from-an-array problem, and it is the single most
@@ -85,12 +86,12 @@ export interface ExcludedGeneCall {
   rationale: Claim
 }
 
-/** Authoritative recommendation text, straight from PharmCAT. Never paraphrased by a model. */
+/** Versioned guideline recommendation used by the local CPIC lookup. Never rewritten by a model. */
 export interface PharmCATDrugRecommendation {
   drug: string
   gene: string
   phenotype: Phenotype
-  /** Normalised action our ranking layer reasons over. */
+  /** Normalised action used to group and label the captured guidance. */
   action: RecommendationAction
   /** Guideline text, close to verbatim. This string is rendered as-is. */
   text: string
@@ -126,8 +127,13 @@ export type RecommendationAction =
 export interface PharmCATReport {
   reportId: string
   /** Which adapter produced this — surfaced in the UI provenance strip. */
-  provenance: 'fixture' | 'pharmcat-docker'
+  provenance: 'fixture' | 'reduced-tagsnp' | 'pharmcat-json' | 'pharmcat-docker'
+  /** PharmCAT software version when a real reporter result was imported; otherwise an explicit non-PharmCAT method label. */
   pharmcatVersion: string
+  /** Separate PharmCAT knowledge/data version, when present in an imported report. */
+  pharmcatDataVersion?: string | null
+  /** Timestamp reported by PharmCAT, when present. */
+  reportTimestamp?: string | null
   assayType: AssayType
   genes: GeneCall[]
   excludedGenes: ExcludedGeneCall[]
@@ -147,11 +153,64 @@ export interface PastTrial {
   note?: string
 }
 
+/* ------------------------------------------------------------------ */
+/* Depression journey context                                         */
+/* ------------------------------------------------------------------ */
+
+export type PhqFrequency = 0 | 1 | 2 | 3
+
+export interface DepressionCheckIn {
+  /** Exact PHQ-9 item responses, in published item order. */
+  responses: PhqFrequency[]
+  functionalImpact: 'not_difficult' | 'somewhat_difficult' | 'very_difficult' | 'extremely_difficult'
+}
+
+export type CareGoal =
+  | 'feel_more_like_myself'
+  | 'sleep_better'
+  | 'restore_energy'
+  | 'think_more_clearly'
+  | 'return_to_work_or_study'
+  | 'reconnect_with_people'
+  | 'reduce_side_effects'
+
+export interface LifestyleContext {
+  sleep: 'settled' | 'trouble_sleeping' | 'sleeping_too_much' | 'variable'
+  mealRoutine: 'regular' | 'irregular' | 'variable'
+  dailySchedule: 'regular' | 'shift_work' | 'variable'
+  alcohol: 'none' | 'occasional' | 'regular'
+  drivingOrMachinery: boolean
+  missedDoses: 'rarely' | 'sometimes' | 'often'
+  eatingDisorderHistory: boolean
+}
+
+export interface CareContext {
+  checkIn: DepressionCheckIn
+  goals: CareGoal[]
+  lifestyle: LifestyleContext
+  /** The app does not infer risk. This records the direct answer and triggers a fixed safety route. */
+  needsImmediateSupport: boolean
+}
+
 export interface PatientInput {
   genomeFileName: string
   assayType: AssayType
   currentMedications: string[]
   pastTrials: PastTrial[]
+  /** Optional for backwards compatibility with imported engine callers. The UI always supplies it. */
+  careContext?: CareContext
+}
+
+export type DepressionSeverity = 'minimal' | 'mild' | 'moderate' | 'moderately_severe' | 'severe'
+
+export interface DepressionSummary {
+  instrument: 'PHQ-9'
+  score: number
+  severity: DepressionSeverity
+  functionalImpact: DepressionCheckIn['functionalImpact']
+  safetyResponsePositive: boolean
+  interpretation: Claim
+  monitoringNote: Claim
 }
 
 /* ------------------------------------------------------------------ */
@@ -224,8 +283,6 @@ export type ConfidenceLevel = 'high' | 'moderate' | 'low'
 export interface GeneConfidence {
   gene: string
   level: ConfidenceLevel
-  /** 0..1, used for sorting and for down-weighting drugs that depend on a shaky call. */
-  score: number
   /** Short line rendered on the gene card. */
   headline: string
   /** The specific reasons, each cited. */
@@ -233,10 +290,18 @@ export interface GeneConfidence {
 }
 
 /* ------------------------------------------------------------------ */
-/* Extension 2 — inverted query, ranked shortlist                      */
+/* Medication-specific PGx findings                                   */
 /* ------------------------------------------------------------------ */
 
-export type Verdict = 'preferred' | 'caution' | 'avoid' | 'insufficient_evidence'
+/**
+ * A neutral summary of the captured PGx action. This is not a treatment ranking and must
+ * never be interpreted as evidence that a medicine is clinically preferred.
+ */
+export type PgxReviewCategory =
+  | 'usual_guidance'
+  | 'dose_or_titration_review'
+  | 'alternative_discussion'
+  | 'no_gene_based_guidance'
 
 export interface GeneFinding {
   gene: string
@@ -259,51 +324,30 @@ export interface InteractionFlag {
 export interface DrugAssessment {
   drug: string
   drugClass: string
-  /** Verdict under the patient's CURRENT functional phenotypes — the state that governs
-   *  tolerability in the first weeks, which is when people stop taking things. */
-  verdict: Verdict
+  /** Neutral category from the captured PGx action; never an efficacy or treatment ranking. */
+  pgxCategory: PgxReviewCategory
   /** e.g. "standard dosing", "reduce starting dose", "avoid" */
   headline: string
-  /** e.g. "not CYP2D6-dependent" — the one-line reason shown on the row. */
+  /** One-line gene context shown on the row. */
   reason: string
   geneFindings: GeneFinding[]
   interactionFlags: InteractionFlag[]
   /** Caveats arising from low-confidence gene calls. */
   confidenceCaveats: Claim[]
   /**
-   * Where a compromised enzyme simply does not clear this drug. This is what lets a drug
-   * rise precisely because it sidesteps the patient's problem.
+   * Context showing that a finding for one enzyme does not govern this drug's captured
+   * gene–drug recommendation. This never promotes the drug.
    */
   enzymeIndependence: Claim[]
   /** Links this row to a past trial, when the patient has already tried it. */
   pastTrial: TrialReconstruction | null
   /**
-   * Why this drug is or is not worth a second look. A drug that failed for a reason the
-   * report can identify and fix is a genuinely different proposition from one that failed
-   * for no reason anybody can name, and flattening both into "already tried" throws away
-   * the most actionable thing pharmacogenomics has to offer.
+   * Treatment-history context. It does not change the PGx category or infer causation.
    */
   retryRationale: Claim | null
   /** True when this is something the patient is already taking. */
   isCurrentMedication: boolean
-  /**
-   * Verdict once the interacting medication has washed out and the functional phenotype
-   * reverts to the genetic one. Null when nothing is phenoconverted, because then there is
-   * no second state to report.
-   */
-  postWashoutVerdict: Verdict | null
-  postWashoutHeadline: string | null
-  washoutNote: Claim | null
-  /** Higher is better. Deterministic; see ranking.ts for the components. */
-  score: number
-  scoreBreakdown: ScoreComponent[]
   citationIds: string[]
-}
-
-export interface ScoreComponent {
-  label: string
-  delta: number
-  detail: string
 }
 
 /* ------------------------------------------------------------------ */
@@ -315,7 +359,7 @@ export type TrialExplanation = 'consistent' | 'possible' | 'not_explained_by_gen
 export interface TrialReconstruction {
   drug: string
   outcome: TrialOutcome
-  /** How well the metabolic picture accounts for what happened. */
+  /** Whether PGx raises a bounded exposure question; never a causal attribution. */
   explanation: TrialExplanation
   /** The mechanism, deterministically templated from cited facts. */
   mechanism: Claim | null
@@ -354,13 +398,34 @@ export interface LifestyleProtocol {
   interactionItems: ProtocolItem[]
 }
 
+export type DailyFitVerdict = 'supports_routine' | 'needs_planning' | 'clinician_review' | 'unknown'
+
+export interface DailyFitFact {
+  dimension: 'sleep' | 'meals' | 'schedule' | 'alcohol' | 'driving' | 'adherence' | 'medical_history'
+  verdict: Exclude<DailyFitVerdict, 'unknown'>
+  title: string
+  detail: string
+  citationIds: string[]
+}
+
+export interface DrugLifestyleMatch {
+  drug: string
+  verdict: DailyFitVerdict
+  headline: string
+  facts: DailyFitFact[]
+  /** Priorities without a sufficiently specific captured label fact stay unknown. */
+  unknowns: string[]
+}
+
 /* ------------------------------------------------------------------ */
 /* The claim boundary — drafts, validation, rejections                 */
 /* ------------------------------------------------------------------ */
 
 export type NarrativeSection =
+  | 'journey_summary'
+  | 'monitoring_plan'
   | 'phenoconversion_explainer'
-  | 'why_trials_failed'
+  | 'treatment_history'
   | 'what_next'
   | 'protocol_intro'
   | 'clinician_rationale'
@@ -410,6 +475,12 @@ export interface ValidationReport {
   allowedDrugs: string[]
   allowedCitationIds: string[]
   claimsChecked: number
+  /** Candidate report prose rejected during this run, excluding deliberate validator probes. */
+  renderedRejectionCount?: number
+  /** Deliberately injected test statements rejected by the validator. */
+  probeRejectionCount?: number
+  renderedClaimsChecked?: number
+  probeClaimsChecked?: number
 }
 
 /* ------------------------------------------------------------------ */
@@ -418,15 +489,18 @@ export interface ValidationReport {
 
 export interface AnalysisResult {
   input: PatientInput
+  care: CareContext
+  depression: DepressionSummary
   pharmcat: PharmCATReport
   genes: GenePhenotypeResult[]
   excludedGenes: ExcludedGeneCall[]
   shortlist: DrugAssessment[]
   history: TrialReconstruction[]
-  /** Protocol for the top-ranked drug. */
+  /** Protocol selected for the current detail view; selection is not a recommendation. */
   protocol: LifestyleProtocol | null
   /** Protocols keyed by drug, so the UI can switch when a different row is opened. */
   protocolsByDrug: Record<string, LifestyleProtocol>
+  lifestyleMatches: Record<string, DrugLifestyleMatch>
   narrative: ValidationReport
   citations: Record<string, Citation>
   /** Pipeline steps, surfaced so the user can see what ran deterministically. */
