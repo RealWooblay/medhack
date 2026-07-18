@@ -15,8 +15,7 @@
  *     a treatment score.
  */
 
-import { profileOf, SHORTLIST_CANDIDATES, type DrugProfile } from '../data/cpic'
-import { canonicalDrug } from '../data/drug-lexicon'
+import { canonicalDrug, drugClassOf, type DrugClass } from '../data/drug-lexicon'
 import type {
   Claim,
   DrugAssessment,
@@ -28,6 +27,15 @@ import type {
   RecommendationAction,
   TrialReconstruction,
 } from './types'
+
+interface DrugProfile {
+  drug: string
+  drugClass: string
+  primaryGenes: string[]
+  cpicCovered: boolean
+  metabolicNote: string
+  citationIds: string[]
+}
 
 /* ------------------------------------------------------------------ */
 /* Action semantics                                                    */
@@ -45,14 +53,14 @@ const ACTION_SEVERITY: RecommendationAction[] = [
   'no_recommendation', 'standard',
 ]
 
-function worstAction(actions: RecommendationAction[]): RecommendationAction | null {
+export function worstRecommendationAction(actions: RecommendationAction[]): RecommendationAction | null {
   for (const a of ACTION_SEVERITY) if (actions.includes(a)) return a
   return null
 }
 
 function categoryFor(findings: GeneFinding[], _cpicCovered: boolean): PgxReviewCategory {
   if (!findings.length) return 'no_gene_based_guidance'
-  const worst = worstAction(findings.map((f) => f.action))
+  const worst = worstRecommendationAction(findings.map((f) => f.action))
   if (!worst) return 'no_gene_based_guidance'
 
   switch (worst) {
@@ -75,7 +83,7 @@ function categoryFor(findings: GeneFinding[], _cpicCovered: boolean): PgxReviewC
 
 function headlineFor(findings: GeneFinding[], cpicCovered: boolean): string {
   if (!findings.length) return cpicCovered ? 'no guideline recommendation' : 'no CPIC recommendation'
-  const worst = worstAction(findings.map((f) => f.action))
+  const worst = worstRecommendationAction(findings.map((f) => f.action))
   switch (worst) {
     case 'avoid':
       return 'avoid'
@@ -109,7 +117,7 @@ function findingsFor(
   recommendations: PharmCATDrugRecommendation[],
 ): GeneFinding[] {
   return recommendations
-    .filter((recommendation) => recommendation.drug === profile.drug)
+    .filter((recommendation) => normaliseDrug(recommendation.drug) === profile.drug)
     .map((recommendation) => ({
       geneResults: recommendation.geneResults,
       gene: recommendation.gene,
@@ -125,6 +133,84 @@ function findingsFor(
       citationIds: recommendation.citationIds,
       sourceUrl: recommendation.sourceUrl,
     }))
+}
+
+const ANTIDEPRESSANT_CLASSES = new Set<DrugClass>([
+  'SSRI',
+  'SNRI',
+  'serotonin modulator',
+  'atypical antidepressant',
+  'TCA',
+  'MAOI',
+])
+
+function normaliseDrug(value: string): string {
+  return (canonicalDrug(value) ?? value).trim().toLowerCase()
+}
+
+/**
+ * Return a recognised antidepressant generic, or null for every other medicine.
+ * PharmCAT can report guidance from many specialties; this product must not silently turn
+ * all of those rows into an antidepressant list.
+ */
+function antidepressantDrug(value: string): string | null {
+  const drug = normaliseDrug(value)
+  const drugClass = drugClassOf(drug)
+  return drugClass && ANTIDEPRESSANT_CLASSES.has(drugClass) ? drug : null
+}
+
+/**
+ * Build the smallest profile required by the deterministic assembly. Exact genes and source
+ * IDs come from this patient's imported annotation. A current/past medicine without a
+ * matched row gets no gene metadata or inferred guidance.
+ */
+function profileFor(
+  drug: string,
+  recommendations: PharmCATDrugRecommendation[],
+): DrugProfile | null {
+  const drugClass = drugClassOf(drug)
+  if (!drugClass || !ANTIDEPRESSANT_CLASSES.has(drugClass)) return null
+
+  const matched = recommendations.filter((item) => normaliseDrug(item.drug) === drug)
+  if (!matched.length) {
+    return {
+      drug,
+      drugClass,
+      primaryGenes: [],
+      cpicCovered: false,
+      metabolicNote: 'No matched PharmCAT annotation was imported for this medicine.',
+      citationIds: [],
+    }
+  }
+
+  return {
+    drug,
+    drugClass,
+    primaryGenes: [...new Set(matched.flatMap((item) => item.geneResults.map((result) => result.gene)))],
+    cpicCovered: true,
+    metabolicNote: 'The imported PharmCAT report contains a matched guideline annotation for this medicine.',
+    citationIds: [...new Set(matched.flatMap((item) => item.citationIds))],
+  }
+}
+
+/**
+ * Candidate rows are driven by the uploaded result and this person's medication history.
+ * There is deliberately no fixed product shortlist and no generated filler row.
+ */
+function candidateDrugs(
+  recommendations: PharmCATDrugRecommendation[],
+  currentMedications: string[],
+  history: TrialReconstruction[],
+): string[] {
+  const candidates = [
+    ...recommendations.map((item) => item.drug),
+    ...currentMedications,
+    ...history.map((item) => item.drug),
+  ]
+    .map(antidepressantDrug)
+    .filter((drug): drug is string => Boolean(drug))
+
+  return [...new Set(candidates)].sort((a, b) => a.localeCompare(b))
 }
 
 /* ------------------------------------------------------------------ */
@@ -205,7 +291,7 @@ function interactionFlagsFor(
         `${gene.gene}. True ${gene.gene} activity is therefore likely lower than the reported ${gene.geneticPhenotype} ` +
         `phenotype, but no validated method exists to quantify by how much, so this needs prescriber judgement ` +
         `rather than a calculated dose.`,
-      citationIds: ['cpic-2023-sri', 'fda-interaction-table'],
+      citationIds: [...new Set([...profile.citationIds, 'fda-interaction-table'])],
     })
   }
 
@@ -235,7 +321,7 @@ function assessRetry(
           `${capDrug(drug)} is recorded in your treatment history with the outcome “${pastTrial.outcome.replace('_', ' ')}”. ` +
           `That history is shown beside the PGx finding but does not change the PGx category. The app cannot ` +
           `infer why the outcome occurred without the full trial and clinical context.`,
-        citationIds: pastTrial.mechanism?.citationIds ?? ['cpic-2023-sri'],
+        citationIds: pastTrial.mechanism?.citationIds ?? [],
       },
     }
   }
@@ -259,20 +345,22 @@ export interface RankingInput {
 }
 
 export function assembleDrugFindings({ genes, recommendations, currentMedications, history }: RankingInput): DrugAssessment[] {
-  const meds = currentMedications.map((m) => (canonicalDrug(m) ?? m).toLowerCase())
+  const meds = currentMedications.map(normaliseDrug)
 
   const assessments: DrugAssessment[] = []
 
-  for (const drug of SHORTLIST_CANDIDATES) {
-    const profile = profileOf(drug)
+  for (const drug of candidateDrugs(recommendations, currentMedications, history)) {
+    const profile = profileFor(drug, recommendations)
     if (!profile) continue
 
     const findings = findingsFor(profile, recommendations)
     const baseCategory = categoryFor(findings, profile.cpicCovered)
     const headline = headlineFor(findings, profile.cpicCovered)
-    const independence = enzymeIndependenceFor(profile, genes)
-    const flags = interactionFlagsFor(profile, genes)
-    const pastTrial = history.find((h) => h.drug.toLowerCase() === drug.toLowerCase()) ?? null
+    // Do not infer medicine-specific consequences from static metadata when the uploaded
+    // report supplied no exact annotation for this person.
+    const independence = findings.length ? enzymeIndependenceFor(profile, genes) : []
+    const flags = findings.length ? interactionFlagsFor(profile, genes) : []
+    const pastTrial = history.find((h) => normaliseDrug(h.drug) === drug) ?? null
     const isCurrent = meds.includes(drug.toLowerCase())
     const retry = assessRetry(drug, baseCategory, pastTrial, history)
     const pgxCategory = retry.category
@@ -292,14 +380,14 @@ export function assembleDrugFindings({ genes, recommendations, currentMedication
       const sidestepped = genes.filter((g) => g.converted && !profile.primaryGenes.includes(g.gene)).map((g) => g.gene)
       if (sidestepped.length) reasonParts.push(`not ${sidestepped.join('/')}-dependent`)
     }
-    if (!profile.cpicCovered) reasonParts.push('outside CPIC scope')
+    if (!findings.length) reasonParts.push('no matched PharmCAT guidance')
 
     assessments.push({
       drug,
       drugClass: profile.drugClass,
       pgxCategory,
       headline,
-      reason: reasonParts.join(' · ') || profile.metabolicNote.slice(0, 80),
+      reason: reasonParts.join(' · '),
       geneFindings: findings,
       interactionFlags: flags,
       confidenceCaveats: genes

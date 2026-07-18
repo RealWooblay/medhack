@@ -24,6 +24,17 @@ async function runCaptured(currentMedications: string[] = ['fluoxetine']): Promi
 }
 
 describe('real PharmCAT example flow', () => {
+  it('keeps every unasked routine and safety field unknown', async () => {
+    const result = await runCaptured([])
+
+    expect(result.care.lifestyle).toEqual({})
+    expect(result.care.needsImmediateSupport).toBeNull()
+    for (const match of Object.values(result.lifestyleMatches)) {
+      expect(match.verdict).toBe('unknown')
+      expect(match.facts).toEqual([])
+    }
+  })
+
   it('preserves official software, data and genotype provenance', async () => {
     const result = await runCaptured([])
     expect(result.pharmcat).toMatchObject({
@@ -101,13 +112,6 @@ describe('real PharmCAT example flow', () => {
     const names = result.shortlist.map((drug) => drug.drug)
     expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)))
     expect(JSON.stringify(result.shortlist)).not.toMatch(/likely to work|best medicine|most effective/i)
-  })
-
-  it('does not inject a recorded fake model run or fallback narrative', async () => {
-    const result = await runCaptured([])
-    expect(result.narrative.generator).toBe('deterministic-template')
-    expect(result.narrative.rejections).toEqual([])
-    expect(result.narrative.model).not.toMatch(/fallback|recorded generation/i)
   })
 
   it('keeps every displayed clinical fact linked to a resolvable source', async () => {

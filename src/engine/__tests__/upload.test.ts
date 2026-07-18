@@ -6,6 +6,7 @@ import {
 } from '../pharmcat/adapter'
 import {
   CAPTURED_EXAMPLE_ASSAY,
+  CAPTURED_PHARMCAT_EXAMPLE,
   CAPTURED_PHARMCAT_EXAMPLE_JSON,
 } from '../pharmcat/fixtures'
 import { runAnalysis } from '../pipeline'
@@ -82,6 +83,78 @@ describe('official PharmCAT Reporter JSON import', () => {
       .rejects.toThrow(/not valid PharmCAT/i)
     await expect(adapter.analyze({ fileName: 'generic.json', contents: '{}', assayType: 'unknown' }))
       .rejects.toThrow(/supported PharmCAT Reporter structure/i)
+  })
+
+  it('accepts a valid Reporter result with no matched recommendations and creates no filler rows', async () => {
+    const empty = structuredClone(CAPTURED_PHARMCAT_EXAMPLE) as Record<string, unknown>
+    empty.drugs = {}
+    const result = await runAnalysis({
+      adapter: new PharmCATReportJsonAdapter(),
+      genome: {
+        fileName: 'no-recommendations.report.json',
+        contents: JSON.stringify(empty),
+        assayType: CAPTURED_EXAMPLE_ASSAY,
+      },
+      input: {
+        genomeFileName: 'no-recommendations.report.json',
+        assayType: CAPTURED_EXAMPLE_ASSAY,
+        currentMedications: [],
+        pastTrials: [],
+      },
+    })
+    expect(result.pharmcat.recommendations).toEqual([])
+    expect(result.shortlist).toEqual([])
+  })
+
+  it('does not substitute recommendation diplotypes for a missing source call', async () => {
+    const changed = structuredClone(CAPTURED_PHARMCAT_EXAMPLE)
+    changed.genes.CYP2D6.sourceDiplotypes = []
+    const report = await new PharmCATReportJsonAdapter().analyze({
+      fileName: 'missing-source.report.json',
+      contents: JSON.stringify(changed),
+      assayType: CAPTURED_EXAMPLE_ASSAY,
+    })
+    expect(report.genes.find((gene) => gene.gene === 'CYP2D6')).toMatchObject({
+      diplotype: 'ambiguous or no call',
+      phenotype: 'Indeterminate',
+      activityScore: null,
+    })
+  })
+
+  it('drops untrusted guideline URLs and does not turn an availability flag into a switch action', async () => {
+    const changed = structuredClone(CAPTURED_PHARMCAT_EXAMPLE)
+    const citalopram = changed.drugs['CPIC Guideline Annotation'].citalopram as {
+      urls: string[]
+      guidelines: Array<{
+        url: string
+        annotations: Array<{ alternateDrugAvailable: boolean }>
+      }>
+    }
+    citalopram.urls = ['javascript:alert(1)']
+    citalopram.guidelines[0].url = 'https://attacker.example/fake-guideline'
+    citalopram.guidelines[0].annotations[0].alternateDrugAvailable = true
+    const report = await new PharmCATReportJsonAdapter().analyze({
+      fileName: 'untrusted-url.report.json',
+      contents: JSON.stringify(changed),
+      assayType: CAPTURED_EXAMPLE_ASSAY,
+    })
+    const recommendation = report.recommendations.find((item) => item.drug === 'citalopram')!
+    expect(recommendation.sourceUrl).toBeUndefined()
+    expect(recommendation.alternateDrugAvailable).toBe(true)
+    expect(recommendation.action).toBe('standard')
+  })
+
+  it('does not relabel non-antidepressant PharmCAT annotations with an antidepressant guideline source', async () => {
+    const changed = structuredClone(CAPTURED_PHARMCAT_EXAMPLE)
+    const citalopram = structuredClone(changed.drugs['CPIC Guideline Annotation'].citalopram)
+    citalopram.name = 'clopidogrel'
+    changed.drugs['CPIC Guideline Annotation'].clopidogrel = citalopram
+    const report = await new PharmCATReportJsonAdapter().analyze({
+      fileName: 'mixed-specialty.report.json',
+      contents: JSON.stringify(changed),
+      assayType: CAPTURED_EXAMPLE_ASSAY,
+    })
+    expect(report.recommendations.some((item) => item.drug === 'clopidogrel')).toBe(false)
   })
 
   it('uses recommendation wording only to create neutral UI groups', () => {

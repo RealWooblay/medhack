@@ -4,12 +4,10 @@
  * Serves three jobs:
  *  1. the medication autocomplete in the input step,
  *  2. normalising brand names a patient types ("Prozac") to generics ("fluoxetine"),
- *  3. giving the validator a closed vocabulary of drug names to detect in model prose.
+ *  3. giving the constrained model-review verifier a closed drug vocabulary.
  *
- * (3) is the important one. The validator can only reject a hallucinated drug name if it
- * can recognise drug names in the first place, so this list is deliberately broad — it
- * includes drugs we make no recommendations about, precisely so that a model mentioning
- * them gets caught.
+ * The list is deliberately broader than the supported PGx evidence. Recognising a medicine
+ * never implies that the system has guidance for it.
  */
 
 export type DrugClass =

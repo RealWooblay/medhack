@@ -2,9 +2,7 @@
  * Extension 5 — lifestyle protocol fusion.
  *
  * Assembles the daily protocol for a specific drug and this specific patient's other
- * medications. Critical items are pinned and cannot be collapsed by the UI, because the
- * items that are genuinely dangerous to miss — a tyramine restriction, a lithium fluid
- * rule — are also the ones a tidy interface would tuck away first.
+ * medications. Critical label items are pinned so the UI cannot collapse them.
  */
 
 import { interactionRulesFor, rulesForDrug, type InteractionRule, type LifestyleRule } from '../data/lifestyle-rules'
@@ -63,16 +61,4 @@ export function buildProtocol(drug: string, currentMedications: string[]): Lifes
     requireSource(interactionRulesFor(drug, currentMedications).map(toItem)),
   )
   return { drug, items, interactionItems }
-}
-
-/**
- * The daily-rhythm view the patient sees first: one line per part of the day, built only
- * from rules that actually exist for their drug. Absence is information too — "no food
- * restrictions for this drug" is a real answer and is rendered as one.
- */
-export function dailyRhythm(protocol: LifestyleProtocol): ProtocolItem[] {
-  const wanted = ['timing', 'food', 'avoid', 'watch']
-  return wanted
-    .map((category) => protocol.items.find((i) => i.category === category))
-    .filter((i): i is ProtocolItem => Boolean(i))
 }

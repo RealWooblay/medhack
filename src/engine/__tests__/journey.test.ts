@@ -42,7 +42,15 @@ describe('daily-life matching', () => {
     expect(match.facts.some((fact) => fact.dimension === 'schedule' && fact.verdict === 'supports_routine')).toBe(true)
     expect(match.facts.some((fact) => fact.dimension === 'driving')).toBe(true)
     for (const fact of match.facts) expect(fact.citationIds.length).toBeGreaterThan(0)
-    expect(match.unknowns.join(' ')).toMatch(/does not predict/)
+    expect(match.headline).toBe('A routine change is needed')
+  })
+
+  it('does not turn unanswered routine questions into reassuring evidence', () => {
+    const protocol = buildProtocol('escitalopram', [])
+    const match = matchLifestyle(protocol, care(), {})
+
+    expect(match.facts).toEqual([])
+    expect(match.verdict).toBe('unknown')
   })
 
   it('surfaces the bupropion eating-disorder conflict for clinician review', () => {

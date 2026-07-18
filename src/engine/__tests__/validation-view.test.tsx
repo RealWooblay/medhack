@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { App } from '../../App'
+import { currentMedicinesResolved, exactDoseSentence } from '../../ui/ValidationConsole'
 import { runAnalysis } from '../pipeline'
 import {
   CAPTURED_EXAMPLE_ASSAY,
@@ -49,22 +50,33 @@ async function validationResult() {
 }
 
 describe('simplified validation surface', () => {
-  it('renders the explicit six-part validation flow', () => {
+  it('renders the explicit product flow with raw DNA first', () => {
     const markup = renderToStaticMarkup(<App />)
 
-    expect(markup).toContain('File')
-    expect(markup).toContain('Genes')
+    expect(markup).toContain('DNA')
+    expect(markup).toContain('Gene results')
     expect(markup).toContain('Medicines')
     expect(markup).toContain('Daily life')
     expect(markup).toContain('AI review')
-    expect(markup).toContain('Evidence')
-    expect(markup).toContain('Start with a result')
-    expect(markup).toContain('Official example')
+    expect(markup).toContain('Sources')
+    expect(markup).toContain('Upload your DNA')
+    expect(markup).toContain('Current medicines and supplements')
+    expect(markup).toContain('I take none')
+    expect(markup).toContain('Use published example')
+    expect(markup).toContain('Import PharmCAT report')
     expect(markup).not.toContain('Report sections')
     expect(markup).not.toContain('Sample journey')
     expect(markup).not.toContain('PHQ-9')
     expect(markup).not.toContain('preferred')
     expect(markup).not.toContain('shortlist')
+  })
+
+  it('requires medicines or an explicit confirmation of none', () => {
+    expect(currentMedicinesResolved('', false)).toBe(false)
+    expect(currentMedicinesResolved('', true)).toBe(true)
+    expect(currentMedicinesResolved('fluoxetine, ibuprofen', false)).toBe(true)
+    expect(currentMedicinesResolved('fluoxetine', true)).toBe(false)
+    expect(currentMedicinesResolved('not-a-real-medicine', false)).toBe(false)
   })
 
   it('runs only the captured official PharmCAT report through the real parser', async () => {
@@ -75,6 +87,30 @@ describe('simplified validation surface', () => {
     expect(result.pharmcat.pharmcatVersion).toBe('v3.3.0-8-g8ff5870f')
     expect(result.genes).toHaveLength(3)
     expect(result.pharmcat.genes.find((gene) => gene.gene === 'CYP2D6')?.structuralVariationUnresolved).toBe(true)
+  })
+
+  it('surfaces exact quantitative dose wording when PharmCAT supplies it', async () => {
+    const result = await validationResult()
+    const amitriptyline = result.shortlist.find((drug) => drug.drug === 'amitriptyline')!
+
+    expect(exactDoseSentence(amitriptyline)).toBe('Consider a 25% reduction of recommended starting dose.')
+  })
+
+  it('does not headline a lower-priority percentage when another rule says avoid', async () => {
+    const result = await validationResult()
+    const amitriptyline = result.shortlist.find((drug) => drug.drug === 'amitriptyline')!
+    const avoidFinding = {
+      ...amitriptyline.geneFindings[0],
+      action: 'avoid' as const,
+      guidelineText: 'Avoid this medicine for this phenotype.',
+    }
+
+    expect(exactDoseSentence({
+      ...amitriptyline,
+      headline: 'avoid',
+      pgxCategory: 'alternative_discussion',
+      geneFindings: [...amitriptyline.geneFindings, avoidFinding],
+    })).toBeNull()
   })
 
   it('resolves source records across every clinical output lane', async () => {
@@ -92,7 +128,15 @@ describe('simplified validation surface', () => {
     result.genes.forEach((gene) => expectKnown(sourceIdsForGene(gene)))
     result.excludedGenes.forEach((gene) => expectKnown(gene.rationale.citationIds))
     result.shortlist.forEach((drug) => {
-      expectKnown(sourceIdsForMedication(drug))
+      const medicationSources = sourceIdsForMedication(drug)
+      const hasSourceBoundClaim =
+        drug.geneFindings.length > 0 ||
+        drug.interactionFlags.length > 0 ||
+        drug.confidenceCaveats.length > 0 ||
+        drug.enzymeIndependence.length > 0 ||
+        drug.retryRationale !== null
+      if (hasSourceBoundClaim) expectKnown(medicationSources)
+      else expect(medicationSources).toEqual([])
       drug.geneFindings.forEach((finding) => expectKnown(finding.citationIds))
       drug.interactionFlags.forEach((flag) => expectKnown(flag.citationIds))
       drug.confidenceCaveats.forEach((claim) => expectKnown(claim.citationIds))
@@ -111,13 +155,11 @@ describe('simplified validation surface', () => {
     result.pharmcat.recommendations.forEach((recommendation) => expectKnown(recommendation.citationIds))
   })
 
-  it('passes all software lineage checks with live AI disabled', async () => {
+  it('passes all deterministic software-lineage checks', async () => {
     const result = await validationResult()
     const checks = buildValidationChecks(result)
 
     expect(checks.length).toBeGreaterThan(0)
     expect(checks.every((check) => check.passed)).toBe(true)
-    expect(result.narrative.generator).toBe('deterministic-template')
-    expect(result.narrative.rejections).toEqual([])
   })
 })

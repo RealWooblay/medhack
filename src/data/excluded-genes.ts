@@ -20,29 +20,14 @@ const CPIC_NO_RECOMMENDATION =
   'clinical validity and utility at this time (CPIC level C: no recommendation).'
 
 export function excludedGeneCalls(observed: Record<string, string>): ExcludedGeneCall[] {
-  return [
-    {
-      gene: 'SLC6A4',
-      observed: observed.SLC6A4 ?? 'not supplied',
+  return ['SLC6A4', 'HTR2A']
+    .filter((gene) => typeof observed[gene] === 'string' && observed[gene].trim().length > 0)
+    .map((gene) => ({
+      gene,
+      observed: observed[gene],
       rationale: {
-        text:
-          `${CPIC_NO_RECOMMENDATION} SLC6A4 encodes the serotonin transporter that SSRIs bind, which makes it ` +
-          `intuitively appealing and is why panels keep reporting it — but the association with treatment ` +
-          `response has not held up well enough to guide prescribing. This result is displayed for ` +
-          `completeness and is not used anywhere in the recommendations above.`,
+        text: `${CPIC_NO_RECOMMENDATION} This imported ${gene} result is not used in any medicine finding.`,
         citationIds: ['cpic-2023-sri'],
       },
-    },
-    {
-      gene: 'HTR2A',
-      observed: observed.HTR2A ?? 'not supplied',
-      rationale: {
-        text:
-          `${CPIC_NO_RECOMMENDATION} HTR2A variants have been studied extensively for antidepressant response ` +
-          `and side effects, and the evidence remains mixed. This result is displayed for completeness and is ` +
-          `not used anywhere in the recommendations above.`,
-        citationIds: ['cpic-2023-sri'],
-      },
-    },
-  ]
+    }))
 }

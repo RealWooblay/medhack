@@ -1,0 +1,422 @@
+{
+  "schemaVersion": 1,
+  "authority": "US Food and Drug Administration",
+  "title": "FDA's Examples of Drugs that Interact with CYP Enzymes and Transporter Systems",
+  "sourceUrl": "https://www.fda.gov/drugs/drug-interactions-labeling/healthcare-professionals-fdas-examples-drugs-interact-cyp-enzymes-and-transporter-systems",
+  "contentCurrentAsOf": "2026-05-29",
+  "scope": [
+    "CYP2D6",
+    "CYP2C19",
+    "CYP2B6"
+  ],
+  "completeness": "Complete extraction of inhibitor and inducer rows for the three listed enzymes; the FDA table itself is non-exhaustive.",
+  "modifiers": [
+    {
+      "drug": "abiraterone",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "moderate_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "amiodarone",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "apalutamide",
+      "effects": [
+        {
+          "gene": "CYP2C19",
+          "effect": "moderate_inducer"
+        }
+      ]
+    },
+    {
+      "drug": "bupropion",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "strong_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "carbamazepine",
+      "effects": [
+        {
+          "gene": "CYP2B6",
+          "effect": "strong_inducer"
+        }
+      ]
+    },
+    {
+      "drug": "celecoxib",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "cenobamate",
+      "effects": [
+        {
+          "gene": "CYP2C19",
+          "effect": "moderate_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "cimetidine",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "cinacalcet",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "moderate_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "clobazam",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "clopidogrel",
+      "effects": [
+        {
+          "gene": "CYP2B6",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "cobicistat",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "duloxetine",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "moderate_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "efavirenz",
+      "effects": [
+        {
+          "gene": "CYP2B6",
+          "effect": "moderate_inducer"
+        },
+        {
+          "gene": "CYP2C19",
+          "effect": "moderate_inducer"
+        }
+      ]
+    },
+    {
+      "drug": "enzalutamide",
+      "effects": [
+        {
+          "gene": "CYP2C19",
+          "effect": "moderate_inducer"
+        }
+      ]
+    },
+    {
+      "drug": "escitalopram",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "felbamate",
+      "effects": [
+        {
+          "gene": "CYP2C19",
+          "effect": "moderate_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "fluconazole",
+      "effects": [
+        {
+          "gene": "CYP2C19",
+          "effect": "strong_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "fluoxetine",
+      "effects": [
+        {
+          "gene": "CYP2C19",
+          "effect": "strong_inhibitor"
+        },
+        {
+          "gene": "CYP2D6",
+          "effect": "strong_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "fluvoxamine",
+      "effects": [
+        {
+          "gene": "CYP2C19",
+          "effect": "strong_inhibitor"
+        },
+        {
+          "gene": "CYP2D6",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "isavuconazole",
+      "effects": [
+        {
+          "gene": "CYP2B6",
+          "effect": "weak_inducer"
+        }
+      ]
+    },
+    {
+      "drug": "labetalol",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "lemborexant",
+      "effects": [
+        {
+          "gene": "CYP2B6",
+          "effect": "weak_inducer"
+        }
+      ]
+    },
+    {
+      "drug": "lorcaserin",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "moderate_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "lorlatinib",
+      "effects": [
+        {
+          "gene": "CYP2B6",
+          "effect": "weak_inducer"
+        }
+      ]
+    },
+    {
+      "drug": "mirabegron",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "moderate_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "nevirapine",
+      "effects": [
+        {
+          "gene": "CYP2B6",
+          "effect": "weak_inducer"
+        }
+      ]
+    },
+    {
+      "drug": "omeprazole",
+      "effects": [
+        {
+          "gene": "CYP2C19",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "paroxetine",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "strong_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "phenytoin",
+      "effects": [
+        {
+          "gene": "CYP2C19",
+          "effect": "moderate_inducer"
+        }
+      ]
+    },
+    {
+      "drug": "pirtobrutinib",
+      "effects": [
+        {
+          "gene": "CYP2C19",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "quinidine",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "strong_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "rifampin",
+      "effects": [
+        {
+          "gene": "CYP2B6",
+          "effect": "moderate_inducer"
+        },
+        {
+          "gene": "CYP2C19",
+          "effect": "strong_inducer"
+        }
+      ]
+    },
+    {
+      "drug": "ritonavir",
+      "effects": [
+        {
+          "gene": "CYP2B6",
+          "effect": "weak_inducer"
+        },
+        {
+          "gene": "CYP2C19",
+          "effect": "weak_inducer"
+        }
+      ]
+    },
+    {
+      "drug": "rolapitant",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "moderate_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "sertraline",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "tenofovir",
+      "effects": [
+        {
+          "gene": "CYP2B6",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "terbinafine",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "strong_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "ticlopidine",
+      "effects": [
+        {
+          "gene": "CYP2B6",
+          "effect": "weak_inhibitor"
+        },
+        {
+          "gene": "CYP2C19",
+          "effect": "strong_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "vemurafenib",
+      "effects": [
+        {
+          "gene": "CYP2D6",
+          "effect": "weak_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "voriconazole",
+      "effects": [
+        {
+          "gene": "CYP2B6",
+          "effect": "weak_inhibitor"
+        },
+        {
+          "gene": "CYP2C19",
+          "effect": "moderate_inhibitor"
+        }
+      ]
+    },
+    {
+      "drug": "zanubrutinib",
+      "effects": [
+        {
+          "gene": "CYP2C19",
+          "effect": "weak_inducer"
+        }
+      ]
+    }
+  ],
+  "sourceDigestSha256": "1c56585d48d18bc1261888de663283d9d75812e17e3669742e66d773b1ec742d"
+}

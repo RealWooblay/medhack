@@ -13,11 +13,11 @@ import {
   validateClinicalReviewOutput,
 } from '../clinical-review'
 
-async function runPrivateFixture(): Promise<AnalysisResult> {
+async function runPrivateFixture(currentMedications: string[] = ['fluoxetine']): Promise<AnalysisResult> {
   const input: PatientInput = {
     genomeFileName: 'Jane-Doe-direct-identifier-pharmcat.report.json',
     assayType: CAPTURED_EXAMPLE_ASSAY,
-    currentMedications: ['fluoxetine'],
+    currentMedications,
     pastTrials: [
       {
         drug: 'paroxetine',
@@ -66,16 +66,16 @@ describe('privacy-minimised clinical review context', () => {
     expect(withoutAnswers.facts.some((fact) => fact.id === 'SYMPTOM-CONTEXT')).toBe(false)
 
     const confirmed = buildClinicalReviewContext(result, {
-      selectedDrug: 'mirtazapine',
-      confirmedLifestyle: { sleep: 'sleeping_too_much' },
+      selectedDrug: 'sertraline',
+      confirmedLifestyle: { dailySchedule: 'variable' },
       includeSymptomContext: true,
     })
-    expect(confirmed.facts.some((fact) => fact.id === 'LIFESTYLE-CONTEXT:sleep')).toBe(true)
+    expect(confirmed.facts.some((fact) => fact.id === 'LIFESTYLE-CONTEXT:dailySchedule')).toBe(true)
     expect(confirmed.facts.some((fact) => fact.id === 'LIFESTYLE-CONTEXT:mealRoutine')).toBe(false)
     expect(
-      confirmed.facts.some(
-        (fact) => fact.domain === 'lifestyle_match' && fact.drugNames.includes('mirtazapine'),
-      ),
+      confirmed.facts
+        .filter((fact) => fact.domain === 'lifestyle_match')
+        .every((fact) => /schedule/i.test(fact.text)),
     ).toBe(true)
     expect(confirmed.facts.some((fact) => fact.id === 'SYMPTOM-CONTEXT')).toBe(false)
   })
@@ -208,7 +208,8 @@ describe('privacy-minimised clinical review context', () => {
     expect(rejected.rejections.map((entry) => entry.kind)).toContain('invalid_counterfactual')
   })
 
-  it('calls only a same-origin endpoint and sends the minimised context as JSON', async () => {
+  it('calls only a same-origin endpoint and sends no browser-authored clinical facts', async () => {
+    const runId = '2c0664a7-1ae0-4f56-9f44-6505de12bb4e'
     let requestBody = ''
     let requestInit: RequestInit | undefined
     const context = buildClinicalReviewContext(result, { selectedDrug: 'sertraline' })
@@ -222,23 +223,19 @@ describe('privacy-minimised clinical review context', () => {
         ok: true,
         status: 200,
         json: async () => ({
+          schemaVersion: '1.0',
+          runId,
           model: 'google/medgemma-27b-text-it@test',
-          choices: [
-            {
-              message: {
-                content: JSON.stringify({
-                  items: [
-                    {
-                      action: 'clinician_question',
-                      factIds: [fact.id],
-                      drugNames: ['sertraline'],
-                      sourceIds: fact.sourceIds.slice(0, 1),
-                    },
-                  ],
-                }),
-              },
-            },
-          ],
+          context,
+          review: {
+            items: [{
+              action: 'clinician_question',
+              factIds: [fact.id],
+              drugNames: ['sertraline'],
+              sourceIds: fact.sourceIds.slice(0, 1),
+            }],
+            rejections: [],
+          },
         }),
       } as Response
     })
@@ -248,9 +245,8 @@ describe('privacy-minimised clinical review context', () => {
       fetchImpl,
     })
 
-    const review = await provider.review(result, { selectedDrug: 'sertraline' })
-    const outer = JSON.parse(requestBody) as { messages: Array<{ role: string; content: string }> }
-    const sent = JSON.parse(outer.messages.find((message) => message.role === 'user')!.content) as unknown
+    const review = await provider.review(result, { attestedRunId: runId, selectedDrug: 'sertraline' })
+    const sent = JSON.parse(requestBody) as Record<string, unknown>
     const serialised = JSON.stringify(sent)
 
     expect(review.status).toBe('complete')
@@ -260,27 +256,55 @@ describe('privacy-minimised clinical review context', () => {
     expect(serialised).not.toContain('Jane-Doe')
     expect(serialised).not.toContain('DIRECT_IDENTIFIER_JANE')
     expect(serialised).not.toContain('diplotype')
+    expect(serialised).not.toContain('facts')
+    expect(serialised).not.toContain('messages')
+    expect(sent.runId).toBe(runId)
+    expect(sent.patientContext).toMatchObject({
+      currentMedications: ['fluoxetine'],
+      currentMedicationsStatus: 'provided',
+    })
   })
 
-  it('refuses cross-origin model endpoints and non-JSON model text', async () => {
+  it('marks an empty resolved medicine list as explicitly confirmed none', async () => {
+    const resultWithoutMedicines = await runPrivateFixture([])
+    let requestBody = ''
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      requestBody = String(init?.body ?? '')
+      return new Response(null, { status: 503 })
+    })
+    const provider = new MedGemmaClinicalReviewProvider({
+      endpoint: '/api/clinical-review',
+      origin: 'https://pgx.example',
+      fetchImpl,
+    })
+
+    await provider.review(resultWithoutMedicines, {
+      attestedRunId: '2c0664a7-1ae0-4f56-9f44-6505de12bb4e',
+    })
+
+    const sent = JSON.parse(requestBody) as {
+      patientContext: { currentMedications: string[]; currentMedicationsStatus: string }
+    }
+    expect(sent.patientContext).toEqual(expect.objectContaining({
+      currentMedications: [],
+      currentMedicationsStatus: 'confirmed_none',
+    }))
+  })
+
+  it('refuses cross-origin endpoints and any review without a private run ID', async () => {
     expect(
       () => new MedGemmaClinicalReviewProvider({ endpoint: 'https://other.example/review', origin: 'https://pgx.example' }),
     ).toThrow(/same-origin/)
 
+    const fetchImpl = vi.fn()
     const provider = new MedGemmaClinicalReviewProvider({
       endpoint: '/api/clinical-review',
       origin: 'https://pgx.example',
-      fetchImpl: vi.fn(async () => ({
-        ok: true,
-        status: 200,
-        json: async () => ({
-          model: 'google/medgemma-27b-text-it@test',
-          choices: [{ message: { content: '```json\n{"items":[]}\n```' } }],
-        }),
-      }) as Response),
+      fetchImpl,
     })
     const review = await provider.review(result)
-    expect(review.status).toBe('rejected')
-    expect(review.rejections[0].kind).toBe('malformed_response')
+    expect(review.status).toBe('error')
+    expect(review.message).toMatch(/completed private genome run/i)
+    expect(fetchImpl).not.toHaveBeenCalled()
   })
 })

@@ -59,11 +59,12 @@ export const CITATIONS: Record<string, Citation> = {
   /* ---- Regulatory ---------------------------------------------------- */
   'fda-interaction-table': {
     id: 'fda-interaction-table',
-    label: 'FDA interaction table',
+    label: 'FDA interaction table · 2026-05-29',
     kind: 'fda-table',
     title:
-      "FDA — For Healthcare Professionals: Examples of Drugs that Interact with CYP Enzymes and Transporter Systems",
+      "FDA — For Healthcare Professionals: Examples of Drugs that Interact with CYP Enzymes and Transporter Systems. Runtime snapshot is complete for CYP2D6, CYP2C19 and CYP2B6 modifier columns as of 2026-05-29; FDA states the underlying table is not exhaustive.",
     url: 'https://www.fda.gov/drugs/drug-interactions-labeling/healthcare-professionals-fdas-examples-drugs-interact-cyp-enzymes-and-transporter-systems',
+    year: '2026',
   },
   'fda-pgx-associations': {
     id: 'fda-pgx-associations',

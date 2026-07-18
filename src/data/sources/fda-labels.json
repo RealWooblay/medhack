@@ -1,0 +1,467 @@
+{
+  "schemaVersion": 1,
+  "authority": "US FDA Structured Product Labeling via openFDA; stable display links use DailyMed",
+  "selectionPolicy": "Each product is explicitly pinned by SPL set_id. A set_id change requires clinical review.",
+  "labels": [
+    {
+      "generic": "amitriptyline",
+      "setId": "0067b698-ee1d-4524-b1cc-af1028d13736",
+      "versionId": "d8bc1bbb-9f8c-439b-b3b8-000fa58fdcf3",
+      "effectiveTime": "20240612",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "A-S Medication Solutions",
+      "productName": "Amitriptyline Hydrochloride",
+      "dosageForm": "TABLET, FILM COATED",
+      "productNdc": "50090-4005",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "ANDA210086",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=0067b698-ee1d-4524-b1cc-af1028d13736",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%220067b698-ee1d-4524-b1cc-af1028d13736%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%2250090-4005%22&limit=1",
+      "evidence": {
+        "amitriptyline-driving": {
+          "sourceField": "precautions",
+          "exactText": [
+            "patients should be advised as to the possible impairment of mental and/or physical abilities required for performance of hazardous tasks, such as operating machinery or driving a motor vehicle"
+          ]
+        }
+      },
+      "sourceDigestSha256": "95dc5a29415707079b14a72877751759fb744c99a27d676fa32ffc52f1d29d97"
+    },
+    {
+      "generic": "bupropion",
+      "setId": "004d8121-59d4-46c4-acb8-b2dd097bf556",
+      "versionId": "47afeb95-a677-8969-e063-6294a90a7b2d",
+      "effectiveTime": "20251125",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "Oryza pharmaceuticals Inc.",
+      "productName": "buPropion Hydrochloride XL",
+      "dosageForm": "TABLET, EXTENDED RELEASE",
+      "productNdc": "72516-035",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "ANDA211200",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=004d8121-59d4-46c4-acb8-b2dd097bf556",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%22004d8121-59d4-46c4-acb8-b2dd097bf556%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%2272516-035%22&limit=1",
+      "evidence": {
+        "bupropion-alcohol": {
+          "sourceField": "information_for_patients",
+          "exactText": [
+            "Advise patients to minimize or avoid the use of alcohol.",
+            "the excessive use or the abrupt discontinuation of alcohol, benzodiazepines, antiepileptic drugs, or sedatives/hypnotics can increase the risk of seizure"
+          ]
+        },
+        "bupropion-eating-disorder": {
+          "sourceField": "contraindications",
+          "exactText": [
+            "current or prior diagnosis of bulimia or anorexia nervosa"
+          ]
+        }
+      },
+      "sourceDigestSha256": "daa1e9f7ad4b38708c23629759eda8a66a42d14b389aa3de422909c5c8f679b9"
+    },
+    {
+      "generic": "citalopram",
+      "setId": "0109f365-bebd-4810-a56f-4451e10245db",
+      "versionId": "3401590f-c858-2164-e063-6294a90a7ea1",
+      "effectiveTime": "20250430",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "REMEDYREPACK INC.",
+      "productName": "Citalopram",
+      "dosageForm": "TABLET, FILM COATED",
+      "productNdc": "70518-4334",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "ANDA077031",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=0109f365-bebd-4810-a56f-4451e10245db",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%220109f365-bebd-4810-a56f-4451e10245db%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%2270518-4334%22&limit=1",
+      "evidence": {
+        "citalopram-daily": {
+          "sourceField": "dosage_and_administration",
+          "exactText": [
+            "Administer once daily with or without food"
+          ]
+        }
+      },
+      "sourceDigestSha256": "ad82f7dd66c6486838c881709703f7123b5aee45e709208914be37f12f8fdbb7"
+    },
+    {
+      "generic": "desvenlafaxine",
+      "setId": "0f43610c-f290-46ea-d186-4f998ed99fce",
+      "versionId": "b9acfefd-10c0-4942-9446-18bb456efb68",
+      "effectiveTime": "20260428",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "Wyeth Pharmaceuticals LLC, a subsidiary of Pfizer Inc.",
+      "productName": "Pristiq Extended-Release",
+      "dosageForm": "TABLET, EXTENDED RELEASE",
+      "productNdc": "0008-1210",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "NDA021992",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=0f43610c-f290-46ea-d186-4f998ed99fce",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%220f43610c-f290-46ea-d186-4f998ed99fce%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%220008-1210%22&limit=1",
+      "evidence": {
+        "desvenlafaxine-time": {
+          "sourceField": "dosage_and_administration",
+          "exactText": [
+            "with or without food",
+            "PRISTIQ should be taken at approximately the same time each day."
+          ]
+        },
+        "desvenlafaxine-alcohol": {
+          "sourceField": "information_for_patients",
+          "exactText": [
+            "Advise patients to avoid alcohol while taking PRISTIQ"
+          ]
+        }
+      },
+      "sourceDigestSha256": "31cfeffaa3b4bb963418095739d139f7c13a2c2393d4f8099383076db85655ef"
+    },
+    {
+      "generic": "duloxetine",
+      "setId": "00628e5e-4c5b-2573-e063-6294a90a0e3b",
+      "versionId": "30de843c-548f-4ced-e063-6394a90aac20",
+      "effectiveTime": "20250321",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "Golden State Medical Supply, Inc.",
+      "productName": "Duloxetine Delayed-Release",
+      "dosageForm": "CAPSULE, DELAYED RELEASE PELLETS",
+      "productNdc": "51407-817",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "ANDA203088",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=00628e5e-4c5b-2573-e063-6294a90a0e3b",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%2200628e5e-4c5b-2573-e063-6294a90a0e3b%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%2251407-817%22&limit=1",
+      "evidence": {
+        "duloxetine-food": {
+          "sourceField": "dosage_and_administration",
+          "exactText": [
+            "Administer Duloxetine delayed-release capsules orally (with or without meals)"
+          ]
+        },
+        "duloxetine-heavy-alcohol": {
+          "sourceField": "warnings_and_cautions",
+          "exactText": [
+            "concomitantly with heavy alcohol intake may be associated with severe liver injury"
+          ]
+        }
+      },
+      "sourceDigestSha256": "20554a645074af3015eaa39790c4036ebb5f51ca594fc973a3b0ef3e3afd8dc2"
+    },
+    {
+      "generic": "escitalopram",
+      "setId": "0458445b-e431-4c82-86b8-90373813c10a",
+      "versionId": "2f987c95-695b-d900-e063-6294a90a0cf8",
+      "effectiveTime": "20250305",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "Chartwell RX, LLC",
+      "productName": "Escitalopram Oral Solution",
+      "dosageForm": "SOLUTION",
+      "productNdc": "62135-729",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "ANDA090477",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=0458445b-e431-4c82-86b8-90373813c10a",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%220458445b-e431-4c82-86b8-90373813c10a%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%2262135-729%22&limit=1",
+      "evidence": {
+        "escitalopram-timing": {
+          "sourceField": "dosage_and_administration",
+          "exactText": [
+            "Administer once daily, morning or evening, with or without food"
+          ]
+        },
+        "escitalopram-driving": {
+          "sourceField": "warnings_and_cautions",
+          "exactText": [
+            "patients should be cautioned about operating hazardous machinery, including automobiles, until they are reasonably certain that escitalopram therapy does not affect their ability"
+          ]
+        }
+      },
+      "sourceDigestSha256": "64ca2ae2e15a5d747108c38b3619beb0a42b3d5eaa810050e033fefd7fe146bd"
+    },
+    {
+      "generic": "fluoxetine",
+      "setId": "02283de9-6087-45f7-a9ce-3b082ce860de",
+      "versionId": "b9d5a8f5-39f1-425d-93fa-8adf95867fdb",
+      "effectiveTime": "20190201",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "Bryant Ranch Prepack",
+      "productName": "Fluoxetine",
+      "dosageForm": "CAPSULE",
+      "productNdc": "71335-0827",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "ANDA204597",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=02283de9-6087-45f7-a9ce-3b082ce860de",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%2202283de9-6087-45f7-a9ce-3b082ce860de%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%2271335-0827%22&limit=1",
+      "evidence": {
+        "fluoxetine-morning": {
+          "sourceField": "dosage_and_administration",
+          "exactText": [
+            "Initiate fluoxetine 20 mg/day orally in the morning."
+          ]
+        },
+        "fluoxetine-driving": {
+          "sourceField": "warnings_and_cautions",
+          "exactText": [
+            "Patients should be cautioned about operating hazardous machinery, including automobiles, until they are reasonably certain that the drug treatment does not affect them adversely."
+          ]
+        }
+      },
+      "sourceDigestSha256": "f6bf15416cfff99a4362dfbb71e16c1cf26d21dee38a77321d44891842586d0a"
+    },
+    {
+      "generic": "mirtazapine",
+      "setId": "0f19ab40-1a30-4ac2-9bd7-c2f8199e29e1",
+      "versionId": "cc15149e-2921-468f-a145-513b01885a81",
+      "effectiveTime": "20220801",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "Proficient Rx LP",
+      "productName": "Mirtazapine",
+      "dosageForm": "TABLET, FILM COATED",
+      "productNdc": "71205-481",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "ANDA076921",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=0f19ab40-1a30-4ac2-9bd7-c2f8199e29e1",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%220f19ab40-1a30-4ac2-9bd7-c2f8199e29e1%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%2271205-481%22&limit=1",
+      "evidence": {
+        "mirtazapine-evening": {
+          "sourceField": "dosage_and_administration",
+          "exactText": [
+            "Administer orally once daily, preferably in the evening prior to sleep."
+          ]
+        },
+        "mirtazapine-somnolence": {
+          "sourceField": "warnings_and_cautions",
+          "exactText": [
+            "Somnolence: May impair judgment, thinking and/or motor skills."
+          ]
+        },
+        "mirtazapine-driving": {
+          "sourceField": "warnings_and_cautions",
+          "exactText": [
+            "Use with caution when engaging in activities requiring alertness, such as driving or operating machinery."
+          ]
+        }
+      },
+      "sourceDigestSha256": "ce09aae6dee435191a98d9d2985266a274eaa2a526bec983bab35114384997d3"
+    },
+    {
+      "generic": "nortriptyline",
+      "setId": "017f7717-e160-4142-9a5a-1a2bd9776707",
+      "versionId": "48468ca6-013d-3ee8-e063-6294a90a61c9",
+      "effectiveTime": "20260113",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "Direct Rx",
+      "productName": "NORTRIPTYLINE HYDROCHLORIDE",
+      "dosageForm": "CAPSULE",
+      "productNdc": "61919-171",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "ANDA074132",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=017f7717-e160-4142-9a5a-1a2bd9776707",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%22017f7717-e160-4142-9a5a-1a2bd9776707%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%2261919-171%22&limit=1",
+      "evidence": {
+        "nortriptyline-driving": {
+          "sourceField": "warnings",
+          "exactText": [
+            "may impair the mental and/or physical abilities required for the performance of hazardous tasks, such as operating machinery or driving a car"
+          ]
+        }
+      },
+      "sourceDigestSha256": "27cb872b90eb05ed633df5143ac48a011c434580e0a2fef3196f3483582feb24"
+    },
+    {
+      "generic": "paroxetine",
+      "setId": "009d8b89-eab9-43ba-b077-86bfa993a745",
+      "versionId": "561ac0f9-c093-2477-e063-6294a90abf9a",
+      "effectiveTime": "20260708",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "REMEDYREPACK INC.",
+      "productName": "Paroxetine",
+      "dosageForm": "TABLET, FILM COATED",
+      "productNdc": "70518-2598",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "ANDA203854",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=009d8b89-eab9-43ba-b077-86bfa993a745",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%22009d8b89-eab9-43ba-b077-86bfa993a745%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%2270518-2598%22&limit=1",
+      "evidence": {
+        "paroxetine-morning": {
+          "sourceField": "dosage_and_administration",
+          "exactText": [
+            "Administer paroxetine tablets as a single daily dose in the morning, with or without food."
+          ]
+        }
+      },
+      "sourceDigestSha256": "94412a3d2b2351a47d4ad27d29c768bd58b97e08eab746e75f50ce6259d97e96"
+    },
+    {
+      "generic": "sertraline",
+      "setId": "00179766-980b-44b0-99d3-1fee2bb27e37",
+      "versionId": "7731d02d-7220-4f43-b230-9d38875f4192",
+      "effectiveTime": "20191101",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "Proficient Rx LP",
+      "productName": "Sertraline Hydrochloride",
+      "dosageForm": "TABLET",
+      "productNdc": "63187-859",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "ANDA077397",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=00179766-980b-44b0-99d3-1fee2bb27e37",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%2200179766-980b-44b0-99d3-1fee2bb27e37%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%2263187-859%22&limit=1",
+      "evidence": {
+        "sertraline-food": {
+          "sourceField": "spl_medguide",
+          "exactText": [
+            "Sertraline tablets may be taken with or without food."
+          ]
+        },
+        "sertraline-alcohol": {
+          "sourceField": "information_for_patients",
+          "exactText": [
+            "the concomitant use of sertraline hydrochloride and alcohol is not advised."
+          ]
+        }
+      },
+      "sourceDigestSha256": "7cf525a43cc6ac6d2f26fefff1fa234ee75110b19bb5106915bdf09a751e1621"
+    },
+    {
+      "generic": "venlafaxine",
+      "setId": "017a84aa-0e1f-f560-e063-6294a90a9069",
+      "versionId": "2d58848f-040e-c4bd-e063-6294a90a33e4",
+      "effectiveTime": "20250204",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "NuCare Pharmaceuticals,Inc.",
+      "productName": "Venlafaxine",
+      "dosageForm": "TABLET",
+      "productNdc": "68071-3431",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "ANDA077653",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=017a84aa-0e1f-f560-e063-6294a90a9069",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%22017a84aa-0e1f-f560-e063-6294a90a9069%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%2268071-3431%22&limit=1",
+      "evidence": {
+        "venlafaxine-food-time": {
+          "sourceField": "dosage_and_administration",
+          "exactText": [
+            "taken with food"
+          ]
+        },
+        "venlafaxine-driving": {
+          "sourceField": "precautions",
+          "exactText": [
+            "patients should be cautioned about operating hazardous machinery, including automobiles, until they are reasonably certain that venlafaxine tablets therapy does not adversely affect their ability"
+          ]
+        },
+        "venlafaxine-alcohol": {
+          "sourceField": "precautions",
+          "exactText": [
+            "patients should be advised to avoid alcohol while taking venlafaxine tablets."
+          ]
+        }
+      },
+      "sourceDigestSha256": "fcacc2699b0c10b4711dd78bf8355812ad4c5e8db5699ece11c03ac2e767f63f"
+    },
+    {
+      "generic": "vilazodone",
+      "setId": "0374fbb1-b0fb-4150-b1e7-92e2b0d32ecf",
+      "versionId": "900c5751-06b2-49b5-86a0-275d75eef7f8",
+      "effectiveTime": "20230130",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "Alembic Pharmaceuticals Limited",
+      "productName": "VILAZODONE HYDROCHLORIDE",
+      "dosageForm": "TABLET, FILM COATED",
+      "productNdc": "46708-232",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "ANDA208202",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=0374fbb1-b0fb-4150-b1e7-92e2b0d32ecf",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%220374fbb1-b0fb-4150-b1e7-92e2b0d32ecf%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%2246708-232%22&limit=1",
+      "evidence": {
+        "vilazodone-food": {
+          "sourceField": "dosage_and_administration",
+          "exactText": [
+            "Recommended target dosage: 20 mg to 40 mg once daily with food"
+          ]
+        }
+      },
+      "sourceDigestSha256": "7e66e494b52efb0b86a1603510dac1e7f4a6195d1f3e66703ba0097420e5c840"
+    },
+    {
+      "generic": "vortioxetine",
+      "setId": "1a5b68e2-14d0-419d-9ec6-1ca97145e838",
+      "versionId": "186fcd68-438e-427f-ae19-8042c15baa78",
+      "effectiveTime": "20250305",
+      "openFdaApiCurrentAsOf": "2026-07-18",
+      "manufacturer": "Takeda Pharmaceuticals America, Inc.",
+      "productName": "Trintellix",
+      "dosageForm": "TABLET, FILM COATED",
+      "productNdc": "64764-720",
+      "route": [
+        "ORAL"
+      ],
+      "productType": "HUMAN PRESCRIPTION DRUG",
+      "applicationNumber": "NDA204447",
+      "sourceUrl": "https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=1a5b68e2-14d0-419d-9ec6-1ca97145e838",
+      "apiUrl": "https://api.fda.gov/drug/label.json?search=set_id%3A%221a5b68e2-14d0-419d-9ec6-1ca97145e838%22&limit=1",
+      "ndcApiUrl": "https://api.fda.gov/drug/ndc.json?search=product_ndc%3A%2264764-720%22&limit=1",
+      "evidence": {
+        "vortioxetine-food": {
+          "sourceField": "dosage_and_administration",
+          "exactText": [
+            "administered orally once daily without regard to meals"
+          ]
+        },
+        "vortioxetine-ibuprofen-bleeding": {
+          "sourceField": "warnings_and_cautions",
+          "exactText": [
+            "Concomitant use of aspirin, nonsteroidal anti-inflammatory drugs (NSAIDs), warfarin, and other anticoagulants may add to this risk."
+          ]
+        }
+      },
+      "sourceDigestSha256": "0251e9903a267e1225ed3792790f5468b878af7bbf8c8fd298a1c8e187379193"
+    }
+  ]
+}

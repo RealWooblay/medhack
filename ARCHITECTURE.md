@@ -1,201 +1,160 @@
-# Antidepressant PGx system
+# System architecture
 
-## What it does
-
-The system turns a recognised PharmCAT Reporter JSON into a short journey:
+## The system in one line
 
 ```text
-File → Genes → Medicines → Daily life → AI review → Evidence
+Genome → private PharmCAT run → fixed clinical engine → medicines → daily life → constrained AI check → sources
 ```
 
-- **Genes** explains how the reported enzymes may process supported medicines.
-- **Medicines** shows exact guideline wording about exposure and dosing.
-- **Daily life** compares routine answers with draft drug-specific label summaries.
-- **AI review** connects those run-derived facts, finds gaps or conflicts, and prepares questions.
-- **Evidence** shows exactly where every result came from.
+PharmCAT is the underlying gene-calling and guideline tool. The product adds the safe upload,
+plain-English flow, current-medicine context, drug-specific daily-life check, constrained medical
+model and complete run trace.
 
-The patient can start the process. The clinician makes the prescribing decision.
+## The normal journey
 
-## What it does not do
+### 1. Upload DNA
 
-Genetics can affect medicine exposure. It does not reliably tell us which antidepressant will
-improve a person's depression. The system therefore never:
+The normal input is one person's GRCh38 VCF or VCF.GZ. The raw file uploads directly to a private,
+short-lived Cloud Storage session. It does not pass through Vercel and it is never sent to AI.
 
-- predicts treatment success;
-- ranks medicines by likely antidepressant benefit;
-- diagnoses depression;
-- starts, stops or changes a medicine;
-- calls a medicine safe; or
-- hides missing or rejected evidence.
+The system does not guess a genome build, strand or missing allele. A generic consumer DNA export
+is rejected until a provider-specific converter and coverage policy have been validated. Converting
+columns into VCF is easy; proving that the missing pharmacogenomic sites are safe to interpret is
+the hard part.
 
-Guideline text may say to consider another medicine or review a dose. That text is something
-to discuss with a prescriber, not an instruction to the patient.
+### 2. Run PharmCAT
 
-## The clinical data path
+A private Cloud Run Job uses our small audited worker built on the pinned official PharmCAT image.
+The worker:
 
-```mermaid
-flowchart LR
-    A["Raw genome"] -->|"governed bioinformatics service"| B["Official PharmCAT run"]
-    B --> C["Reporter JSON + coverage artefact + run manifest"]
-    C --> D["Deterministic app engine"]
-    D --> E["Gene and medicine views"]
-    F["Regulator label data"] --> D
-    G["Current medicines and routine"] --> D
-```
+- verifies one sample and GRCh38;
+- checks compressed size, uncompressed size, record count and file structure;
+- runs the official pipeline without treating missing positions as reference;
+- records called and missing positions for each supported gene;
+- removes CYP2D6 output unless a validated structural/copy-number-aware outside caller exists;
+- seals input, command, image, version, coverage and output hashes in a final manifest; and
+- returns no result if any required check fails.
 
-### 1. Input
+The browser receives a restricted Reporter result and manifest. The original genome and unrestricted
+report stay in private storage.
 
-The working validation input is PharmCAT Reporter JSON.
+### 3. Build the result
 
-- The built-in example is downloaded from PharmCAT's official examples site at run time.
-- A user can upload their own Reporter JSON.
-- An upload is checked for the expected Reporter structure. That does not authenticate its
-  origin or prove that it came from a governed PharmCAT run.
-- A raw VCF or consumer DNA file is only inspected in the browser. It cannot produce a
-  clinical result until the real PharmCAT service succeeds.
-- If the official example, upload or service fails, the result fails. Nothing forces success.
+Deterministic TypeScript reads the exact PharmCAT output. Medicine rows come only from:
 
-### 2. Gene results
+- matched antidepressant annotations in that run;
+- antidepressants the person says they currently take; and
+- antidepressants in an explicitly supplied past-treatment record.
 
-The app imports the gene call, diplotype, phenotype, activity score, source and software/data
-versions reported by PharmCAT. It translates the phenotype into plain English but keeps the
-scientific value in Evidence.
+There is no fixed patient shortlist and no generated filler result. The app translates scientific
+terms into short labels, but the original recommendation, genes, source URL and versions remain in
+**Sources**.
 
-Reporter JSON does not contain the separate missing-position VCF, so an uploaded report by
-itself is labelled **coverage unknown**. CYP2D6 copy number and structural variation also stay
-unresolved unless a validated outside caller and its run evidence are supplied.
+### 4. Add current medicines
 
-### 3. Medicine guidance
+A dated FDA interaction release identifies known CYP2D6, CYP2C19 and CYP2B6 modifiers. Its own source
+is non-exhaustive, so an absent drug means **not classified in this release**, never **no interaction**.
 
-The app imports PharmCAT's exact CPIC Guideline Annotation. It does not recreate a dosing
-recommendation from a few variants or from model prose. All attached gene results are kept,
-so combined-gene guidance such as CYP2C19 + CYP2B6 is not reduced to one gene.
+Only a named CYP2D6 research convention can produce a modelled activity estimate. That estimate is
+kept beside the genetic call; it does not replace PharmCAT or create a dose. Ambiguous, opposing or
+unsupported medicine combinations stay unresolved.
 
-The app may group exact guidance under a simple heading such as **Review the dose**. That
-heading is navigation only; the full imported recommendation remains the clinical fact.
+### 5. Check daily life
 
-### 4. Current medicines
+After a medicine is selected, the app loads its source-backed instructions: food, timing, alcohol,
+driving or another supported warning. It asks only questions relevant to those instructions.
+Unanswered questions remain unknown and cannot create a reassuring match. The UI identifies the
+exact pinned label product and does not personalise a routine match until that product and form are
+explicitly confirmed.
 
-A versioned deterministic rule can identify a current medicine that may change enzyme
-activity. A CYP2D6 inhibition calculation is shown only as a named research-convention
-estimate, not as a new patient phenotype or dosing authority. This stays separate from the
-genotype-only PharmCAT result. If the estimate and imported guidance need reconciliation,
-the app raises a prescriber question; it does not rewrite the PharmCAT recommendation.
+The current evidence release is 14 pinned US Structured Product Label records with exact reviewed
+text anchors. It is not an Australian PI/CMI release and it does not yet capture formulation in the
+user input. Those are release blockers, not details for AI to fill in.
 
-### 5. Daily life
+## What the medical model does
 
-After one medicine is selected, the app asks only for routine information that its current
-matching rules can compare. Current data is a draft cache of selected US label summaries. It
-is clearly marked as draft US data, is not exact source text and is not presented as
-Australian product information.
-
-## How AI is involved
-
-MedGemma is a constrained reviewer, not the clinical calculator and not a general chatbot.
-
-```mermaid
-flowchart LR
-    A["Approved derived facts"] --> B["MedGemma"]
-    B --> C["Schema + fact-ID verifier"]
-    C -->|"valid"| D["Structured review"]
-    C -->|"invalid"| E["Visible failure"]
-```
-
-Useful model work includes:
-
-- connecting a gene result, current medicine and routine constraint;
-- identifying a missing fact that could change the discussion;
-- exposing contradictions or weak evidence;
-- preparing source-linked questions for the prescriber; and
-- later, summarising recorded treatment experience over time.
-
-The model receives derived facts only. It never receives the raw genome. It cannot create a
-gene call, dose, guideline action, label fact or citation. It returns a fixed JSON shape with
-an action and known fact/source IDs, but no medical prose. Deterministic code displays the
-linked facts. Unknown fields, invented IDs, malformed output, timeouts and provider errors
-are rejected. There is no fallback answer.
-
-For this validation build, AI review is enabled only for the live official example. Uploaded
-reports are blocked because browser-supplied facts are not yet tied to an authenticated,
-server-authoritative run record. Before public use, the API also needs user authentication,
-per-run authorisation and rate limits.
-
-The implemented gateway is:
+MedGemma is a constrained cross-fact reviewer. It is not a chatbot and it is not the clinical
+calculator.
 
 ```text
-Browser → Vercel /api/clinical-review → Vercel OIDC → Google WIF → private Vertex MedGemma
+completed session-owned run
+        +
+confirmed patient context
+        ↓
+server rebuilds allowed facts
+        ↓
+MedGemma returns typed actions + known fact IDs
+        ↓
+schema, fact, drug and source verifier
+        ↓
+accepted fact-linked review OR visible rejection
 ```
 
-The endpoint is operator-controlled. The client cannot select an arbitrary upstream model or
-URL. No Google service-account key or model credential is stored in the browser.
+The browser sends a run ID, selected medicine, recognised current medicines and explicitly answered
+routine fields. The server reloads that run from the private service and independently rebuilds the
+model context. The browser cannot supply gene facts, dose text, citations, prompts, model names or an
+upstream URL.
 
-## Data used
+Allowed model actions are:
 
-| Data | Why it is used | Sent to AI? |
-| --- | --- | --- |
-| Raw genome | Bioinformatics calling only | No |
-| PharmCAT gene results | Explain metabolism | Derived labels only |
-| Exact PharmCAT/CPIC annotations | Medicine guidance | Approved fact text/IDs only |
-| Current medicines | Deterministic interaction context | Approved derived effects only |
-| Selected medicine | Choose relevant label facts | Yes |
-| Relevant routine answers | Match label facts to daily life | Yes, typed fields only |
-| Treatment history and follow-up | Future journey summary | Only explicitly selected structured fields |
-| Direct identifiers | Not required | No |
+- identify an evidence gap;
+- identify a conflict between supplied facts;
+- prepare a precise clinician question;
+- connect a sourced daily-life requirement to a confirmed routine answer; or
+- request a deterministic counterfactual rerun.
 
-Depression questionnaires and lifestyle answers never change the genetic call. Each input is
-kept beside the output it can affect.
+The model cannot call a variant, choose or rank treatment, predict efficacy, calculate a dose, write
+patient medical advice, or change an existing result. Unknown IDs, extra fields, invalid JSON,
+timeouts and provider errors are rejected. There is no repair prompt and no fallback answer.
 
-## What is implemented now
+Public examples and imported Reporter files cannot use AI because they do not have a session-owned,
+server-verified run.
 
-| Part | Status |
+## Authority for every output
+
+| Output | Authority |
 | --- | --- |
-| Six-view validation app | Implemented |
-| Official PharmCAT example | Fetched live; no substitute on failure |
-| Reporter JSON import | Implemented |
-| Raw VCF/consumer clinical calling | Blocked until real PharmCAT backend succeeds |
-| Exact PharmCAT CPIC annotations | Implemented, including combined-gene results |
-| Current-medicine enzyme context | Deterministic supported rules; limitations visible |
-| Daily-life matching | Implemented with draft cached US label summaries; source verification pending |
-| MedGemma gateway | Implemented and fail-closed |
-| Live MedGemma endpoint | Requires operator deployment and environment configuration |
-| Raw-genome PharmCAT cloud service | Designed, not implemented |
-| Australian clinical evidence release | Not yet reconciled |
-| Long-term depression journey | Planned, not yet a validated clinical feature |
+| File acceptance | Worker validation rules |
+| Gene/diplotype/phenotype | Pinned official PharmCAT run |
+| Gene coverage | PharmCAT preprocessor and missing-position artefact |
+| Medicine guidance | Exact matched PharmCAT/CPIC annotation |
+| Current-medicine effect | Versioned FDA CYP interaction release |
+| Daily instruction | Exact evidence in a pinned product label |
+| Lifestyle match | Deterministic rule + an answered patient field |
+| AI review | Verified links between the above fixed facts |
+| Prescription | Clinician, never this system |
 
-The official example shows that the current Reporter parser and result journey work against
-PharmCAT's published example. It does not validate a laboratory assay, CYP2D6 caller, model
-endpoint or future cloud worker. Those must be tested separately.
+## Privacy and repeatability
+
+- Raw DNA uploads directly to private storage.
+- Storage paths are bound to a random browser session and run ID.
+- Vercel calls the private control service through workload identity; no service-account key is
+  stored in the app.
+- Each object is generation-locked and each completed output is hash-checked.
+- Source releases are committed and reviewed, so an API change cannot silently change a patient
+  result.
+- API responses are private and non-cacheable.
+- A production patient release still needs real user authentication, retention/deletion policy,
+  audit access, rate limits and security/privacy review.
 
 ## How to extend it safely
 
-1. **Raw genome support:** build the private Cloud Storage upload and asynchronous Cloud Run
-   PharmCAT worker. Pin the official container by a verified full digest and store the input
-   hash, command, versions, output hashes, coverage artefact and terminal status in one run
-   manifest.
-2. **CYP2D6:** integrate and validate a structural/copy-number-aware outside caller. Never
-   infer it from a sparse consumer array.
-3. **Australian evidence:** reconcile every supported medicine against dated CPIC, ARTG, PBS
-   and Australian PI/CMI records. Publish it as a reviewed versioned release.
-4. **More medicines:** add evidence rows, exact citations, parser/engine tests and reviewed
-   plain-English wording before exposing a medicine.
-5. **Smarter model actions:** add one typed request at a time. A “what if” request must rerun
-   the deterministic engine; the model cannot edit an old result.
-6. **Treatment journey:** add clinician plan, dose, adherence, side-effect and symptom records
-   with clear dates and provenance, then evaluate the summaries against clinician review.
+1. **Consumer files:** add one provider/version adapter at a time, with known build, strand, manifest
+   and per-gene coverage tests. Never use a generic converter.
+2. **CYP2D6:** add a separately validated SV/CNV caller, preserve its full run evidence, and supply
+   the outside call to PharmCAT.
+3. **Australian daily-life evidence:** ingest formulation-specific TGA PI/CMI records, store exact
+   source/version anchors and make formulation a required input where rules differ.
+4. **More medicines:** add vocabulary, exact source ingestion, deterministic tests and reviewed
+   plain-English wording. A prompt cannot add clinical scope.
+5. **More AI actions:** add one typed action, allow-list and adversarial evaluation at a time. A
+   counterfactual must rerun deterministic code before anything is displayed.
+6. **Depression journey:** add dated symptom, side-effect, adherence and clinician-plan records. Keep
+   them separate from the genetic call and evaluate every summary against clinician review.
 
-A prompt alone cannot add a medicine, fix missing genetics or make a model clinically valid.
+## Honest release boundary
 
-## Deployment
-
-Use Vercel for the app and small AI gateway. Use Google Cloud for MedGemma and the future
-containerised PharmCAT workload. Raw genome files must upload directly to private Cloud
-Storage rather than pass through Vercel.
-
-The exact setup, identity boundary and environment variables are in
-[DEPLOYMENT.md](DEPLOYMENT.md).
-
-## Release boundary
-
-This remains a validation build. Real patient use requires validated genetic inputs,
-structural CYP2D6 handling, reconciled Australian evidence, clinical and human-factors
-testing, privacy/security controls, an evaluated crisis pathway, and legal/regulatory review.
+The repository implements the real processing path; it does not contain a fake patient success path.
+It is not yet ready for unsupervised patient use. The remaining clinical blockers are Australian and
+formulation-specific daily-life evidence, validated CYP2D6 structural calling, user authentication,
+privacy/security controls, clinical evaluation, human-factors testing and regulatory review.

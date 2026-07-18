@@ -6,19 +6,15 @@
  * deterministic engine to run a counterfactual. It cannot create a gene call, choose a
  * treatment, calculate a dose, or turn a hypothetical into a clinical conclusion.
  *
- * Privacy boundary: `buildClinicalReviewContext` is the only route from AnalysisResult to
- * the network payload. It deliberately omits the raw genome, filename, report identifier,
- * diplotypes, variant positions, free-text history notes, direct identifiers and raw PHQ-9
- * answers. Only derived clinical facts and controlled enum values leave the browser.
+ * Privacy and authority boundary: the browser sends only a private run ID plus bounded,
+ * structured patient assertions. The server loads the session-owned PharmCAT bundle and
+ * independently calls `buildClinicalReviewContext`; it never accepts fact text, sources,
+ * prompts, gene calls or model settings from the browser.
  */
 
 import { canonicalDrug } from '../data/drug-lexicon'
 import { matchLifestyle } from '../engine/lifestyle-fit'
 import type { AnalysisResult, LifestyleContext } from '../engine/types'
-import {
-  CLINICAL_REVIEW_SYSTEM_PROMPT,
-  CLINICAL_REVIEW_TASK,
-} from './clinical-review-prompt'
 
 export const CLINICAL_REVIEW_ACTIONS = [
   'evidence_gap',
@@ -29,6 +25,8 @@ export const CLINICAL_REVIEW_ACTIONS = [
 ] as const
 
 export type ClinicalReviewAction = (typeof CLINICAL_REVIEW_ACTIONS)[number]
+
+export type CurrentMedicationsStatus = 'provided' | 'confirmed_none'
 
 export const COUNTERFACTUAL_OPERATIONS = [
   'add_current_medication',
@@ -128,6 +126,11 @@ export interface ClinicalReviewResult {
 }
 
 export interface ClinicalReviewOptions {
+  /**
+   * Run identity issued by the private PharmCAT service. The governed provider will not
+   * review an imported report or public example without this session-bound identifier.
+   */
+  attestedRunId?: string | null
   /** The medicine whose day-to-day protocol should be reviewed. This is not a selection. */
   selectedDrug?: string | null
   /** Only routine fields the person explicitly confirmed. Neutral engine defaults are excluded. */
@@ -414,6 +417,7 @@ export function buildClinicalReviewContext(
         ...result.care,
         lifestyle: { ...NEUTRAL_LIFESTYLE, ...confirmedLifestyle },
       },
+      confirmedLifestyle,
     )
     if (match) {
       const matchDimensionToContext: Record<string, keyof LifestyleContext> = {
@@ -496,7 +500,10 @@ function rejection(
   offendingToken: string,
   reason: string,
 ): ClinicalReviewRejection {
-  return { itemIndex, kind, offendingToken, reason }
+  const boundedToken = offendingToken
+    .replace(/[\u0000-\u001f\u007f]/g, ' ')
+    .slice(0, 200)
+  return { itemIndex, kind, offendingToken: boundedToken, reason }
 }
 
 function isStringArray(value: unknown): value is string[] {
@@ -843,9 +850,57 @@ export class NotConnectedClinicalReviewProvider implements ClinicalReviewProvide
   }
 }
 
-interface ChatCompletionResponse {
-  model?: string
-  choices?: Array<{ message?: { content?: string } }>
+interface GovernedClinicalReviewResponse {
+  schemaVersion?: unknown
+  runId?: unknown
+  model?: unknown
+  context?: unknown
+  review?: unknown
+}
+
+const RUN_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const REVIEW_REJECTION_KINDS = new Set<ClinicalReviewRejectionKind>([
+  'malformed_response',
+  'malformed_item',
+  'unsupported_action',
+  'unknown_fact',
+  'unknown_drug',
+  'unknown_source',
+  'invalid_counterfactual',
+  'ungrounded_reference',
+])
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function parseServerRejections(value: unknown): ClinicalReviewRejection[] | null {
+  if (!Array.isArray(value) || value.length > 200) return null
+  const parsed: ClinicalReviewRejection[] = []
+  for (const item of value) {
+    if (!isRecord(item) || Object.keys(item).some((key) => !['itemIndex', 'kind', 'offendingToken', 'reason'].includes(key))) {
+      return null
+    }
+    if (
+      !(item.itemIndex === null || (Number.isSafeInteger(item.itemIndex) && Number(item.itemIndex) >= 0)) ||
+      typeof item.kind !== 'string' ||
+      !REVIEW_REJECTION_KINDS.has(item.kind as ClinicalReviewRejectionKind) ||
+      typeof item.offendingToken !== 'string' ||
+      item.offendingToken.length > 200 ||
+      typeof item.reason !== 'string' ||
+      !item.reason ||
+      item.reason.length > 600
+    ) {
+      return null
+    }
+    parsed.push({
+      itemIndex: item.itemIndex as number | null,
+      kind: item.kind as ClinicalReviewRejectionKind,
+      offendingToken: item.offendingToken,
+      reason: item.reason,
+    })
+  }
+  return parsed
 }
 
 export interface MedGemmaClinicalReviewOptions {
@@ -887,25 +942,34 @@ export class MedGemmaClinicalReviewProvider implements ClinicalReviewProvider {
 
   async review(result: AnalysisResult, options: ClinicalReviewOptions = {}): Promise<ClinicalReviewResult> {
     const context = buildClinicalReviewContext(result, options)
+    const runId = options.attestedRunId?.trim() ?? ''
+    if (!RUN_ID.test(runId)) {
+      return {
+        status: 'error',
+        provider: this.name,
+        model: null,
+        items: [],
+        rejections: [],
+        message: 'AI review requires a completed private genome run. Imported reports and public examples are not accepted.',
+      }
+    }
+    const currentMedicationsStatus: CurrentMedicationsStatus = result.input.currentMedications.length
+      ? 'provided'
+      : 'confirmed_none'
     try {
       const response = await this.fetchImpl(this.endpoint, {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'server-controlled',
-          temperature: 0,
-          response_format: { type: 'json_object' },
-          messages: [
-            { role: 'system', content: CLINICAL_REVIEW_SYSTEM_PROMPT },
-            {
-              role: 'user',
-              content: JSON.stringify({
-                task: CLINICAL_REVIEW_TASK,
-                context,
-              }),
-            },
-          ],
+          schemaVersion: '1.0',
+          runId,
+          patientContext: {
+            selectedDrug: options.selectedDrug ?? null,
+            currentMedications: result.input.currentMedications,
+            currentMedicationsStatus,
+            confirmedLifestyle: sanitiseConfirmedLifestyle(options.confirmedLifestyle),
+          },
         }),
       })
 
@@ -920,33 +984,56 @@ export class MedGemmaClinicalReviewProvider implements ClinicalReviewProvider {
         }
       }
 
-      const payload = (await response.json()) as ChatCompletionResponse
+      const payload = (await response.json()) as GovernedClinicalReviewResponse
       const serverModel = typeof payload.model === 'string' && /^[A-Za-z0-9._/@:+-]{1,200}$/.test(payload.model)
         ? payload.model
         : null
-      if (!serverModel) {
+      if (
+        payload.schemaVersion !== '1.0' ||
+        payload.runId !== runId ||
+        !serverModel ||
+        JSON.stringify(payload.context) !== JSON.stringify(context) ||
+        !isRecord(payload.review) ||
+        !Array.isArray(payload.review.items)
+      ) {
         return {
           status: 'error',
           provider: this.name,
           model: null,
           items: [],
           rejections: [],
-          message: 'The endpoint did not attest its deployed model identity. No AI output was used.',
+          message: 'The endpoint did not return a matching server-derived review context. No AI output was used.',
         }
       }
-      const content = payload.choices?.[0]?.message?.content
-      if (typeof content !== 'string') {
-        return validateClinicalReviewOutput(null, context, `Medical-model review · ${serverModel}`, serverModel)
+      const serverRejections = parseServerRejections(payload.review.rejections)
+      if (!serverRejections) {
+        return {
+          status: 'error',
+          provider: this.name,
+          model: serverModel,
+          items: [],
+          rejections: [],
+          message: 'The endpoint returned an invalid verifier record. No AI output was used.',
+        }
       }
 
-      let decoded: unknown
-      try {
-        // Deliberately do not strip Markdown fences. The endpoint contract is JSON only.
-        decoded = JSON.parse(content)
-      } catch {
-        return validateClinicalReviewOutput(null, context, `Medical-model review · ${serverModel}`, serverModel)
+      // The server has already validated these items against its independently rebuilt
+      // context. Validate them again against the byte-for-byte matching browser context so
+      // a stale frontend or malformed response fails closed rather than changing meaning.
+      const revalidated = validateClinicalReviewOutput(
+        { items: payload.review.items },
+        context,
+        `Medical-model review · ${serverModel}`,
+        serverModel,
+      )
+      const rejections = [...serverRejections, ...revalidated.rejections]
+      return {
+        ...revalidated,
+        rejections,
+        message: revalidated.items.length
+          ? `${revalidated.items.length} constrained clinical-review item${revalidated.items.length === 1 ? '' : 's'} passed server and browser grounding checks.`
+          : 'The medical-model response contained no review item that passed both grounding checks.',
       }
-      return validateClinicalReviewOutput(decoded, context, `Medical-model review · ${serverModel}`, serverModel)
     } catch (error) {
       return {
         status: 'error',

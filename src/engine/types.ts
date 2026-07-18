@@ -1,10 +1,9 @@
 /**
  * Core type contract.
  *
- * The architectural rule this file encodes: a clinical claim carries citation metadata.
- * The LLM produces only `Draft` prose; the validator turns that draft into
- * `ValidatedProse` or rejects it. There is no path from model-produced prose to the screen
- * that skips the validator.
+ * Every clinical claim carries its source IDs. Patient-specific results are produced by the
+ * deterministic engine. The separate medical-model review can only point back to those
+ * typed facts; model prose is not part of an AnalysisResult.
  */
 
 /* ------------------------------------------------------------------ */
@@ -74,7 +73,7 @@ export interface GeneCall {
   /** Human-readable identifiers of the missing positions, for the confidence panel. */
   missingPositionLabels: string[]
   /** What this build genuinely knows about assay coverage for the call. */
-  coverageScope: 'pharmcat-complete' | 'report-json-only'
+  coverageScope: 'pharmcat-measured' | 'report-json-only'
   /**
    * True when the assay structurally cannot resolve copy number / hybrid alleles for
    * this gene. This is the CYP2D6-from-an-array problem, and it is the single most
@@ -205,9 +204,10 @@ export interface CareContext {
   /** Null when this validation run did not collect a PHQ-9. */
   checkIn: DepressionCheckIn | null
   goals: CareGoal[]
-  lifestyle: LifestyleContext
-  /** The app does not infer risk. This records the direct answer and triggers a fixed safety route. */
-  needsImmediateSupport: boolean
+  /** Only fields the person explicitly answered. Missing means unknown, never a neutral default. */
+  lifestyle: Partial<LifestyleContext>
+  /** The app does not infer risk. Null means this question was not asked. */
+  needsImmediateSupport: boolean | null
 }
 
 export interface PatientInput {
@@ -217,6 +217,8 @@ export interface PatientInput {
   pastTrials: PastTrial[]
   /** Optional for backwards compatibility with imported engine callers. The UI always supplies it. */
   careContext?: CareContext
+  /** Only routine fields explicitly confirmed by the person. Omitted fields cannot create a match. */
+  confirmedLifestyle?: Partial<LifestyleContext>
 }
 
 export type DepressionSeverity = 'minimal' | 'mild' | 'moderate' | 'moderately_severe' | 'severe'
@@ -444,72 +446,6 @@ export interface DrugLifestyleMatch {
 }
 
 /* ------------------------------------------------------------------ */
-/* The claim boundary — drafts, validation, rejections                 */
-/* ------------------------------------------------------------------ */
-
-export type NarrativeSection =
-  | 'journey_summary'
-  | 'monitoring_plan'
-  | 'phenoconversion_explainer'
-  | 'treatment_history'
-  | 'what_next'
-  | 'protocol_intro'
-  | 'clinician_rationale'
-
-/** Candidate prose from the orchestrating model, before validation. */
-export interface DraftClaim {
-  section: NarrativeSection
-  text: string
-  citationIds: string[]
-}
-
-export interface Draft {
-  /** How this prose was produced. */
-  generator: 'recorded-model-run' | 'live-model' | 'deterministic-template'
-  model: string
-  claims: DraftClaim[]
-}
-
-export type RejectionKind =
-  | 'number_not_in_source'
-  | 'drug_not_in_source'
-  | 'citation_not_in_source'
-  | 'uncited_clinical_claim'
-
-export interface Rejection {
-  section: NarrativeSection
-  /** The sentence that was dropped, verbatim, so the log is auditable. */
-  text: string
-  kind: RejectionKind
-  /** The specific token that triggered the rejection. */
-  offendingToken: string
-  reason: string
-}
-
-export interface ValidatedProse {
-  section: NarrativeSection
-  claims: Claim[]
-}
-
-export interface ValidationReport {
-  generator: Draft['generator']
-  model: string
-  accepted: ValidatedProse[]
-  rejections: Rejection[]
-  /** Size of the allow-list the draft was checked against, for the trust panel. */
-  allowedNumbers: string[]
-  allowedDrugs: string[]
-  allowedCitationIds: string[]
-  claimsChecked: number
-  /** Candidate report prose rejected during this run, excluding deliberate validator probes. */
-  renderedRejectionCount?: number
-  /** Deliberately injected test statements rejected by the validator. */
-  probeRejectionCount?: number
-  renderedClaimsChecked?: number
-  probeClaimsChecked?: number
-}
-
-/* ------------------------------------------------------------------ */
 /* Assembled result                                                    */
 /* ------------------------------------------------------------------ */
 
@@ -528,7 +464,6 @@ export interface AnalysisResult {
   /** Protocols keyed by drug, so the UI can switch when a different row is opened. */
   protocolsByDrug: Record<string, LifestyleProtocol>
   lifestyleMatches: Record<string, DrugLifestyleMatch>
-  narrative: ValidationReport
   citations: Record<string, Citation>
   /** Pipeline steps, surfaced so the user can see what ran deterministically. */
   trace: TraceStep[]
@@ -537,7 +472,5 @@ export interface AnalysisResult {
 export interface TraceStep {
   step: string
   detail: string
-  /** 'deterministic' steps cannot involve a model. */
-  kind: 'deterministic' | 'model' | 'validator'
   ms: number
 }

@@ -63,9 +63,13 @@ export interface PhenoconversionOutcome {
 function findModifiers(gene: string, medications: string[]): PhenoconversionModifier[] {
   const table = tableFor(gene)
   const mods: PhenoconversionModifier[] = []
+  const seen = new Set<string>()
 
   for (const raw of medications) {
-    const generic = canonicalDrug(raw) ?? raw
+    const generic = (canonicalDrug(raw) ?? raw).trim()
+    const key = generic.toLowerCase()
+    if (!key || seen.has(key)) continue
+    seen.add(key)
     const effect = effectOf(generic, gene)
     if (!effect) continue
     mods.push({
@@ -142,6 +146,24 @@ function opposingEffectsWarning(
   }
 }
 
+function multipleModifierWarning(
+  gene: string,
+  modifiers: PhenoconversionModifier[],
+  genetic: Phenotype,
+): Claim {
+  const actionable = modifiers.filter((modifier) => isActionable(modifier.effect))
+  const names = actionable
+    .map((modifier) => `${cap(modifier.drug)} (${EFFECT_LABELS[modifier.effect]})`)
+    .join(', ')
+  return {
+    text:
+      `${names} are all classified modifiers of ${gene}. The reported phenotype remains ${genetic}. ` +
+      `The single-inhibitor research convention is not applied to a multi-modifier regimen, because that ` +
+      `would imply a precision the cited method does not establish.`,
+    citationIds: [...new Set(actionable.flatMap((modifier) => modifier.citationIds).concat('cpic-2023-sri'))],
+  }
+}
+
 function uncertainExtentWarning(
   gene: string,
   dominant: PhenoconversionModifier,
@@ -203,12 +225,26 @@ export function computePhenoconversion(
     }
   }
 
+  if (actionable.length > 1) {
+    return {
+      ...base,
+      status: 'unvalidated_method',
+      unresolvedWarning: multipleModifierWarning(gene.gene, modifiers, genetic),
+    }
+  }
+
   if (!isActionable(dominant.effect)) {
     return { ...base, status: 'no_change', explanation: noChangeExplanation(gene.gene, modifiers) }
   }
 
   // No sourced numeric convention for this gene — flag, do not estimate.
-  if (!MODELED_ADJUSTMENT_GENES.has(gene.gene) || gene.activityScore === null) {
+  if (
+    !MODELED_ADJUSTMENT_GENES.has(gene.gene) ||
+    gene.activityScore === null ||
+    !Number.isFinite(gene.activityScore) ||
+    gene.activityScore < 0 ||
+    genetic === 'Indeterminate'
+  ) {
     return {
       ...base,
       status: 'unvalidated_method',
