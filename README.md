@@ -12,6 +12,9 @@ npm test         # 20 engine tests, including the claim-boundary cases
 
 The demo patient is preselected. Press the button.
 
+**New here?** [ARCHITECTURE.md](ARCHITECTURE.md) walks through the user journey, the pipeline
+and the code layout.
+
 ---
 
 ## The rule this is built around
