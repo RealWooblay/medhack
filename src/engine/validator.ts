@@ -13,6 +13,9 @@
  * Violations are dropped at sentence granularity and written to a rejection log that the
  * UI renders. A partially-scrubbed clinical sentence is never shown — if a sentence
  * fails, the whole sentence goes, not just the offending token.
+ *
+ * This is defence in depth. Allow-list matching cannot establish that a sentence preserves
+ * the clinical meaning of its source, so passing validation is not proof of correctness.
  */
 
 import { findDrugMentions } from '../data/drug-lexicon'

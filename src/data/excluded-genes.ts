@@ -23,7 +23,7 @@ export function excludedGeneCalls(observed: Record<string, string>): ExcludedGen
   return [
     {
       gene: 'SLC6A4',
-      observed: observed.SLC6A4 ?? 'L/S (5-HTTLPR)',
+      observed: observed.SLC6A4 ?? 'not supplied',
       rationale: {
         text:
           `${CPIC_NO_RECOMMENDATION} SLC6A4 encodes the serotonin transporter that SSRIs bind, which makes it ` +
@@ -35,7 +35,7 @@ export function excludedGeneCalls(observed: Record<string, string>): ExcludedGen
     },
     {
       gene: 'HTR2A',
-      observed: observed.HTR2A ?? 'rs7997012 A/G',
+      observed: observed.HTR2A ?? 'not supplied',
       rationale: {
         text:
           `${CPIC_NO_RECOMMENDATION} HTR2A variants have been studied extensively for antidepressant response ` +

@@ -9,12 +9,15 @@
 
 import { CITATIONS } from '../data/citations'
 import { profileOf } from '../data/cpic'
+import { OfflineNarrativeProvider, type NarrativeProvider } from '../ai/provider'
 import { scoreGene } from './confidence'
+import { normaliseCareContext, scoreDepressionCheckIn } from './depression'
 import { reconstructTrials } from './history'
 import { buildProtocol } from './lifestyle'
+import { matchLifestyle } from './lifestyle-fit'
 import { adversarialProbe, composeNarrative, type NarrativeFacts } from './orchestrator'
 import { computePhenoconversion } from './phenoconversion'
-import { rankDrugs } from './ranking'
+import { assembleDrugFindings } from './ranking'
 import { buildAllowList, validateDraft } from './validator'
 import type { GenomeInput, PharmCATAdapter } from './pharmcat/adapter'
 import type {
@@ -32,6 +35,9 @@ function collectCitationIds(result: Omit<AnalysisResult, 'narrative' | 'citation
   const ids = new Set<string>()
   const add = (list: string[] | undefined) => list?.forEach((id) => ids.add(id))
 
+  add(result.depression.interpretation.citationIds)
+  add(result.depression.monitoringNote.citationIds)
+
   for (const gene of result.genes) {
     add(gene.explanation?.citationIds)
     add(gene.unresolvedWarning?.citationIds)
@@ -45,7 +51,6 @@ function collectCitationIds(result: Omit<AnalysisResult, 'narrative' | 'citation
     drug.interactionFlags.forEach((f) => add(f.citationIds))
     drug.confidenceCaveats.forEach((c) => add(c.citationIds))
     drug.enzymeIndependence.forEach((c) => add(c.citationIds))
-    add(drug.washoutNote?.citationIds)
   }
   for (const trial of result.history) {
     add(trial.mechanism?.citationIds)
@@ -55,9 +60,16 @@ function collectCitationIds(result: Omit<AnalysisResult, 'narrative' | 'citation
     protocol.items.forEach((i) => add(i.citationIds))
     protocol.interactionItems.forEach((i) => add(i.citationIds))
   }
+  for (const match of Object.values(result.lifestyleMatches)) {
+    match.facts.forEach((fact) => add(fact.citationIds))
+  }
   result.pharmcat.recommendations.forEach((r) => add(r.citationIds))
 
-  return [...ids].filter((id) => Boolean(CITATIONS[id]))
+  const unknown = [...ids].filter((id) => !CITATIONS[id])
+  if (unknown.length) {
+    throw new Error(`Clinical output referenced unknown source id(s): ${unknown.join(', ')}`)
+  }
+  return [...ids]
 }
 
 /**
@@ -70,6 +82,10 @@ function mergeReports(rendered: ValidationReport, probe: ValidationReport): Vali
     ...rendered,
     rejections: [...rendered.rejections, ...probe.rejections],
     claimsChecked: rendered.claimsChecked + probe.claimsChecked,
+    renderedRejectionCount: rendered.rejections.length,
+    probeRejectionCount: probe.rejections.length,
+    renderedClaimsChecked: rendered.claimsChecked,
+    probeClaimsChecked: probe.claimsChecked,
   }
 }
 
@@ -79,9 +95,15 @@ export interface AnalysisOptions {
   adapter: PharmCATAdapter
   genome: GenomeInput
   input: PatientInput
+  narrativeProvider?: NarrativeProvider
 }
 
-export async function runAnalysis({ adapter, genome, input }: AnalysisOptions): Promise<AnalysisResult> {
+export async function runAnalysis({
+  adapter,
+  genome,
+  input,
+  narrativeProvider = new OfflineNarrativeProvider(),
+}: AnalysisOptions): Promise<AnalysisResult> {
   const trace: TraceStep[] = []
   const step = async <T>(name: string, detail: string, kind: TraceStep['kind'], fn: () => T | Promise<T>) => {
     const started = performance.now()
@@ -90,18 +112,28 @@ export async function runAnalysis({ adapter, genome, input }: AnalysisOptions): 
     return value
   }
 
-  /* 1 — star alleles and phenotypes */
+  const care = normaliseCareContext(input.careContext)
+
+  /* 1 — symptom baseline. It informs the journey, never the medication findings. */
+  const depression = await step(
+    'Score the depression check-in',
+    'Score the PHQ-9 exactly as entered and keep it separate from medication selection.',
+    'deterministic',
+    () => scoreDepressionCheckIn(care),
+  )
+
+  /* 2 — imported or locally derived gene calls */
   const pharmcat = await step(
-    'Call star alleles',
-    `${adapter.name} — diplotypes and phenotypes for CYP2D6, CYP2C19 and CYP2B6.`,
+    'Read gene calls',
+    `${adapter.name} — gene-call origin is preserved; medication rules are applied later from the local evidence table.`,
     'deterministic',
     () => adapter.analyze(genome),
   )
 
-  /* 2 + 3 — phenoconversion and confidence */
+  /* 3 + 4 — phenoconversion and confidence limitations */
   const genes = await step(
-    'Apply phenoconversion and score confidence',
-    'Adjust each phenotype for concurrent inhibitors where a validated method exists, and score how far each gene call can be trusted.',
+    'Apply supported phenoconversion and record confidence limits',
+    'Adjust a phenotype only where the captured method supports it, then label assay and call limitations without assigning a probability.',
     'deterministic',
     (): GenePhenotypeResult[] =>
       pharmcat.genes.map((gene) => {
@@ -123,23 +155,23 @@ export async function runAnalysis({ adapter, genome, input }: AnalysisOptions): 
       }),
   )
 
-  /* 4 — treatment history */
+  /* 5 — treatment history */
   const history = await step(
-    'Reconstruct past trials',
-    'Test whether each previous outcome is consistent with this metabolism, and record honestly where it is not.',
+    'Place PGx beside past trials',
+    'Show whether a CPIC-covered gene–drug result raises a dosing question, without assigning a cause to the recorded outcome.',
     'deterministic',
     () => reconstructTrials(input.pastTrials, genes, profileOf),
   )
 
-  /* 5 — ranked shortlist */
+  /* 6 — alphabetical medication findings */
   const shortlist = await step(
-    'Rank the candidate drugs',
-    'Query the guideline table for every candidate using the functional phenotype, then rank on guideline action, call confidence, interactions and treatment history.',
+    'Assemble medication-specific PGx findings',
+    'Query the captured guideline table for every candidate and keep PGx, confidence, interactions and treatment history visible as separate components.',
     'deterministic',
-    () => rankDrugs({ genes, currentMedications: input.currentMedications, history }),
+    () => assembleDrugFindings({ genes, currentMedications: input.currentMedications, history }),
   )
 
-  /* 6 — lifestyle protocols */
+  /* 7 — lifestyle protocols */
   const protocolsByDrug = await step(
     'Build lifestyle protocols',
     'Fuse label-sourced timing, food and interaction rules for each candidate with the patient\'s other medications.',
@@ -150,11 +182,26 @@ export async function runAnalysis({ adapter, genome, input }: AnalysisOptions): 
       ),
   )
 
-  const topChoice = shortlist.find((d) => !d.isCurrentMedication) ?? shortlist[0] ?? null
-  const protocol = topChoice ? protocolsByDrug[topChoice.drug] : null
+  const lifestyleMatches = await step(
+    'Match options to daily life',
+    'Compare the routine the person described with drug-specific, sourced protocol requirements without changing the PGx score.',
+    'deterministic',
+    () =>
+      Object.fromEntries(
+        Object.entries(protocolsByDrug).map(([drug, protocol]) => [drug, matchLifestyle(protocol, care)]),
+      ),
+  )
+
+  const defaultViewedDrug = shortlist
+    .filter((drug) => !drug.isCurrentMedication)
+    .map((drug) => drug.drug)
+    .sort((a, b) => a.localeCompare(b))[0]
+  const protocol = defaultViewedDrug ? protocolsByDrug[defaultViewedDrug] : null
 
   const partial = {
     input,
+    care,
+    depression,
     pharmcat,
     genes,
     excludedGenes: pharmcat.excludedGenes,
@@ -162,6 +209,7 @@ export async function runAnalysis({ adapter, genome, input }: AnalysisOptions): 
     history,
     protocol,
     protocolsByDrug,
+    lifestyleMatches,
   }
 
   /* 7 — narrative, the only model-touched step */
@@ -171,13 +219,23 @@ export async function runAnalysis({ adapter, genome, input }: AnalysisOptions): 
     history,
     protocol,
     currentMedications: input.currentMedications,
+    care,
+    depression,
   }
 
   const drafts = await step(
     'Draft the explanation',
-    'Compose the patient and clinician narrative over the fixed facts. No new clinical content may enter here.',
-    'model',
-    () => ({ rendered: composeNarrative(facts), probe: adversarialProbe(facts) }),
+    `${narrativeProvider.name} composes the patient and clinician narrative over fixed facts. No new clinical content may enter here.`,
+    narrativeProvider.mode === 'ai' ? 'model' : 'deterministic',
+    async () => {
+      try {
+        return { rendered: await narrativeProvider.compose(facts), probe: adversarialProbe(facts) }
+      } catch (error) {
+        const rendered = composeNarrative(facts)
+        rendered.model = `${rendered.model}; AI fallback (${error instanceof Error ? error.message : 'provider error'})`
+        return { rendered, probe: adversarialProbe(facts) }
+      }
+    },
   )
 
   /* 8 — the claim boundary */

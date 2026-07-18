@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Pharmacogenomic + lifestyle decision support for antidepressant prescribing. Deterministic clinical facts, LLM orchestration, validated claim boundary.",
+  "description": "A six-step validator for antidepressant PGx, drug-specific daily life, constrained medical AI and evidence provenance.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",

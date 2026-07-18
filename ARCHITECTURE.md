@@ -1,310 +1,274 @@
-# How Meridian works
+# Antidepressant PGx system
 
-## What it is
+## The system in one minute
 
-Someone uploads their DNA file, lists what they currently take, and lists the antidepressants
-they have already tried. They get back two versions of one report: a plain one for them, a
-dense cited one for their prescriber.
+The system reads a genome result and shows how supported metabolism genes may affect exposure
+to specific antidepressants. It matches each supported gene–medicine pair to the exact CPIC
+guidance. After a medicine is selected, it shows that medicine's sourced food, timing and
+warning facts against the person's routine.
 
-The target user is not a rare case. Only about a third of people get better on their first
-antidepressant. A meaningful slice of the rest were never on the wrong drug, they were on the
-wrong amount of it: cleared too fast to work, or too slowly to tolerate. That is measurable,
-and it is what this looks for.
+A bounded MedGemma agent can then find missing information, connect several constraints,
+request safe “what if” recalculations and prepare questions for the prescriber. It does not
+make the clinical result. PharmCAT, CPIC rules and regulator labels do that.
 
-## The rule everything is built around
+The patient starts the process. The clinician makes the prescribing decision.
 
-> The AI never generates a dose, a drug name, or a clinical fact.
-> Those come from guideline lookup tables. The AI explains what the tables already said.
+## The hard boundary
 
-A validator sits between the AI and the screen. It reads every sentence the AI wrote and
-deletes any that contains a number, a drug name, or a citation that is not present in the
-structured data the engine produced. Deleted sentences are logged, and the log is shown in
-the product.
+Genetics can sometimes explain why normal exposure may be harder to achieve. A person may
+clear a medicine faster or slower than usual, and another medicine may change an enzyme's
+functional activity.
 
-Everything else is plumbing around this.
+For supported pairs, CPIC may say to use usual starting guidance, change a starting or
+maintenance dose, titrate differently, monitor more closely or consider another medicine.
+The product must show the captured action. It must not shorten it to “safe”, “unsafe”, “best”
+or “correct dose”.
 
----
+Genetics does **not** predict which antidepressant will improve a person's depression. The
+system never claims that it does.
 
-# The journey
-
-One page, four sections, progressive disclosure. Nothing leaves the browser.
-
-## 1. Getting in
-
-The opening line is `Your antidepressant may have failed at the dose, not the drug.` That
-framing does real work. The person reading it has usually been told, implicitly, that they
-are treatment resistant. The first thing the product says is that this might be arithmetic
-rather than a fact about them.
-
-Three steps, all visible at once, none of them gated:
-
-**Your genome file.** A drop zone for a 23andMe export or a VCF. Underneath it, three
-prepared cases with known results, because most people arriving have no VCF on their desktop
-and the product should still be able to show them what it does. Each prepared case also
-downloads as a real genome file, so the upload path can be exercised rather than described.
-
-**What you take now.** Autocomplete chips. The hint text pushes for painkillers, heartburn
-tablets and herbal supplements specifically, because those are the ones people leave out and
-they are frequently the ones that matter.
-
-**What you have already tried.** Drug plus outcome: did not help, side effects, it helped.
-This is the input no genotype tool asks for, and it is what lets the report explain the past
-instead of only guessing at the future.
-
-Then one button, and a line confirming nothing is uploaded or stored.
-
-## 2. The wait
-
-Not a spinner. The real pipeline steps appear one at a time with their real timings, and each
-one is tagged as deterministic, model, or validator.
-
-The analysis itself takes about 120ms. The pause exists so the person can see what was done on
-their behalf, and see that exactly one of the eight steps involved a language model.
-
-## 3. The report
-
-Scrolls in this order, deliberately.
-
-### Metaboliser profile
-
-The hero moment. One card per gene, with two rows:
-
-```
- ┌── CYP2C19 ──────────────┐   ┌── CYP2D6 ───────────────┐
- │ From your genes:  Inter │   │ From your genes: Normal │
- │ In practice:      Inter │   │ In practice:     POOR ⚠ │
- │ ● high confidence       │   │ ↳ fluoxetine, a strong  │
- └─────────────────────────┘   │   CYP2D6 blocker        │
-                                │ ◌ low confidence        │
-                                └─────────────────────────┘
-```
-
-When those two rows disagree, the second value drops in and shifts to red a beat after the
-card lands. That gap is the entire thesis in one glance: the genes are ordinary, and a drug
-already being taken changed the picture. A genetic test on its own cannot see this, because it
-does not know what else is in the cupboard.
-
-Where the engine cannot resolve an interaction, the card says so in a greyed panel rather than
-producing a number. Honesty is a visible design element, not a footnote.
-
-### Reviewed, not used
-
-A deliberately greyed panel showing SLC6A4 and HTR2A, the two "serotonin genes" commercial
-panels love to report, with CPIC's conclusion that the evidence does not support using them.
-It answers "what about my serotonin gene result" before the question is asked, and it is a
-differentiator rather than a gap.
-
-### The shortlist
-
-Traffic light rows, sorted, one line each:
-
-```
- ✅ sertraline    usual starting dose, slower titration   not CYP2D6-dependent
- ⚠  vortioxetine  reduce starting and maintenance dose    CYP2D6 Poor (functional)
- ⚠  escitalopram  usual starting dose, slower titration   tried before
-```
-
-Any row opens to the full guideline wording quoted verbatim, why the drug sidesteps this
-person's specific problem, interaction flags, the washout timing if the switch is affected by
-what they currently take, and the score arithmetic.
-
-Rows carry context the person actually needs: `tried before` sits next to anything already
-attempted, so a drug that failed can never quietly show a green tick.
-
-### Two tabs
-
-**For you** is the default, and it runs in narrative order:
-
-- *The short version.* What is going on, in three sentences.
-- *Looking back.* An annotated timeline of past trials. Each one says whether the metabolism
-  explains what happened, and where it does not, it says that plainly instead of inventing a
-  reason.
-- *Looking forward.* What a prescriber might consider next, framed as information to bring to
-  an appointment rather than an instruction.
-- *Your daily protocol.* Timing, food, what to avoid, what to watch for, each line sourced to
-  a label section.
-- *One thing this report cannot tell you.* A closing card stating that genetics cannot predict
-  which antidepressant will lift someone's mood.
-
-**For your prescriber** is dense and cited: the phenotype table, the phenoconversion
-rationale, the confidence caveats, and a side by side comparison showing what a genotype-only
-report would have said versus what this says once medication context is included. That
-comparison is the clearest answer to "PharmCAT already does this".
-
-### How to trust this
-
-Counts of claims checked and claims rejected, then the rejection log itself: the struck-through
-sentences the AI produced, the exact token that failed, and why. Below that, what the validator
-checked against, and the pipeline trace.
-
-This is a product surface, not an appendix. "Our AI cannot hallucinate a dose" is a claim, and
-a safety claim should be inspectable.
-
-### Footer
-
-`Decision support only. Not a diagnosis.` Pinned, never scrolls away.
-
----
-
-# The pipeline
+## The six-step validation app
 
 ```mermaid
-flowchart TD
-    IN["Genome file · current medications · past trials"] --> S1
-
-    subgraph DET["Deterministic — decides every clinical fact"]
-        S1["1 · Call star alleles<br/>CYP2D6, CYP2C19, CYP2B6"]
-        S2["2 · Phenoconversion<br/>adjust for current medications"]
-        S3["3 · Confidence<br/>how far to trust each call"]
-        S4["4 · Treatment history<br/>does metabolism explain past failures?"]
-        S5["5 · Rank candidates<br/>guideline lookup on functional phenotype"]
-        S6["6 · Lifestyle protocol<br/>label-sourced daily rules"]
-        S1 --> S2 --> S3 --> S4 --> S5 --> S6
-    end
-
-    S6 --> FACTS[("Structured facts<br/>every one carrying a citation")]
-    FACTS --> S7["7 · Narrative<br/>the only model step"]
-    FACTS --> VAL
-    S7 --> VAL["8 · Validator<br/>drop anything not in the facts"]
-    VAL --> OUT["Patient view · Clinician view · Rejection log"]
+flowchart LR
+    A["1. File"] --> B["2. Genes"]
+    B --> C["3. Medicines"]
+    C --> D["4. Daily life"]
+    D --> E["5. AI Review"]
+    E --> F["6. Evidence"]
 ```
 
-Steps 1 to 6 are pure code. They have already decided every clinical fact before the model is
-called, and the model receives those facts as its only material.
+1. **File** shows what was uploaded, how its format was detected and whether it can run.
+2. **Genes** translates supported calls into plain English and shows coverage limits once.
+3. **Medicines** groups exact CPIC actions without predicting benefit or ranking drugs.
+4. **Daily life** matches one selected medicine's sourced protocol with stated routine data.
+5. **AI Review** shows the model connection and only displays validated structured output.
+6. **Evidence** exposes the inputs, rules, versions, citations, rejections and raw result.
 
-### What each step does
+These are validation views, not prescribing steps.
 
-**1. Call star alleles.** Genome to diplotype to phenotype for the three genes CPIC makes
-actionable for antidepressants. Fast, normal, or slow processor for each.
+## One source of truth for each fact
 
-**2. Phenoconversion.** Some drugs block those same enzymes. Fluoxetine blocks CYP2D6
-completely, so a person with entirely normal CYP2D6 genes behaves as though they have none
-while taking it. The adjustment is applied for CYP2D6 only, because that is the only gene with
-a guideline-operationalised method. For CYP2C19 and CYP2B6 the interaction is flagged loudly
-and left unresolved, because CPIC states no consensus method exists and inventing one would be
-the exact failure this product exists to prevent.
+| Output | Source of truth | Can AI create it? |
+| --- | --- | --- |
+| File type and build | Deterministic file checks | No |
+| Variant and diplotype call | PharmCAT or validated specialist caller | No |
+| Phenotype and activity score | PharmCAT/CPIC translation | No |
+| Current-medicine adjustment | Versioned deterministic interaction rule | No |
+| Drug-specific PGx action | Exact CPIC table row | No |
+| Timing, food and labelled warning | Versioned regulator-approved label | No |
+| Missing-field or counterfactual request | Bounded AI, validated against allowed types | Yes |
+| Constraint and follow-up summary | Bounded AI over approved facts | Yes |
+| Prescribing decision | Patient and clinician | Never automated |
 
-**3. Confidence.** CYP2C19 reads cleanly from a consumer DNA kit. CYP2D6 does not, because
-what matters most is how many copies of the gene there are, and SNP arrays cannot see copy
-number at all. That becomes a per-gene trust score, and the ranking step consumes it: when a
-gene call is shaky, drugs that do not depend on that gene are actively preferred.
+Every clinical statement must keep:
 
-**4. Treatment history.** For each past trial, one question. Does this person's metabolism
-account for what happened? The answer is allowed to be no.
+- the input or derived fact ID;
+- the exact rule that created it;
+- the source and version;
+- its limitation state; and
+- whether AI changed its organisation or wording.
 
-**5. Rank candidates.** Query the guideline table for every candidate using the *functional*
-phenotype rather than the genetic one, because tolerability in the first weeks decides whether
-someone stays on a drug, and in those weeks the interacting medication is still on board. Score
-on guideline action, call confidence, interactions, and treatment history.
+## How the AI is useful
 
-**6. Lifestyle protocol.** Fuse label-sourced timing, food and interaction rules with the
-person's other medications. Critical items are pinned and cannot be collapsed.
+The AI is not a chatbot with access to a genome. It is a constrained agent over a typed,
+source-backed patient record.
 
-**7. Narrative.** Compose the patient and clinician prose over facts that are already fixed.
-The patient and clinician versions are written separately rather than one being a rewrite of
-the other, so the patient-facing page never says "this patient".
+### 1. Adaptive questions
 
-**8. Validator.** Four checks, all mechanical:
+The model may select the next useful question from an approved list. For example, a chosen
+medicine may require a meal-pattern field that is still missing. The answer becomes a typed
+input. The model cannot ask for arbitrary data or fill in an answer itself.
 
-1. Every number in the prose must already appear in the structured input.
-2. Every drug name must already appear in the structured input.
-3. Every citation must be one the engine actually emitted.
-4. A sentence making a clinical assertion with no citation is dropped.
+### 2. Constraint review
 
-The number check is unit aware. A guideline saying "a 50% reduction" does not license the model
-to write "50 mg". A value carrying a clinical unit must match a value carrying the same unit in
-the source.
+The model may connect already-approved facts across gene results, current medicines,
+treatment history and daily routine. It can point out a missing field or conflict and explain
+why it matters. It cannot change any underlying fact.
 
----
+### 3. Typed counterfactual requests
 
-# Code layout
+The model may request an allowed scenario, such as recalculating the view with a different
+recorded current-medicine list. The request is validated, then the deterministic system reruns
+the **whole** calculation. The model never predicts the scenario result and cannot patch one
+part of an old result.
 
-Three layers. They only communicate through `src/engine/types.ts`, which is the contract.
+### 4. Daily protocol arrangement
 
+The model may organise regulator-label facts around the person's stated schedule, meals and
+other supported routine fields. It cannot add generic wellness advice or turn a label fact
+into an instruction.
+
+### 5. Longitudinal synthesis
+
+When follow-up data is available, the model may summarise recorded symptoms, side effects,
+adherence and the clinician's plan across time. It may turn gaps into questions for the next
+appointment. It cannot diagnose, judge urgency or alter the plan.
+
+### 6. Plain-language explanation
+
+The model may explain approved facts at the requested reading level. This is one function of
+the agent, not its whole purpose.
+
+## The AI contract
+
+Only derived, structured facts are sent to the model. The raw genome and direct identifiers
+are excluded.
+
+The model must return a typed object containing only allowed request types, known medicines,
+known fact IDs and known evidence IDs. It cannot introduce a clinical number, dose, guideline
+action or source. A mechanical validator rejects unknown or malformed output. Rejection is
+visible; the system does not silently replace it with plausible text.
+
+The model's own wording is retained in the audit record, but the main AI Review screen does
+not present it as medical truth. The screen renders reviewed fixed wording from the validated
+action, fact IDs and typed rerun request. This prevents an allow-listed sentence with reversed
+meaning from becoming patient-facing output.
+
+```mermaid
+flowchart LR
+    A["Approved derived facts"] --> B["Bounded MedGemma agent"]
+    B --> C["Schema and allow-list validator"]
+    C -->|"valid request"| D["Deterministic full rerun or reviewed renderer"]
+    C -->|"invalid"| E["Visible rejection"]
+    D --> F["Source-linked review"]
 ```
-src/
-  data/          the facts
-    sources/       captured CPIC and openFDA source data, as retrieved
-    cpic.ts        guideline lookup
-    interactions.ts FDA inhibitor and inducer classifications
-    lifestyle-rules.ts curated protocol rules
-    citations.ts   every source; an unknown id throws rather than rendering
-    pharmacology.ts washout windows, autoinhibition, equivalent drugs
 
-  engine/        the logic, one file per pipeline step
-    types.ts       the contract
-    pharmcat/      star allele calling, adapter interface, fixtures
-    phenoconversion.ts
-    confidence.ts
-    history.ts
-    ranking.ts
-    lifestyle.ts
-    orchestrator.ts the only model-touched step
-    validator.ts   the claim boundary
-    pipeline.ts    wires it together, emits the trace the UI renders
+The model cannot:
 
-  ui/            display only, never calculates anything clinical
-```
+- read or translate a raw genome;
+- call a variant, diplotype or phenotype;
+- calculate phenoconversion, a dose or a PGx action;
+- choose, rank, start, stop or switch a medicine;
+- diagnose depression or triage risk;
+- resolve conflict between sources; or
+- invent a fact or citation.
 
-If a clinical fact is wrong, it is wrong in `data/` and nowhere else. If the reasoning is
-wrong, it is in one file in `engine/`. The UI cannot be the cause of a clinical error, because
-it does no clinical computation.
+Any crisis or urgent-care path must be a separately validated product control, not model
+judgement.
 
-## The star-allele adapter
+## What exists now
 
-`PharmCATAdapter` has one method and three implementations behind it:
+| Part | Current state |
+| --- | --- |
+| Validation UI | Six focused views: File, Genes, Medicines, Daily life, AI Review and Evidence |
+| Fictional examples | Run through a reduced six-variant parser |
+| PharmCAT report import | Supported; report-only coverage remains explicit |
+| Raw VCF or consumer upload | Deterministic inspection and prototype preview only |
+| Real PharmCAT service | Pinned Docker script exists; governed upload backend does not |
+| CPIC rules | Captured local SRI 2023 and TCA 2016 tables |
+| Current-medicine adjustment | Deterministic CYP2D6 method where supported; unresolved interactions stay warnings |
+| Daily-life matching | Deterministic, for fields backed by a selected medicine's cached label facts |
+| Medicine labels | Cached US FDA excerpts; not yet Australian PI/CMI |
+| Australian scope | Draft candidate list; not used in results |
+| Plain-language AI adapter | Optional draft adapter exists; no service is enabled by default |
+| Smart AI review | Privacy-minimised context, same-origin provider, typed contract, validator and validation UI are implemented; no live service or clinical release is enabled |
+| Counterfactuals | Typed requests are validated; the production full-pipeline rerun executor is not wired yet |
+| Follow-up journey | Engine concepts exist; production capture and longitudinal evaluation remain future work |
 
-- **Fixture** — known diplotypes. The demo path, so a demonstration cannot fail on live
-  variant calling.
-- **Tag-SNP** — a real but deliberately reduced caller for uploaded files. Reads the handful of
-  markers consumer arrays actually carry and reports everything it could not see. It is not
-  PharmCAT and does not pretend to be, and the confidence layer marks it down accordingly.
-- **Docker** — the real PharmCAT, via `scripts/run-pharmcat.sh`. The script documents the exact
-  JSON shape to parse and the traps, including that `sourceDiplotypes` and
-  `recommendationDiplotypes` are different arrays and joining on the wrong one silently
-  mismatches recommendations.
+This is a system-validation prototype, not a clinical product.
 
-Swapping to real PharmCAT is a parsing change, not a redesign.
+For development, `VITE_MEDGEMMA_ENDPOINT` selects the governed same-origin review endpoint.
+`VITE_MEDGEMMA_MODEL` may override the model name. If the endpoint is absent, the provider
+returns `not_connected`; it does not simulate a review. Neither setting is an authentication
+secret, and no model credential belongs in a `VITE_` variable.
 
----
+## File handling
 
-# Design principles
+### PharmCAT Reporter JSON
 
-**Red is reserved.** It appears only for critical protocol items and avoid verdicts. In a
-product read by someone who is depressed and has already had two medications fail, a red-heavy
-interface reads as a verdict on them.
+The app can import a Reporter JSON and preserve reported software and data versions. A report
+without PharmCAT's missing-position artefact is labelled `coverage unknown`. CYP2D6 remains
+limited unless the report records an appropriate outside call that accounts for structural
+and copy-number variation.
 
-**Absence is information.** "No food restrictions for this drug" is a real answer and gets
-rendered as one, rather than the row being omitted.
+### GRCh38 VCF
 
-**Critical items cannot be collapsed.** The rules that are genuinely dangerous to miss are also
-the ones a tidy interface would tuck away first, so they are pinned open.
+A production backend must run pinned PharmCAT preprocessing and PharmCAT releases. It must
+keep the input, normalised output, missing-position file and run manifest.
 
-**Progressive disclosure everywhere else.** One line by default. The full guideline wording,
-verbatim, on click.
+PharmCAT requires GRCh38 and explicit required positions. Missing data is not reference data.
+The system must not turn `./.` or an absent position into `0/0`.
 
-**Nothing reads as a verdict on the person.** A drug that did not work is a fact about
-pharmacokinetics.
+### Consumer genotype file
 
----
+A tested adapter may recognise a supported four-column consumer format and convert observed
+rows into a sparse, traceable intermediate file. It must not guess build, strand, phase or
+missing alleles. Consumer arrays are usually incomplete for clinical PGx, especially CYP2D6.
 
-# Invariants
+### Unsupported input
 
-Break any of these and the architecture stops meaning anything.
+The system stops and explains what is missing. AI may organise a fixed error into plain
+language, but it may not repair or infer genetic data.
 
-1. **Clinical facts live in `data/` and always carry a citation id.** No source, no render. This
-   is enforced in code: unknown citation ids throw, and lifestyle rules that end up uncited are
-   dropped before they reach the screen.
+## Data used
 
-2. **The model explains, it never decides.** If a prompt is being written that asks for a dose,
-   stop. Everything the model receives is already fixed.
+### Needed for a PGx result
 
-3. **All model output passes the validator.** Including deterministic template output, which
-   always passes. A path that skipped the check would make the whole thing decorative.
+- genome data or a PharmCAT report;
+- test type, genome build, coverage and quality metadata;
+- current medicines and supplements; and
+- exact tool and evidence versions.
 
-4. **Both phenotypes travel together.** Genetic and functional are always carried and always
-   shown as a pair. One without the other is misleading in both directions.
+### Needed after a medicine is chosen
 
-5. **No efficacy claims.** Genetics answers what dose, which drug is enzyme-safe, what will
-   cause harm, and why past trials failed. It does not answer which antidepressant will lift
-   the depression, and the product says so in both views.
+- the chosen medicine and formulation;
+- the clinician's dosing and review plan;
+- only daily-routine fields that match a sourced drug rule; and
+- symptoms, side effects and adherence at agreed follow-up points.
+
+Depression questionnaires and lifestyle information do not change the genetic call. The UI
+keeps each input beside the output it can affect.
+
+## Australian evidence
+
+The repository contains a candidate Australian antidepressant list. It defines useful scope,
+but it cannot drive patient results yet because:
+
+- ARTG identifiers and current registration status are missing;
+- PBS items, formulations, restrictions and retrieval dates are missing;
+- Australian PI/CMI evidence is not attached; and
+- shortened summaries must be reconciled against the exact CPIC rows.
+
+Production localisation needs a dated evidence release built from exact CPIC rules plus
+current ARTG, PBS and Australian PI/CMI records.
+
+## Privacy
+
+- Inspect and hash the genome locally where possible.
+- Send raw genetic data only to the governed bioinformatics service that needs it.
+- Send no raw genome or direct identifier to AI.
+- Prefer typed fields to free text.
+- Record consent, purpose, access, retention and deletion.
+- Keep fictional example data visually distinct from patient data.
+
+## How to extend the system
+
+Extend the evidence and typed contracts before extending model freedom:
+
+1. Build the governed PharmCAT backend and immutable run manifest.
+2. Add a validated structural-variant-aware CYP2D6 path.
+3. Reconcile each Australian medicine with exact CPIC, ARTG, PBS and PI/CMI records.
+4. Publish versioned evidence releases with automated source and conflict checks.
+5. Add new medicines through data rows, tests and reviewed plain-language templates.
+6. Add approved adaptive-question and counterfactual request types one at a time.
+7. Validate each deterministic rerun against fixed expected results.
+8. Add selected-medicine daily protocols only from current regulator sources.
+9. Add longitudinal follow-up capture and clinician-plan records.
+10. Evaluate MedGemma on missing data, contradictions, unsupported requests, prompt attacks and
+    counterfactual consistency before clinical release.
+
+The model does not learn a new drug by prompting. A new drug needs exact gene–drug rules,
+label facts, Australian status, tests and reviewed wording.
+
+## Release blockers
+
+Do not use this system for care until it has:
+
+- clinically validated genetic inputs and CYP2D6 handling;
+- reconciled, versioned Australian evidence;
+- clinical and human-factors validation;
+- a representative AI safety and counterfactual evaluation set;
+- security, privacy, consent and audit controls;
+- a safe deterministic crisis and clinician-escalation pathway; and
+- legal and regulatory review for the intended use.

@@ -42,6 +42,31 @@ describe('genome file parsing', () => {
 
     expect(Object.keys(parsed.calls)).toEqual(['rs4244285'])
   })
+
+  it('supports safe consumer delimiters and keeps -- as a no-call', () => {
+    const parsed = parseGenomeFile(`rs4244285,10,94781859,AG
+rs12248560 10 94761900 TT
+rs3892097\t22\t42128945\t--`)
+
+    expect(parsed.format).toBe('23andme')
+    expect(parsed.calls).toEqual({ rs4244285: 'AG', rs12248560: 'TT' })
+  })
+
+  it('does not coerce missing or invalid VCF allele indexes to REF', () => {
+    const parsed = parseGenomeFile(`${VCF_SAMPLE}
+chr10\t94780653\trs4986893\tG\tA\t.\tPASS\t.\tGT\t./.
+chr22\t42130692\trs1065852\tG\tA\t.\tPASS\t.\tGT\t2/2`)
+
+    expect(parsed.calls.rs4986893).toBeUndefined()
+    expect(parsed.calls.rs1065852).toBeUndefined()
+  })
+
+  it('drops a supported rsID when duplicate rows disagree', () => {
+    const parsed = parseGenomeFile(`rs4244285\t10\t94781859\tAG
+rs4244285\t10\t94781859\tGG`)
+
+    expect(parsed.calls.rs4244285).toBeUndefined()
+  })
 })
 
 describe('an uploaded file produces the same analysis as the fixture', () => {
@@ -67,7 +92,9 @@ describe('an uploaded file produces the same analysis as the fixture', () => {
     expect(cyp2c19.geneticPhenotype).toBe('Intermediate Metabolizer')
     expect(cyp2d6.diplotype).toBe('*1/*1')
     expect(cyp2d6.functionalPhenotype).toBe('Poor Metabolizer')
-    expect(result.shortlist.filter((d) => !d.isCurrentMedication)[0].drug).toBe('sertraline')
+    const medicines = result.shortlist.filter((d) => !d.isCurrentMedication).map((d) => d.drug)
+    expect(medicines).toEqual([...medicines].sort((a, b) => a.localeCompare(b)))
+    expect(result.shortlist.find((drug) => drug.drug === 'sertraline')).toBeDefined()
   })
 
   it('reports an indeterminate phenotype rather than guessing when a gene has no coverage', async () => {
@@ -86,9 +113,12 @@ describe('an uploaded file produces the same analysis as the fixture', () => {
     })
 
     const cyp2d6 = result.genes.find((g) => g.gene === 'CYP2D6')!
+    const cyp2c19 = result.genes.find((g) => g.gene === 'CYP2C19')!
     expect(cyp2d6.geneticPhenotype).toBe('Indeterminate')
     expect(cyp2d6.functionalPhenotype).toBe('Indeterminate')
     expect(cyp2d6.confidence.level).toBe('low')
     expect(cyp2d6.diplotype).toBe('unknown')
+    expect(cyp2c19.geneticPhenotype).toBe('Indeterminate')
+    expect(cyp2c19.diplotype).toBe('unknown')
   })
 })

@@ -1,9 +1,9 @@
 /**
- * Known-diplotype fixtures.
+ * Fictional validation fixtures.
  *
  * The demo runs on these so it cannot fail on live variant calling. They are not shortcuts
  * around the pipeline: each fixture is a set of genotype calls that flows through exactly
- * the same star-allele caller, confidence scorer and ranking engine as an uploaded file.
+ * the same reduced caller and evidence pipeline as an uploaded prototype file.
  * The only thing fixed is the input.
  *
  * Each fixture also renders to a downloadable 23andMe-format export, so the upload path can
@@ -39,8 +39,9 @@ export const FIXTURES: Fixture[] = [
     id: 'demo-phenoconversion',
     title: 'The phenoconversion case',
     story:
-      'Genetically an ordinary CYP2D6 metaboliser, but currently taking fluoxetine — which is a strong ' +
-      'inhibitor of both CYP2D6 and CYP2C19. Two antidepressants have already been tried without success.',
+      'A fictional consumer-array result with a normal CYP2D6 call and an intermediate CYP2C19 call. ' +
+      'Fluoxetine is recorded as current, so the sample demonstrates a supported CYP2D6 inhibitor adjustment ' +
+      'and a separate unresolved CYP2C19 interaction flag.',
     assayType: 'consumer-array',
     fileName: 'genome_demo_phenoconversion.txt',
     calls: {
@@ -61,8 +62,8 @@ export const FIXTURES: Fixture[] = [
     id: 'demo-ultrarapid',
     title: 'The ultrarapid metaboliser',
     story:
-      'Carries two copies of CYP2C19*17 and clears the CYP2C19 antidepressants unusually fast. Three drugs ' +
-      'have been recorded as "no effect", which is exactly what underexposure looks like from the outside.',
+      'A fictional reduced caller result containing two CYP2C19*17 tag variants and two recorded “no effect” ' +
+      'outcomes. It demonstrates a guideline exposure question without claiming why either treatment did not help.',
     assayType: 'consumer-array',
     fileName: 'genome_demo_ultrarapid.txt',
     calls: {
@@ -83,8 +84,8 @@ export const FIXTURES: Fixture[] = [
     id: 'demo-poor-metaboliser',
     title: 'The genuine poor metaboliser',
     story:
-      'Two non-functional CYP2D6 alleles, so this is a poor metaboliser on genotype alone with no interacting ' +
-      'medication involved. Side effects arrived within days on the last two attempts.',
+      'A fictional targeted-PGx result with a CYP2D6 poor-metaboliser call and no current interacting medicine. ' +
+      'Two prior treatments are recorded as having side effects; the sample does not attribute their cause.',
     assayType: 'targeted-pgx',
     fileName: 'genome_demo_poor_metaboliser.txt',
     calls: {
@@ -126,17 +127,19 @@ export function fixtureToFileText(fixture: Fixture): string {
 }
 
 export class FixturePharmCATAdapter implements PharmCATAdapter {
-  readonly name = 'Known-diplotype fixture'
+  readonly name = 'Downstream synthetic fixture (input parsing bypassed)'
   readonly provenance = 'fixture' as const
 
   constructor(private readonly fixture: Fixture) {}
 
   async analyze(_input: GenomeInput): Promise<PharmCATReport> {
-    const genes = buildGeneCalls(this.fixture.calls, this.fixture.assayType)
+    const genes = buildGeneCalls(this.fixture.calls, this.fixture.assayType, 'fixture')
     return {
       reportId: this.fixture.id,
       provenance: 'fixture',
-      pharmcatVersion: 'fixture diplotypes; guideline data from CPIC as bundled by PharmCAT',
+      pharmcatVersion: 'PharmCAT not run — downstream synthetic fixture',
+      pharmcatDataVersion: null,
+      reportTimestamp: null,
       assayType: this.fixture.assayType,
       genes,
       excludedGenes: excludedGeneCalls({}),

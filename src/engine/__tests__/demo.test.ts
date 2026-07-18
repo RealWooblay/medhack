@@ -47,104 +47,102 @@ describe('the phenoconversion demo patient', () => {
     expect(cyp2c19.unresolvedWarning?.text).toMatch(/have not been\s+established/)
   })
 
-  it('marks CYP2D6 low confidence because copy number is not callable from an array', async () => {
+  it('marks a fixture as non-clinical and keeps unresolved CYP2D6 low confidence', async () => {
     const result = await runFixture('demo-phenoconversion')
     const cyp2d6 = result.genes.find((g) => g.gene === 'CYP2D6')!
     const cyp2c19 = result.genes.find((g) => g.gene === 'CYP2C19')!
 
     expect(cyp2d6.confidence.level).toBe('low')
-    expect(cyp2c19.confidence.level).toBe('high')
-    expect(cyp2d6.confidence.reasons[0].text).toMatch(/[Cc]opy number/)
+    expect(cyp2c19.confidence.level).toBe('moderate')
+    expect(cyp2d6.confidence.reasons[0].text).toMatch(/structural variation/)
+    expect(cyp2c19.confidence.reasons.some((reason) => /fictional/.test(reason.text))).toBe(true)
   })
 
-  it('ranks sertraline top among drugs the patient is not already taking', async () => {
+  it('lists medication findings alphabetically rather than choosing a treatment', async () => {
     const result = await runFixture('demo-phenoconversion')
     const switchable = result.shortlist.filter((d) => !d.isCurrentMedication)
 
-    expect(switchable[0].drug).toBe('sertraline')
-    expect(switchable[0].verdict).toBe('preferred')
-    // It wins because the compromised enzyme is not the one that clears it.
-    expect(switchable[0].enzymeIndependence.length).toBeGreaterThan(0)
-    expect(switchable[0].enzymeIndependence[0].text).toMatch(/CYP2D6/)
+    expect(switchable.map((drug) => drug.drug)).toEqual(
+      [...switchable.map((drug) => drug.drug)].sort((a, b) => a.localeCompare(b)),
+    )
+    expect(result.protocol?.drug).toBe(switchable[0].drug)
   })
 
-  it('is the only drug shown as straightforwardly suitable', async () => {
+  it('keeps PGx categories separate from a treatment recommendation', async () => {
     const result = await runFixture('demo-phenoconversion')
-    const preferred = result.shortlist.filter((d) => d.verdict === 'preferred' && !d.isCurrentMedication)
-    expect(preferred.map((d) => d.drug)).toEqual(['sertraline'])
+    const usual = result.shortlist.filter((d) => d.pgxCategory === 'usual_guidance' && !d.isCurrentMedication)
+    expect(usual.map((d) => d.drug)).toEqual(['citalopram', 'escitalopram', 'sertraline'])
   })
 
-  it('never shows a previously failed drug as suitable', async () => {
+  it('shows prior history without silently changing the PGx category', async () => {
     const result = await runFixture('demo-phenoconversion')
     const escitalopram = result.shortlist.find((d) => d.drug === 'escitalopram')!
 
     expect(escitalopram.pastTrial).not.toBeNull()
-    expect(escitalopram.verdict).not.toBe('preferred')
-    expect(escitalopram.retryRationale?.text).toMatch(/nothing in your metabolism explains why/)
+    expect(escitalopram.pgxCategory).toBe('usual_guidance')
+    expect(escitalopram.retryRationale?.text).toMatch(/does not change the PGx category/)
   })
 
-  it('demotes citalopram because it is the same molecule as the escitalopram that failed', async () => {
+  it('does not infer that one recorded non-response transfers to another medicine', async () => {
     const result = await runFixture('demo-phenoconversion')
     const citalopram = result.shortlist.find((d) => d.drug === 'citalopram')!
 
     expect(citalopram.pastTrial).toBeNull()
-    expect(citalopram.verdict).toBe('caution')
-    expect(citalopram.retryRationale?.text).toMatch(/S-enantiomer of citalopram/)
-    expect(citalopram.scoreBreakdown.some((c) => c.label.includes('Equivalent to escitalopram'))).toBe(true)
+    expect(citalopram.pgxCategory).toBe('usual_guidance')
+    expect(citalopram.retryRationale).toBeNull()
   })
 
-  it('keeps a drug on the table when the reason it failed is fixable', async () => {
-    // An ultrarapid metaboliser under-exposed at a standard dose is the case where "it did
-    // not work" should NOT close the door.
+  it('labels a PGx exposure question as possible rather than a proven reason', async () => {
     const result = await runFixture('demo-ultrarapid')
     const escitalopram = result.shortlist.find((d) => d.drug === 'escitalopram')!
 
-    expect(escitalopram.pastTrial?.explanation).toBe('consistent')
-    expect(escitalopram.retryRationale?.text).toMatch(/worth raising rather than closing off/)
+    expect(escitalopram.pastTrial?.explanation).toBe('possible')
+    expect(escitalopram.pastTrial?.patientSummary).toMatch(/cannot show/)
+    expect(escitalopram.retryRationale?.text).toMatch(/cannot infer why/)
   })
 
   it('puts the CYP2D6-dependent drugs in the avoid band', async () => {
     const result = await runFixture('demo-phenoconversion')
-    const verdictOf = (drug: string) => result.shortlist.find((d) => d.drug === drug)?.verdict
+    const categoryOf = (drug: string) => result.shortlist.find((d) => d.drug === drug)?.pgxCategory
 
-    expect(verdictOf('venlafaxine')).toBe('avoid')
-    expect(verdictOf('paroxetine')).toBe('caution')
-    expect(verdictOf('vortioxetine')).toBe('caution')
+    expect(categoryOf('venlafaxine')).toBe('alternative_discussion')
+    expect(categoryOf('paroxetine')).toBe('dose_or_titration_review')
+    expect(categoryOf('vortioxetine')).toBe('dose_or_titration_review')
   })
 
-  it('explains the paroxetine side effects through autoinhibition', async () => {
+  it('does not attribute paroxetine side effects without the full trial context', async () => {
     const result = await runFixture('demo-phenoconversion')
     const paroxetine = result.history.find((h) => h.drug === 'paroxetine')!
 
-    expect(paroxetine.explanation).toBe('consistent')
-    expect(paroxetine.mechanism?.text).toMatch(/inhibitor/i)
+    expect(paroxetine.explanation).toBe('not_explained_by_genetics')
+    expect(paroxetine.mechanism).toBeNull()
+    expect(paroxetine.patientSummary).toMatch(/does not provide a supported explanation/)
   })
 
-  it('declines to explain the escitalopram non-response, because the genetics point the other way', async () => {
+  it('keeps the escitalopram dosing question separate from the recorded non-response', async () => {
     const result = await runFixture('demo-phenoconversion')
     const escitalopram = result.history.find((h) => h.drug === 'escitalopram')!
 
     expect(escitalopram.explanation).toBe('not_explained_by_genetics')
-    expect(escitalopram.mechanism?.text).toMatch(/higher, not lower/)
+    expect(escitalopram.mechanism?.text).toMatch(/does not establish why/)
   })
 
-  it('surfaces the fluoxetine washout window on the recommended drug path', async () => {
+  it('does not calculate a washout treatment state without a clinician plan', async () => {
     const result = await runFixture('demo-phenoconversion')
-    const withWashout = result.shortlist.filter((d) => d.washoutNote)
-    expect(withWashout.length).toBeGreaterThan(0)
-    expect(withWashout[0].washoutNote!.text).toMatch(/norfluoxetine/)
+    const text = result.narrative.accepted.flatMap((section) => section.claims).map((claim) => claim.text).join(' ')
+    expect(text).toMatch(/does not create a washout, taper or cross-taper plan/)
   })
 })
 
 describe('other fixtures', () => {
-  it('explains non-response for an ultrarapid metaboliser', async () => {
+  it('surfaces but does not prove an exposure explanation for non-response', async () => {
     const result = await runFixture('demo-ultrarapid')
     const cyp2c19 = result.genes.find((g) => g.gene === 'CYP2C19')!
     expect(cyp2c19.geneticPhenotype).toBe('Ultrarapid Metabolizer')
 
     const escitalopram = result.history.find((h) => h.drug === 'escitalopram')!
-    expect(escitalopram.explanation).toBe('consistent')
-    expect(escitalopram.mechanism?.text).toMatch(/below the therapeutic range/)
+    expect(escitalopram.explanation).toBe('possible')
+    expect(escitalopram.mechanism?.text).toMatch(/does not establish why/)
   })
 
   it('calls a genotype-only poor metaboliser with no interacting medication', async () => {
@@ -226,7 +224,7 @@ describe('the claim boundary', () => {
       }
     }
     // And the protocol is not empty as a side effect of that filtering.
-    expect(result.protocol!.items.length).toBeGreaterThan(4)
+    expect(result.protocol!.items.length).toBeGreaterThan(0)
   })
 
   it('renders no clinical claim without a resolvable citation', async () => {

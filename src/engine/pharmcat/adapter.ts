@@ -5,7 +5,7 @@
  * unsupported, and the whole pitch is that the guideline facts come from the PharmGKB
  * reference implementation rather than from us.
  *
- * Three implementations sit behind one interface:
+ * Four implementations sit behind one interface:
  *
  *   FixtureAdapter    — known-diplotype fixtures. The demo path, so a demonstration can
  *                       never fail on live variant calling.
@@ -17,6 +17,9 @@
  *   DockerAdapter     — the real thing. Runs the pgkb/pharmcat image. Not reachable from a
  *                       browser, so it lives in scripts/run-pharmcat.sh and regenerates the
  *                       fixtures this app ships with.
+ *   ReporterJsonAdapter — reads a PharmCAT Reporter JSON result, preserves ambiguity, and maps
+ *                         gene calls into the app's versioned CPIC evidence table. It does not
+ *                         infer VCF coverage that is absent from the report.
  *
  * The output shape mirrors PharmCAT's own reporter JSON closely enough that swapping
  * TagSnpAdapter for parsed PharmCAT output is a parsing change, not a redesign.
@@ -101,39 +104,87 @@ export interface ParsedGenotypes {
   totalLines: number
 }
 
+function consumerFields(line: string): string[] {
+  const trimmed = line.trim()
+  return (trimmed.includes(',') ? trimmed.split(',') : trimmed.split(/\s+/))
+    .map((field) => field.trim())
+}
+
 export function parseGenomeFile(contents: string): ParsedGenotypes {
-  const lines = contents.split(/\r?\n/)
+  const lines = contents.replace(/^\uFEFF/, '').split(/\r?\n/)
   const wanted = new Set(VARIANTS.map((v) => v.rsid))
   const calls: Record<string, string> = {}
+  const conflicted = new Set<string>()
   let format: ParsedGenotypes['format'] = 'unknown'
 
   const isVcf = lines.some((l) => l.startsWith('##fileformat=VCF'))
-  format = isVcf ? 'vcf' : lines.some((l) => /^rs\d+\t/.test(l)) ? '23andme' : 'unknown'
+  const hasVcfColumnHeader = lines.some((line) => {
+    if (!line.startsWith('#CHROM\t')) return false
+    const fields = line.split('\t')
+    return fields[8] === 'FORMAT' && fields.length >= 10
+  })
+  format = isVcf
+    ? 'vcf'
+    : lines.some((line) => /^rs\d+(?:\t|,|\s)/i.test(line.trim()))
+      ? '23andme'
+      : 'unknown'
+
+  const saveCall = (id: string, genotype: string): void => {
+    if (conflicted.has(id)) return
+    const previous = calls[id]
+    if (previous !== undefined && previous !== genotype) {
+      delete calls[id]
+      conflicted.add(id)
+      return
+    }
+    calls[id] = genotype
+  }
 
   for (const line of lines) {
     if (!line || line.startsWith('#')) continue
-    const fields = line.split('\t')
 
     if (format === 'vcf') {
+      if (!hasVcfColumnHeader) continue
       // #CHROM POS ID REF ALT QUAL FILTER INFO FORMAT SAMPLE
+      const fields = line.split('\t')
       if (fields.length < 10) continue
       const [, , id, ref, alt, , , , fmt, sample] = fields
       if (!wanted.has(id)) continue
       const gtIndex = fmt.split(':').indexOf('GT')
       if (gtIndex === -1) continue
       const gt = sample.split(':')[gtIndex]
-      const alleles = gt.split(/[/|]/).map((a) => {
-        if (a === '0') return ref
-        const altIndex = Number.parseInt(a, 10) - 1
-        return alt.split(',')[altIndex] ?? ref
-      })
-      if (alleles.length === 2) calls[id] = alleles.join('')
+      if (!gt) continue
+      const refAllele = ref.toUpperCase()
+      const altAlleles = alt.split(',').map((allele) => allele.toUpperCase())
+      const alleleIndexes = gt.split(/[/|]/)
+      if (alleleIndexes.length !== 2 || !/^[ACGT]$/.test(refAllele)) continue
+
+      const alleles: string[] = []
+      let valid = true
+      for (const value of alleleIndexes) {
+        if (!/^\d+$/.test(value)) {
+          valid = false
+          break
+        }
+        const index = Number.parseInt(value, 10)
+        const allele = index === 0 ? refAllele : altAlleles[index - 1]
+        if (!allele || !/^[ACGT]$/.test(allele)) {
+          valid = false
+          break
+        }
+        alleles.push(allele)
+      }
+      if (valid) saveCall(id, alleles.join(''))
     } else {
       // rsid chromosome position genotype
+      const fields = consumerFields(line)
       if (fields.length < 4) continue
-      const [id, , , genotype] = fields
+      const [rawId, , , rawGenotype] = fields
+      const id = rawId.toLowerCase()
       if (!wanted.has(id)) continue
-      if (/^[ACGT-]{1,2}$/.test(genotype)) calls[id] = genotype
+      const genotype = rawGenotype.toUpperCase()
+      if (genotype === '--') continue
+      if (/^[ACGT]{2}$/.test(genotype)) saveCall(id, genotype)
     }
   }
 
@@ -224,15 +275,17 @@ export function genotypeOnlyRecommendations(genes: GeneCall[]): PharmCATDrugReco
 
 export class TagSnpAdapter implements PharmCATAdapter {
   readonly name = 'Reduced tag-SNP caller'
-  readonly provenance = 'fixture' as const
+  readonly provenance = 'reduced-tagsnp' as const
 
   async analyze(input: GenomeInput): Promise<PharmCATReport> {
     const parsed = parseGenomeFile(input.contents ?? '')
     const genes = buildGeneCalls(parsed.calls, input.assayType)
     return {
       reportId: `tagsnp-${input.fileName}`,
-      provenance: 'fixture',
+      provenance: 'reduced-tagsnp',
       pharmcatVersion: 'reduced tag-SNP caller (not PharmCAT)',
+      pharmcatDataVersion: null,
+      reportTimestamp: null,
       assayType: input.assayType,
       genes,
       excludedGenes: excludedGeneCalls({}),
@@ -241,7 +294,142 @@ export class TagSnpAdapter implements PharmCATAdapter {
   }
 }
 
-export function buildGeneCalls(calls: Record<string, string>, assayType: AssayType): GeneCall[] {
+/* ------------------------------------------------------------------ */
+/* Real PharmCAT reporter JSON                                        */
+/* ------------------------------------------------------------------ */
+
+interface PharmCATDiplotypeJson {
+  label?: unknown
+  phenotypes?: unknown
+  activityScore?: unknown
+}
+
+interface PharmCATGeneJson {
+  callSource?: unknown
+  sourceDiplotypes?: unknown
+  recommendationDiplotypes?: unknown
+  uncalledHaplotypes?: unknown
+  variants?: unknown
+}
+
+interface PharmCATReporterJson {
+  title?: unknown
+  timestamp?: unknown
+  pharmcatVersion?: unknown
+  dataVersion?: unknown
+  genes?: unknown
+}
+
+const PHENOTYPES: Phenotype[] = [
+  'Ultrarapid Metabolizer',
+  'Rapid Metabolizer',
+  'Normal Metabolizer',
+  'Likely Intermediate Metabolizer',
+  'Intermediate Metabolizer',
+  'Likely Poor Metabolizer',
+  'Poor Metabolizer',
+  'Indeterminate',
+]
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function parsePharmCATGene(geneName: string, raw: PharmCATGeneJson | undefined): GeneCall {
+  const source = asArray(raw?.sourceDiplotypes) as PharmCATDiplotypeJson[]
+  const recommendation = asArray(raw?.recommendationDiplotypes) as PharmCATDiplotypeJson[]
+  const selected = recommendation[0] ?? source[0]
+  const phenotypeRaw = asArray(selected?.phenotypes)[0]
+  const ambiguous = recommendation.length > 1 || source.length > 1
+  const phenotype = !ambiguous && typeof phenotypeRaw === 'string' && PHENOTYPES.includes(phenotypeRaw as Phenotype)
+    ? phenotypeRaw as Phenotype
+    : 'Indeterminate'
+  const activityRaw = selected?.activityScore
+  const activity = typeof activityRaw === 'string' || typeof activityRaw === 'number'
+    ? Number.parseFloat(String(activityRaw))
+    : Number.NaN
+  const variants = asArray(raw?.variants)
+  const uncalled = asArray(raw?.uncalledHaplotypes)
+  const callSource = typeof raw?.callSource === 'string' ? raw.callSource : 'UNKNOWN'
+
+  return {
+    gene: geneName,
+    diplotype: !ambiguous && typeof selected?.label === 'string' ? selected.label : 'ambiguous or no call',
+    phenotype,
+    activityScore: !ambiguous && Number.isFinite(activity) ? activity : null,
+    positionsCalled: variants.length,
+    positionsMissing: 0,
+    coverageScope: 'report-json-only',
+    missingPositionLabels: [
+      'Reporter JSON was supplied without PharmCAT’s missing-position VCF, so coverage completeness is unknown.',
+      ...uncalled.map((value) => typeof value === 'string' ? value : JSON.stringify(value)),
+      ...(ambiguous ? ['PharmCAT reported more than one possible diplotype.'] : []),
+      ...(geneName === 'CYP2D6' && callSource !== 'OUTSIDE'
+        ? ['CYP2D6 did not come from an SV/CNV-aware outside call.']
+        : []),
+    ],
+    structuralVariationUnresolved: geneName === 'CYP2D6' && callSource !== 'OUTSIDE',
+  }
+}
+
+/**
+ * Reads PharmCAT's machine-readable *.report.json. This does not run PharmCAT in the
+ * browser; it is a static-app handoff after a governed PharmCAT service or local
+ * pipeline has produced the report. CYP2D6 is trusted structurally only when PharmCAT
+ * marks the call source as OUTSIDE.
+ */
+export class PharmCATReportJsonAdapter implements PharmCATAdapter {
+  readonly name = 'PharmCAT reporter JSON'
+  readonly provenance = 'pharmcat-json' as const
+
+  async analyze(input: GenomeInput): Promise<PharmCATReport> {
+    let parsed: PharmCATReporterJson
+    try {
+      parsed = JSON.parse(input.contents ?? '') as PharmCATReporterJson
+    } catch {
+      throw new Error('This is not valid PharmCAT reporter JSON.')
+    }
+
+    const geneMap = asRecord(parsed.genes)
+    if (!Object.keys(geneMap).length || typeof parsed.pharmcatVersion !== 'string') {
+      throw new Error('The JSON does not contain the genes and pharmcatVersion fields from a PharmCAT report.')
+    }
+
+    const genes = ['CYP2C19', 'CYP2D6', 'CYP2B6'].map((gene) =>
+      parsePharmCATGene(gene, asRecord(geneMap[gene]) as PharmCATGeneJson),
+    )
+    const excludedObserved: Record<string, string> = {}
+    for (const gene of ['SLC6A4', 'HTR2A']) {
+      const raw = asRecord(geneMap[gene]) as PharmCATGeneJson
+      const selected = (asArray(raw.sourceDiplotypes)[0] ?? null) as PharmCATDiplotypeJson | null
+      if (selected && typeof selected.label === 'string') excludedObserved[gene] = selected.label
+    }
+
+    return {
+      reportId: typeof parsed.timestamp === 'string' ? `pharmcat-${parsed.timestamp}` : `pharmcat-${input.fileName}`,
+      provenance: 'pharmcat-json',
+      pharmcatVersion: `${parsed.pharmcatVersion}`,
+      pharmcatDataVersion: typeof parsed.dataVersion === 'string' ? parsed.dataVersion : null,
+      reportTimestamp: typeof parsed.timestamp === 'string' ? parsed.timestamp : null,
+      assayType: input.assayType,
+      genes,
+      excludedGenes: excludedGeneCalls(excludedObserved),
+      recommendations: genotypeOnlyRecommendations(genes),
+    }
+  }
+}
+
+export function buildGeneCalls(
+  calls: Record<string, string>,
+  assayType: AssayType,
+  coverageScope: GeneCall['coverageScope'] = 'reduced-prototype',
+): GeneCall[] {
   const genes: GeneCall[] = []
 
   for (const geneName of ['CYP2C19', 'CYP2D6', 'CYP2B6']) {
@@ -264,7 +452,7 @@ export function buildGeneCalls(calls: Record<string, string>, assayType: AssayTy
       ;({ diplotype, phenotype } = callCyp2b6(calls))
     }
 
-    if (found.length === 0) {
+    if (found.length === 0 || (coverageScope === 'reduced-prototype' && missing.length > 0)) {
       diplotype = 'unknown'
       phenotype = 'Indeterminate'
       activityScore = null
@@ -277,11 +465,14 @@ export function buildGeneCalls(calls: Record<string, string>, assayType: AssayTy
       activityScore,
       positionsCalled: found.length,
       positionsMissing: missing.length,
+      coverageScope,
       missingPositionLabels: [
         ...missing.map((v) => v.label),
         ...(assayType === 'consumer-array' ? (UNCALLABLE_BY_ARRAY[geneName] ?? []) : []),
       ],
-      structuralVariationUnresolved: geneName === 'CYP2D6' && assayType !== 'targeted-pgx',
+      structuralVariationUnresolved:
+        geneName === 'CYP2D6' &&
+        (coverageScope === 'reduced-prototype' || assayType !== 'targeted-pgx'),
     })
   }
 
