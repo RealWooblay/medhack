@@ -2,12 +2,12 @@
  * Extension 3 — confidence and coverage scoring.
  *
  * Confidence is limited by the evidence actually supplied to this build. Reporter JSON
- * alone does not include PharmCAT's separate missing-position VCF, and the reduced tag-SNP
- * prototype is not a clinical allele caller. Neither is allowed to look complete.
+ * alone does not include PharmCAT's separate missing-position VCF. It is never allowed to
+ * look complete merely because the report contains a diplotype.
  *
- * CYP2D6 copy number, duplications and CYP2D6-CYP2D7 hybrids cannot be resolved by the
- * reduced SNP path. The UI therefore shows categorical limitations. These tiers are
- * transparency labels, not calibrated probabilities and do not order medicines.
+ * CYP2D6 copy number, duplications and CYP2D6-CYP2D7 hybrids require a validated outside
+ * caller whose run evidence is supplied separately. These tiers are transparency labels,
+ * not calibrated probabilities and do not order medicines.
  */
 
 import type { AssayType, Claim, ConfidenceLevel, GeneCall, GeneConfidence } from './types'
@@ -16,6 +16,7 @@ const ASSAY_LABEL: Record<AssayType, string> = {
   'consumer-array': 'consumer SNP array export',
   wgs: 'whole genome sequencing',
   'targeted-pgx': 'targeted pharmacogenomic panel',
+  unknown: 'test with no validated assay manifest',
 }
 
 const HEADLINE: Record<ConfidenceLevel, string> = {
@@ -46,25 +47,13 @@ export function scoreGene(gene: GeneCall, assayType: AssayType): GeneConfidence 
         `to be the reference allele.`,
       citationIds: ['pharmcat'],
     })
-  } else if (gene.coverageScope === 'reduced-prototype') {
-    reasons.push({
-      text:
-        `This exploratory call checks only the prototype's small tag-variant set for ${gene.gene}. It is not ` +
-        `a PharmCAT or clinical laboratory call and cannot establish a complete star-allele result.`,
-      citationIds: ['pharmcat'],
-    })
-  } else if (gene.coverageScope === 'fixture') {
-    reasons.push({
-      text:
-        `${gene.gene} comes from a fictional known-result fixture. It demonstrates the report flow and must ` +
-        `not be interpreted as patient assay confidence.`,
-      citationIds: ['pharmcat'],
-    })
   }
 
   // 2. Positions PharmCAT expected and did not find.
-  const expected = gene.positionsCalled + gene.positionsMissing
-  if (expected > 0 && gene.positionsMissing > 0) {
+  const expected = gene.positionsCalled !== null && gene.positionsMissing !== null
+    ? gene.positionsCalled + gene.positionsMissing
+    : null
+  if (expected !== null && expected > 0 && gene.positionsMissing !== null && gene.positionsMissing > 0) {
     reasons.push({
       text:
         `${gene.positionsMissing} of ${expected} positions checked by this input path for ${gene.gene} were absent ` +
@@ -94,12 +83,10 @@ export function scoreGene(gene: GeneCall, assayType: AssayType): GeneConfidence 
 
   const level: ConfidenceLevel =
     gene.phenotype === 'Indeterminate' ||
-    gene.structuralVariationUnresolved ||
-    gene.coverageScope === 'reduced-prototype'
+    gene.structuralVariationUnresolved
       ? 'low'
       : gene.coverageScope === 'report-json-only' ||
-          gene.coverageScope === 'fixture' ||
-          gene.positionsMissing > 0
+          (gene.positionsMissing !== null && gene.positionsMissing > 0)
         ? 'moderate'
         : 'high'
 

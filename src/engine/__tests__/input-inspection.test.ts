@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { CAPTURED_PHARMCAT_EXAMPLE_JSON } from '../pharmcat/fixtures'
 import { inspectGenomeInput } from '../pharmcat/input-inspection'
 
 const VCF_HEADER = `##fileformat=VCFv4.2
@@ -7,14 +8,11 @@ const VCF_HEADER = `##fileformat=VCFv4.2
 
 describe('deterministic genome input inspection', () => {
   it('recognizes PharmCAT Reporter JSON from content, not the file extension', async () => {
-    const result = await inspectGenomeInput('not-a-report.txt', JSON.stringify({
-      pharmcatVersion: '3.4.0',
-      genes: { CYP2C19: { sourceDiplotypes: [] } },
-    }))
+    const result = await inspectGenomeInput('not-a-report.txt', CAPTURED_PHARMCAT_EXAMPLE_JSON)
 
     expect(result.kind).toBe('pharmcat-report-json')
     expect(result.status).toBe('ready')
-    expect(result.canRunPrototype).toBe(true)
+    expect(result.canRunAnalysis).toBe(true)
     expect(result.blockingCode).toBeNull()
     expect(result.sha256).toMatch(/^[a-f0-9]{64}$/)
   })
@@ -25,8 +23,8 @@ describe('deterministic genome input inspection', () => {
 
     expect(malformed.blockingCode).toBe('MALFORMED_JSON')
     expect(generic.blockingCode).toBe('JSON_NOT_PHARMCAT_REPORT')
-    expect(malformed.canRunPrototype).toBe(false)
-    expect(generic.canRunPrototype).toBe(false)
+    expect(malformed.canRunAnalysis).toBe(false)
+    expect(generic.canRunAnalysis).toBe(false)
   })
 
   it('accepts only a VCF with fileformat, #CHROM, sample, and GT structure', async () => {
@@ -40,13 +38,13 @@ chr10\t94761900\trs12248560\tC\tT\t.\tPASS\t.\tGT\t0/0
       formatLabel: 'VCF genotype file',
       status: 'limited-preview',
       blockingCode: null,
-      canRunPrototype: true,
+      canRunAnalysis: false,
       recognizedVariantCount: 2,
       sampleNames: ['PERSON_A'],
     })
     expect(result).not.toHaveProperty('genomeBuild')
     expect(result.warnings.join(' ')).toContain('Genome build')
-    expect(result.warnings.join(' ')).toContain('not a clinical PharmCAT result')
+    expect(result.warnings.join(' ')).toContain('official PharmCAT pipeline')
   })
 
   it('returns specific VCF blocking codes instead of guessing', async () => {
@@ -69,7 +67,7 @@ chr10\t94781859\trs4244285\tG\tA\t.\tPASS\t.\tGT\t0/1\t0/0`)
 
     expect(result.blockingCode).toBe('MULTIPLE_SAMPLES')
     expect(result.sampleNames).toEqual(['PERSON_A', 'PERSON_B'])
-    expect(result.canRunPrototype).toBe(false)
+    expect(result.canRunAnalysis).toBe(false)
   })
 
   it('does not turn VCF no-calls or invalid ALT indexes into reference calls', async () => {
@@ -95,7 +93,7 @@ i4000757,XY,0,II\r
       kind: 'consumer-genotype',
       status: 'limited-preview',
       blockingCode: null,
-      canRunPrototype: true,
+      canRunAnalysis: false,
       recognizedVariantCount: 2,
     })
     expect(result.normalizedContents).toContain('rs4244285\t10\t94781859\tAG')
@@ -129,17 +127,17 @@ chr10\t94781859\trs4244285\tG\tA\t.\tPASS\t.\tGT\t0/0`)
 
     expect(consumer.blockingCode).toBe('CONFLICTING_DUPLICATE')
     expect(vcf.blockingCode).toBe('CONFLICTING_DUPLICATE')
-    expect(consumer.canRunPrototype).toBe(false)
-    expect(vcf.canRunPrototype).toBe(false)
+    expect(consumer.canRunAnalysis).toBe(false)
+    expect(vcf.canRunAnalysis).toBe(false)
   })
 
-  it('keeps consumer -- as a no-call and blocks files with no usable supported call', async () => {
+  it('keeps consumer -- as a no-call and refuses to produce a result', async () => {
     const result = await inspectGenomeInput('consumer.txt', 'rs4244285\t10\t94781859\t--\n')
 
     expect(result.kind).toBe('consumer-genotype')
     expect(result.recognizedVariantCount).toBe(0)
-    expect(result.blockingCode).toBe('NO_SUPPORTED_VARIANTS')
-    expect(result.canRunPrototype).toBe(false)
+    expect(result.blockingCode).toBeNull()
+    expect(result.canRunAnalysis).toBe(false)
   })
 
   it('does not use a plausible file name to classify unknown content', async () => {

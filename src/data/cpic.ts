@@ -285,7 +285,7 @@ export function profileOf(drug: string): DrugProfile | undefined {
   return DRUG_PROFILES.find((p) => p.drug.toLowerCase() === drug.toLowerCase())
 }
 
-/** Medicines for which this prototype displays the available PGx evidence. */
+/** Medicines for which this app displays the available PGx evidence. */
 export const SHORTLIST_CANDIDATES: string[] = [
   'sertraline', 'escitalopram', 'citalopram', 'paroxetine', 'fluvoxamine', 'fluoxetine',
   'venlafaxine', 'desvenlafaxine', 'duloxetine', 'vortioxetine', 'vilazodone',

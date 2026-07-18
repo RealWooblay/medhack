@@ -15,7 +15,7 @@ import { normaliseCareContext, scoreDepressionCheckIn } from './depression'
 import { reconstructTrials } from './history'
 import { buildProtocol } from './lifestyle'
 import { matchLifestyle } from './lifestyle-fit'
-import { adversarialProbe, composeNarrative, type NarrativeFacts } from './orchestrator'
+import { type NarrativeFacts } from './orchestrator'
 import { computePhenoconversion } from './phenoconversion'
 import { assembleDrugFindings } from './ranking'
 import { buildAllowList, validateDraft } from './validator'
@@ -26,7 +26,6 @@ import type {
   GenePhenotypeResult,
   PatientInput,
   TraceStep,
-  ValidationReport,
 } from './types'
 
 /* ------------------------------------------------------------------ */
@@ -35,8 +34,8 @@ function collectCitationIds(result: Omit<AnalysisResult, 'narrative' | 'citation
   const ids = new Set<string>()
   const add = (list: string[] | undefined) => list?.forEach((id) => ids.add(id))
 
-  add(result.depression.interpretation.citationIds)
-  add(result.depression.monitoringNote.citationIds)
+  add(result.depression?.interpretation.citationIds)
+  add(result.depression?.monitoringNote.citationIds)
 
   for (const gene of result.genes) {
     add(gene.explanation?.citationIds)
@@ -72,23 +71,6 @@ function collectCitationIds(result: Omit<AnalysisResult, 'narrative' | 'citation
   return [...ids]
 }
 
-/**
- * Merges the deterministic narrative (which supplies the rendered prose) with the
- * adversarial probe (which supplies the rejection log). Both were checked by the same
- * validator against the same allow-list.
- */
-function mergeReports(rendered: ValidationReport, probe: ValidationReport): ValidationReport {
-  return {
-    ...rendered,
-    rejections: [...rendered.rejections, ...probe.rejections],
-    claimsChecked: rendered.claimsChecked + probe.claimsChecked,
-    renderedRejectionCount: rendered.rejections.length,
-    probeRejectionCount: probe.rejections.length,
-    renderedClaimsChecked: rendered.claimsChecked,
-    probeClaimsChecked: probe.claimsChecked,
-  }
-}
-
 /* ------------------------------------------------------------------ */
 
 export interface AnalysisOptions {
@@ -115,17 +97,24 @@ export async function runAnalysis({
   const care = normaliseCareContext(input.careContext)
 
   /* 1 — symptom baseline. It informs the journey, never the medication findings. */
-  const depression = await step(
-    'Score the depression check-in',
-    'Score the PHQ-9 exactly as entered and keep it separate from medication selection.',
-    'deterministic',
-    () => scoreDepressionCheckIn(care),
-  )
+  const depression = care.checkIn
+    ? await step(
+        'Score the depression check-in',
+        'Score the complete PHQ-9 exactly as entered and keep it separate from medication selection.',
+        'deterministic',
+        () => scoreDepressionCheckIn(care),
+      )
+    : await step(
+        'No depression check-in',
+        'No PHQ-9 was supplied, so no symptom score or symptom result was created.',
+        'deterministic',
+        () => null,
+      )
 
   /* 2 — imported or locally derived gene calls */
   const pharmcat = await step(
     'Read gene calls',
-    `${adapter.name} — gene-call origin is preserved; medication rules are applied later from the local evidence table.`,
+    `${adapter.name} — gene calls and matched CPIC annotations retain the PharmCAT software and data versions.`,
     'deterministic',
     () => adapter.analyze(genome),
   )
@@ -145,6 +134,8 @@ export async function runAnalysis({
           functionalPhenotype: outcome.functionalPhenotype,
           geneticActivityScore: gene.activityScore,
           functionalActivityScore: outcome.functionalActivityScore,
+          modeledFunctionalPhenotype: outcome.modeledFunctionalPhenotype,
+          modeledFunctionalActivityScore: outcome.modeledFunctionalActivityScore,
           converted: outcome.converted,
           status: outcome.status,
           modifiers: outcome.modifiers,
@@ -166,9 +157,14 @@ export async function runAnalysis({
   /* 6 — alphabetical medication findings */
   const shortlist = await step(
     'Assemble medication-specific PGx findings',
-    'Query the captured guideline table for every candidate and keep PGx, confidence, interactions and treatment history visible as separate components.',
+    'Use exact matched PharmCAT CPIC annotations and keep PGx, confidence, current-medicine effects and treatment history separate.',
     'deterministic',
-    () => assembleDrugFindings({ genes, currentMedications: input.currentMedications, history }),
+    () => assembleDrugFindings({
+      genes,
+      recommendations: pharmcat.recommendations,
+      currentMedications: input.currentMedications,
+      history,
+    }),
   )
 
   /* 7 — lifestyle protocols */
@@ -223,19 +219,11 @@ export async function runAnalysis({
     depression,
   }
 
-  const drafts = await step(
+  const draft = await step(
     'Draft the explanation',
     `${narrativeProvider.name} composes the patient and clinician narrative over fixed facts. No new clinical content may enter here.`,
     narrativeProvider.mode === 'ai' ? 'model' : 'deterministic',
-    async () => {
-      try {
-        return { rendered: await narrativeProvider.compose(facts), probe: adversarialProbe(facts) }
-      } catch (error) {
-        const rendered = composeNarrative(facts)
-        rendered.model = `${rendered.model}; AI fallback (${error instanceof Error ? error.message : 'provider error'})`
-        return { rendered, probe: adversarialProbe(facts) }
-      }
-    },
+    () => narrativeProvider.compose(facts),
   )
 
   /* 8 — the claim boundary */
@@ -255,7 +243,7 @@ export async function runAnalysis({
           genes.length,
         ],
       })
-      return mergeReports(validateDraft(drafts.rendered, allow), validateDraft(drafts.probe, allow))
+      return validateDraft(draft, allow)
     },
   )
 

@@ -1,149 +1,186 @@
 /**
- * Fictional validation fixtures.
+ * Compact test snapshot of PharmCAT's official Example 1 Reporter JSON.
  *
- * The demo runs on these so it cannot fail on live variant calling. They are not shortcuts
- * around the pipeline: each fixture is a set of genotype calls that flows through exactly
- * the same reduced caller and evidence pipeline as an uploaded prototype file.
- * The only thing fixed is the input.
- *
- * Each fixture also renders to a downloadable 23andMe-format export, so the upload path can
- * be exercised for real rather than described.
+ * This is not a hand-authored clinical scenario and it is never used as a runtime fallback.
+ * The values below were captured from the official output at the source URL on 2026-07-18;
+ * the browser validation demo fetches the full current file directly from PharmCAT.
  */
 
-import { excludedGeneCalls } from '../../data/excluded-genes'
-import type { AssayType, PharmCATReport } from '../types'
+import type { AssayType, PharmCATReport, Phenotype } from '../types'
 import {
-  buildGeneCalls,
-  genotypeOnlyRecommendations,
-  VARIANTS,
+  PharmCATReportJsonAdapter,
   type GenomeInput,
   type PharmCATAdapter,
 } from './adapter'
 
-export interface Fixture {
-  id: string
-  title: string
-  /** What this fixture is for, shown in the demo picker. */
-  story: string
-  assayType: AssayType
-  fileName: string
-  /** rsid -> genotype, plus-strand as a consumer export reports it. */
-  calls: Record<string, string>
-  /** Suggested current medications and past trials for this fixture. */
-  suggestedMedications: string[]
-  suggestedTrials: Array<{ drug: string; outcome: 'no_effect' | 'side_effects' | 'helped' }>
+export const OFFICIAL_EXAMPLE_SOURCE =
+  'https://pharmcat.clinpgx.org/examples/pharmcat.example.report.json'
+
+interface CapturedGene {
+  gene: 'CYP2C19' | 'CYP2D6' | 'CYP2B6'
+  label: string
+  phenotype: Phenotype
+  activityScore?: string | null
+  callSource: 'MATCHER' | 'OUTSIDE'
 }
 
-export const FIXTURES: Fixture[] = [
+const capturedGenes: CapturedGene[] = [
+  { gene: 'CYP2C19', label: '*38/*38', phenotype: 'Normal Metabolizer', activityScore: null, callSource: 'MATCHER' },
+  { gene: 'CYP2D6', label: '*1/*3', phenotype: 'Intermediate Metabolizer', activityScore: '1.0', callSource: 'OUTSIDE' },
+  { gene: 'CYP2B6', label: '*1/*1', phenotype: 'Normal Metabolizer', activityScore: null, callSource: 'MATCHER' },
+]
+
+function capturedDiplotype(gene: CapturedGene): Record<string, unknown> {
+  return {
+    gene: gene.gene,
+    label: gene.label,
+    phenotypes: [gene.phenotype],
+    activityScore: gene.activityScore ?? null,
+  }
+}
+
+function capturedGeneReport(gene: CapturedGene): Record<string, unknown> {
+  const diplotype = capturedDiplotype(gene)
+  return {
+    callSource: gene.callSource,
+    alleleDefinitionVersion: '2026-07-13-11-40',
+    phenotypeVersion: '2026-07-13-11-40',
+    sourceDiplotypes: [diplotype],
+    recommendationDiplotypes: [diplotype],
+    uncalledHaplotypes: [],
+    variants: [{}],
+  }
+}
+
+interface CapturedRecommendation {
+  drug: string
+  text: string
+  classification: string
+  url: string
+  genes: CapturedGene['gene'][]
+  dosingInformation: boolean
+}
+
+const capturedRecommendations: CapturedRecommendation[] = [
   {
-    id: 'demo-phenoconversion',
-    title: 'The phenoconversion case',
-    story:
-      'A fictional consumer-array result with a normal CYP2D6 call and an intermediate CYP2C19 call. ' +
-      'Fluoxetine is recorded as current, so the sample demonstrates a supported CYP2D6 inhibitor adjustment ' +
-      'and a separate unresolved CYP2C19 interaction flag.',
-    assayType: 'consumer-array',
-    fileName: 'genome_demo_phenoconversion.txt',
-    calls: {
-      rs4244285: 'AG', // CYP2C19*2 heterozygous -> *1/*2 intermediate
-      rs4986893: 'GG', // no *3
-      rs12248560: 'CC', // no *17
-      rs3892097: 'GG', // no CYP2D6*4
-      rs1065852: 'GG', // no CYP2D6*10 -> *1/*1, activity score 2.0
-      rs3745274: 'GG', // no CYP2B6*6
-    },
-    suggestedMedications: ['fluoxetine'],
-    suggestedTrials: [
-      { drug: 'paroxetine', outcome: 'side_effects' },
-      { drug: 'escitalopram', outcome: 'no_effect' },
-    ],
+    drug: 'amitriptyline',
+    text: 'Consider a 25% reduction of recommended starting dose. Utilize therapeutic drug monitoring to guide dose adjustments.',
+    classification: 'Moderate',
+    url: 'https://www.clinpgx.org/guidelineAnnotation/PA166105006',
+    genes: ['CYP2C19', 'CYP2D6'],
+    dosingInformation: true,
   },
   {
-    id: 'demo-ultrarapid',
-    title: 'The ultrarapid metaboliser',
-    story:
-      'A fictional reduced caller result containing two CYP2C19*17 tag variants and two recorded “no effect” ' +
-      'outcomes. It demonstrates a guideline exposure question without claiming why either treatment did not help.',
-    assayType: 'consumer-array',
-    fileName: 'genome_demo_ultrarapid.txt',
-    calls: {
-      rs4244285: 'GG',
-      rs4986893: 'GG',
-      rs12248560: 'TT', // *17/*17 -> ultrarapid
-      rs3892097: 'GG',
-      rs1065852: 'GG',
-      rs3745274: 'GG',
-    },
-    suggestedMedications: [],
-    suggestedTrials: [
-      { drug: 'escitalopram', outcome: 'no_effect' },
-      { drug: 'citalopram', outcome: 'no_effect' },
-    ],
+    drug: 'citalopram',
+    text: 'Initiate therapy with recommended starting dose',
+    classification: 'Strong',
+    url: 'https://www.clinpgx.org/guidelineAnnotation/PA166127638',
+    genes: ['CYP2C19'],
+    dosingInformation: false,
   },
   {
-    id: 'demo-poor-metaboliser',
-    title: 'The genuine poor metaboliser',
-    story:
-      'A fictional targeted-PGx result with a CYP2D6 poor-metaboliser call and no current interacting medicine. ' +
-      'Two prior treatments are recorded as having side effects; the sample does not attribute their cause.',
-    assayType: 'targeted-pgx',
-    fileName: 'genome_demo_poor_metaboliser.txt',
-    calls: {
-      rs4244285: 'GG',
-      rs4986893: 'GG',
-      rs12248560: 'CC',
-      rs3892097: 'AA', // *4/*4 -> activity score 0, poor metaboliser
-      rs1065852: 'AA',
-      rs3745274: 'GG',
-    },
-    suggestedMedications: [],
-    suggestedTrials: [
-      { drug: 'paroxetine', outcome: 'side_effects' },
-      { drug: 'venlafaxine', outcome: 'side_effects' },
-    ],
+    drug: 'escitalopram',
+    text: 'Initiate therapy with recommended starting dose',
+    classification: 'Strong',
+    url: 'https://www.clinpgx.org/guidelineAnnotation/PA166127638',
+    genes: ['CYP2C19'],
+    dosingInformation: false,
+  },
+  {
+    drug: 'nortriptyline',
+    text: 'Consider a 25% reduction of recommended starting dose. Titrate dose to observed clinical response with symptom improvement and minimal (if any) side effects. Utilize therapeutic drug monitoring to guide dose adjustments.',
+    classification: 'Optional',
+    url: 'https://www.clinpgx.org/guidelineAnnotation/PA166104998',
+    genes: ['CYP2D6'],
+    dosingInformation: true,
+  },
+  {
+    drug: 'paroxetine',
+    text: 'Consider a lower starting dose and slower titration schedule as compared to normal metabolizers.',
+    classification: 'Optional',
+    url: 'https://www.clinpgx.org/guidelineAnnotation/PA166127636',
+    genes: ['CYP2D6'],
+    dosingInformation: true,
+  },
+  {
+    drug: 'sertraline',
+    text: 'Initiate therapy with recommended starting dose.',
+    classification: 'Strong',
+    url: 'https://www.clinpgx.org/guidelineAnnotation/PA166127639',
+    genes: ['CYP2B6', 'CYP2C19'],
+    dosingInformation: false,
+  },
+  {
+    drug: 'venlafaxine',
+    text: 'No action recommended based on genotype for venlafaxine because of minimal evidence regarding the impact on efficacy or side effects.',
+    classification: 'No recommendation',
+    url: 'https://www.clinpgx.org/guidelineAnnotation/PA166288201',
+    genes: ['CYP2D6'],
+    dosingInformation: false,
+  },
+  {
+    drug: 'vortioxetine',
+    text: 'Initiate therapy with recommended starting dose.',
+    classification: 'Moderate',
+    url: 'https://www.clinpgx.org/guidelineAnnotation/PA166288221',
+    genes: ['CYP2D6'],
+    dosingInformation: false,
   },
 ]
 
-export function fixtureById(id: string): Fixture | undefined {
-  return FIXTURES.find((f) => f.id === id)
-}
-
-/** Renders a fixture as a 23andMe-format raw export, so the upload path can be tested. */
-export function fixtureToFileText(fixture: Fixture): string {
-  const header = [
-    '# This data file generated by the antidepressant PGx prototype as a test fixture.',
-    '# Format matches a 23andMe raw export: rsid, chromosome, position, genotype.',
-    '# Positions are GRCh38, read from PharmCAT\'s shipped pharmcat_positions.vcf.',
-    `# Fixture: ${fixture.id} — ${fixture.title}`,
-    '#',
-    '# rsid\tchromosome\tposition\tgenotype',
-  ].join('\n')
-
-  const rows = VARIANTS.filter((v) => fixture.calls[v.rsid]).map((v) =>
-    [v.rsid, v.chrom.replace('chr', ''), String(v.position), fixture.calls[v.rsid]].join('\t'),
-  )
-
-  return `${header}\n${rows.join('\n')}\n`
-}
-
-export class FixturePharmCATAdapter implements PharmCATAdapter {
-  readonly name = 'Downstream synthetic fixture (input parsing bypassed)'
-  readonly provenance = 'fixture' as const
-
-  constructor(private readonly fixture: Fixture) {}
-
-  async analyze(_input: GenomeInput): Promise<PharmCATReport> {
-    const genes = buildGeneCalls(this.fixture.calls, this.fixture.assayType, 'fixture')
-    return {
-      reportId: this.fixture.id,
-      provenance: 'fixture',
-      pharmcatVersion: 'PharmCAT not run — downstream synthetic fixture',
-      pharmcatDataVersion: null,
-      reportTimestamp: null,
-      assayType: this.fixture.assayType,
-      genes,
-      excludedGenes: excludedGeneCalls({}),
-      recommendations: genotypeOnlyRecommendations(genes),
-    }
+function capturedDrugReport(recommendation: CapturedRecommendation): Record<string, unknown> {
+  return {
+    name: recommendation.drug,
+    urls: [recommendation.url],
+    guidelines: [{
+      url: recommendation.url,
+      annotations: [{
+        drugRecommendation: recommendation.text,
+        classification: recommendation.classification,
+        population: 'general',
+        dosingInformation: recommendation.dosingInformation,
+        alternateDrugAvailable: false,
+        otherPrescribingGuidance: false,
+        genotypes: [{
+          diplotypes: recommendation.genes.map((name) =>
+            capturedDiplotype(capturedGenes.find((gene) => gene.gene === name)!),
+          ),
+        }],
+      }],
+    }],
   }
 }
+
+export const CAPTURED_PHARMCAT_EXAMPLE = {
+  title: 'pharmcat.example',
+  timestamp: '2026-07-13T22:32:26.437Z',
+  pharmcatVersion: 'v3.3.0-8-g8ff5870f',
+  dataVersion: '2026-07-13-11-40',
+  genes: Object.fromEntries(capturedGenes.map((gene) => [gene.gene, capturedGeneReport(gene)])),
+  drugs: {
+    'CPIC Guideline Annotation': Object.fromEntries(
+      capturedRecommendations.map((recommendation) => [
+        recommendation.drug,
+        capturedDrugReport(recommendation),
+      ]),
+    ),
+  },
+}
+
+export const CAPTURED_PHARMCAT_EXAMPLE_JSON = JSON.stringify(CAPTURED_PHARMCAT_EXAMPLE)
+
+/** Test-only adapter that still exercises the production Reporter JSON parser. */
+export class CapturedPharmCATExampleAdapter implements PharmCATAdapter {
+  readonly name = 'Captured official PharmCAT example'
+  readonly provenance = 'pharmcat-json' as const
+
+  async analyze(input: GenomeInput): Promise<PharmCATReport> {
+    const adapter = new PharmCATReportJsonAdapter()
+    return adapter.analyze({
+      ...input,
+      contents: CAPTURED_PHARMCAT_EXAMPLE_JSON,
+    })
+  }
+}
+
+export const CAPTURED_EXAMPLE_ASSAY: AssayType = 'unknown'

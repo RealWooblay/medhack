@@ -52,23 +52,29 @@ export type Phenotype =
   | 'Poor Metabolizer'
   | 'Indeterminate'
 
-export type AssayType = 'consumer-array' | 'wgs' | 'targeted-pgx'
+export type AssayType = 'consumer-array' | 'wgs' | 'targeted-pgx' | 'unknown'
 
 /** Per-gene call as PharmCAT's phenotyper reports it. */
 export interface GeneCall {
   gene: string
+  /** MATCHER, OUTSIDE, or another value reported by PharmCAT. */
+  callSource: string
+  /** Per-gene allele-definition release reported by PharmCAT. */
+  alleleDefinitionVersion: string | null
+  /** Per-gene phenotype translation release reported by PharmCAT. */
+  phenotypeVersion: string | null
   diplotype: string
   phenotype: Phenotype
   /** CYP2D6 uses an activity score; CYP2C19/CYP2B6 do not. */
   activityScore: number | null
-  /** Positions PharmCAT expected and found. */
-  positionsCalled: number
-  /** Positions PharmCAT expected and did NOT find in the VCF. */
-  positionsMissing: number
+  /** Positions PharmCAT reported as present. Null when the supplied artefact cannot prove coverage. */
+  positionsCalled: number | null
+  /** Positions PharmCAT expected and did NOT find. Null unless the missing-position artefact was supplied. */
+  positionsMissing: number | null
   /** Human-readable identifiers of the missing positions, for the confidence panel. */
   missingPositionLabels: string[]
   /** What this build genuinely knows about assay coverage for the call. */
-  coverageScope: 'pharmcat-complete' | 'report-json-only' | 'reduced-prototype' | 'fixture'
+  coverageScope: 'pharmcat-complete' | 'report-json-only'
   /**
    * True when the assay structurally cannot resolve copy number / hybrid alleles for
    * this gene. This is the CYP2D6-from-an-array problem, and it is the single most
@@ -89,7 +95,11 @@ export interface ExcludedGeneCall {
 /** Versioned guideline recommendation used by the local CPIC lookup. Never rewritten by a model. */
 export interface PharmCATDrugRecommendation {
   drug: string
+  /** All gene results used by PharmCAT for this exact annotation, including combined rules. */
+  geneResults: Array<{ gene: string; phenotype: Phenotype }>
+  /** Compact compatibility label. Combined annotations are joined with " + ". */
   gene: string
+  /** First phenotype for legacy consumers; use geneResults for evidence display. */
   phenotype: Phenotype
   /** Normalised action used to group and label the captured guidance. */
   action: RecommendationAction
@@ -97,8 +107,15 @@ export interface PharmCATDrugRecommendation {
   text: string
   /** CPIC's classification of strength of recommendation. */
   strength?: string
+  /** Population label attached to the exact PharmCAT annotation. */
+  population: string | null
+  dosingInformation: boolean | null
+  alternateDrugAvailable: boolean | null
+  otherPrescribingGuidance: boolean | null
   source: 'CPIC' | 'DPWG' | 'FDA'
   citationIds: string[]
+  /** Exact PharmCAT/ClinPGx annotation URL when present in the imported report. */
+  sourceUrl?: string
 }
 
 /**
@@ -127,8 +144,8 @@ export type RecommendationAction =
 export interface PharmCATReport {
   reportId: string
   /** Which adapter produced this — surfaced in the UI provenance strip. */
-  provenance: 'fixture' | 'reduced-tagsnp' | 'pharmcat-json' | 'pharmcat-docker'
-  /** PharmCAT software version when a real reporter result was imported; otherwise an explicit non-PharmCAT method label. */
+  provenance: 'pharmcat-json'
+  /** PharmCAT software version reported by the imported Reporter JSON. */
   pharmcatVersion: string
   /** Separate PharmCAT knowledge/data version, when present in an imported report. */
   pharmcatDataVersion?: string | null
@@ -185,7 +202,8 @@ export interface LifestyleContext {
 }
 
 export interface CareContext {
-  checkIn: DepressionCheckIn
+  /** Null when this validation run did not collect a PHQ-9. */
+  checkIn: DepressionCheckIn | null
   goals: CareGoal[]
   lifestyle: LifestyleContext
   /** The app does not infer risk. This records the direct answer and triggers a fixed safety route. */
@@ -238,14 +256,11 @@ export interface PhenoconversionModifier {
  * What the engine was able to conclude about the interaction between this gene and the
  * patient's current medications.
  *
- * `unvalidated_method` is the honest one. CPIC states verbatim that consensus approaches
+ * CPIC states that consensus approaches
  * for adjusting CYP2D6, CYP2C19 or CYP2B6 predicted phenotypes in the presence of
- * inhibitors or inducers have not been established. That consensus DOES exist for CYP2D6
- * via the activity-score multiplier, which CPIC operationalises in its own guidelines — but
- * for CYP2C19 and CYP2B6 there is no validated method. So when a strong CYP2C19 inhibitor
- * is on board, this engine flags the interaction loudly and declines to invent a converted
- * phenotype, rather than quietly stepping the tier down and presenting a made-up number as
- * though a guideline stood behind it.
+ * inhibitors or inducers have not been established. A CYP2D6 activity-score convention is
+ * retained only as an explicitly uncertain modeled estimate. For CYP2C19 and CYP2B6 there
+ * is no numeric estimate. Neither path replaces the imported PharmCAT result.
  */
 export type PhenoconversionStatus =
   | 'no_modifiers'
@@ -263,7 +278,10 @@ export interface GenePhenotypeResult {
   functionalPhenotype: Phenotype
   geneticActivityScore: number | null
   functionalActivityScore: number | null
-  /** True only when a validated method actually changed the phenotype tier. */
+  /** Optional estimate from a named research convention; never dosing authority. */
+  modeledFunctionalPhenotype: Phenotype | null
+  modeledFunctionalActivityScore: number | null
+  /** True only when a validated clinical rule changed the phenotype tier. False in this build. */
   converted: boolean
   status: PhenoconversionStatus
   modifiers: PhenoconversionModifier[]
@@ -304,6 +322,9 @@ export type PgxReviewCategory =
   | 'no_gene_based_guidance'
 
 export interface GeneFinding {
+  /** Exact gene/phenotype combination used by the imported PharmCAT annotation. */
+  geneResults: Array<{ gene: string; phenotype: Phenotype }>
+  /** Compact label retained for simple renderers; use geneResults for combined rules. */
   gene: string
   phenotypeUsed: Phenotype
   /** True when the phenotype used was the phenoconverted one, not the genetic one. */
@@ -311,7 +332,12 @@ export interface GeneFinding {
   action: RecommendationAction
   guidelineText: string
   strength?: string
+  population: string | null
+  dosingInformation: boolean | null
+  alternateDrugAvailable: boolean | null
+  otherPrescribingGuidance: boolean | null
   citationIds: string[]
+  sourceUrl?: string
 }
 
 export interface InteractionFlag {
@@ -490,7 +516,8 @@ export interface ValidationReport {
 export interface AnalysisResult {
   input: PatientInput
   care: CareContext
-  depression: DepressionSummary
+  /** Null unless the user actually supplied a complete PHQ-9 in this run. */
+  depression: DepressionSummary | null
   pharmcat: PharmCATReport
   genes: GenePhenotypeResult[]
   excludedGenes: ExcludedGeneCall[]

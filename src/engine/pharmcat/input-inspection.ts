@@ -2,12 +2,12 @@
  * Browser-safe, deterministic inspection of an uploaded genome-related file.
  *
  * This module identifies syntax only. It never infers genome build, strand, phase,
- * genotype, PharmCAT compatibility, or clinical meaning. Raw VCF and consumer files
- * may feed the deliberately reduced prototype caller after inspection; only an
- * externally produced PharmCAT Reporter JSON is labelled as PharmCAT output.
+ * genotype, PharmCAT compatibility, or clinical meaning. Raw VCF and consumer files never
+ * produce a browser-side gene call; only an externally produced PharmCAT Reporter JSON can
+ * enter the result pipeline.
  */
 
-import { parseGenomeFile, VARIANTS } from './adapter'
+import { INSPECTION_RSIDS, isRecognisablePharmCATReporter, parseGenomeFile } from './adapter'
 
 export type InputKind =
   | 'pharmcat-report-json'
@@ -37,7 +37,8 @@ export interface InputInspection {
   formatLabel: string
   status: InputInspectionStatus
   blockingCode: InputBlockingCode | null
-  canRunPrototype: boolean
+  /** True only when this artefact can enter the real result parser in this build. */
+  canRunAnalysis: boolean
   /** Syntax-only normalization. No alleles, positions, build, or strand are inferred. */
   normalizedContents: string
   /** Supported rsIDs with a usable diploid A/C/G/T call, after conservative parsing. */
@@ -61,7 +62,7 @@ interface ResultBase extends BaseNormalization {
   sha256: string
 }
 
-const SUPPORTED_RSIDS = new Set(VARIANTS.map((variant) => variant.rsid))
+const SUPPORTED_RSIDS = new Set<string>(INSPECTION_RSIDS)
 
 const LABELS: Record<InputKind, string> = {
   'pharmcat-report-json': 'PharmCAT Reporter JSON',
@@ -108,7 +109,7 @@ function blocked(
     formatLabel: LABELS[kind],
     status: 'blocked',
     blockingCode,
-    canRunPrototype: false,
+    canRunAnalysis: false,
     normalizedContents: base.normalizedContents,
     recognizedVariantCount: extra.recognizedVariantCount ?? 0,
     warnings,
@@ -116,10 +117,6 @@ function blocked(
     ...(extra.sampleNames ? { sampleNames: extra.sampleNames } : {}),
     sha256: base.sha256,
   }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
 
 function inspectReporterJson(base: ResultBase): InputInspection {
@@ -132,15 +129,9 @@ function inspectReporterJson(base: ResultBase): InputInspection {
     ])
   }
 
-  if (
-    !isRecord(parsed) ||
-    typeof parsed.pharmcatVersion !== 'string' ||
-    parsed.pharmcatVersion.trim() === '' ||
-    !isRecord(parsed.genes) ||
-    Object.keys(parsed.genes).length === 0
-  ) {
+  if (!isRecognisablePharmCATReporter(parsed)) {
     return blocked(base, 'unknown', 'JSON_NOT_PHARMCAT_REPORT', [
-      'The JSON does not contain a non-empty PharmCAT pharmcatVersion and genes object.',
+      'The JSON does not match the supported PharmCAT Reporter structure.',
     ])
   }
 
@@ -149,11 +140,11 @@ function inspectReporterJson(base: ResultBase): InputInspection {
     formatLabel: LABELS['pharmcat-report-json'],
     status: 'ready',
     blockingCode: null,
-    canRunPrototype: true,
+    canRunAnalysis: true,
     normalizedContents: base.normalizedContents,
     recognizedVariantCount: 0,
     warnings: [
-      'This is an imported PharmCAT result. The browser does not rerun PharmCAT or verify the source VCF.',
+      'This is a recognisable PharmCAT Reporter structure. The browser does not prove its origin or rerun PharmCAT.',
       'Coverage, genome build, and CYP2D6 structural-variant handling must come from the governed upstream run.',
     ],
     transformations: base.transformations,
@@ -234,7 +225,7 @@ function inspectVcf(base: ResultBase): InputInspection {
     const previous = callsById.get(id)
     if (previous !== undefined && previous !== isolated) {
       return blocked(base, 'vcf', 'CONFLICTING_DUPLICATE', [
-        `The VCF contains conflicting usable calls for ${id}. The prototype will not choose between them.`,
+        `The VCF contains conflicting usable calls for ${id}. The inspector will not choose between them.`,
       ], { sampleNames })
     }
     callsById.set(id, isolated)
@@ -251,24 +242,17 @@ function inspectVcf(base: ResultBase): InputInspection {
     ? ['One or more supported rsIDs had a missing, non-diploid, conflicting, or invalid allele-index genotype and were not called.']
     : []
 
-  if (recognizedVariantCount === 0) {
-    return blocked(base, 'vcf', 'NO_SUPPORTED_VARIANTS', [
-      'The VCF is structurally readable, but it has no usable calls for the six variants in this prototype.',
-      ...callWarnings,
-    ], { recognizedVariantCount, sampleNames })
-  }
-
   return {
     kind: 'vcf',
     formatLabel: LABELS.vcf,
     status: 'limited-preview',
     blockingCode: null,
-    canRunPrototype: true,
+    canRunAnalysis: false,
     normalizedContents: base.normalizedContents,
     recognizedVariantCount,
     warnings: [
       'This is VCF syntax only. Genome build, strand, normalization, and PharmCAT compatibility are not established.',
-      'The browser can run only the six-variant reduced prototype preview; it is not a clinical PharmCAT result.',
+      'No gene result is calculated in the browser. This VCF must run through the governed official PharmCAT pipeline first.',
       ...callWarnings,
     ],
     transformations: base.transformations,
@@ -379,7 +363,7 @@ function inspectConsumer(base: ResultBase): InputInspection {
     const previous = callsById.get(row.id)
     if (previous !== undefined && previous !== row.genotype) {
       return blocked(normalizedBase, 'consumer-genotype', 'CONFLICTING_DUPLICATE', [
-        `The consumer file contains conflicting usable calls for ${row.id}. The prototype will not choose between them.`,
+        `The consumer file contains conflicting usable calls for ${row.id}. The inspector will not choose between them.`,
       ])
     }
     callsById.set(row.id, row.genotype)
@@ -391,24 +375,17 @@ function inspectConsumer(base: ResultBase): InputInspection {
   const callWarnings = supportedIdsPresent > recognizedVariantCount
     ? ['One or more supported rsIDs were no-calls or non-diploid calls and were not called.']
     : []
-  if (recognizedVariantCount === 0) {
-    return blocked(normalizedBase, 'consumer-genotype', 'NO_SUPPORTED_VARIANTS', [
-      'The consumer file is structurally readable, but it has no usable calls for the six variants in this prototype.',
-      ...callWarnings,
-    ], { recognizedVariantCount })
-  }
-
   return {
     kind: 'consumer-genotype',
     formatLabel: LABELS['consumer-genotype'],
     status: 'limited-preview',
     blockingCode: null,
-    canRunPrototype: true,
+    canRunAnalysis: false,
     normalizedContents,
     recognizedVariantCount,
     warnings: [
       'This is consumer genotype syntax only. Genome build, strand, and assay coverage are not established.',
-      'The browser can run only the six-variant reduced prototype preview; it is not a clinical PharmCAT result.',
+      'No gene result is calculated in the browser. Consumer data needs validated build/strand conversion and the governed official PharmCAT pipeline.',
       ...callWarnings,
     ],
     transformations,

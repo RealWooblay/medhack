@@ -51,8 +51,10 @@ export function buildSourceUsage(result: AnalysisResult): SourceUsage[] {
     }
   }
 
-  add(result.depression.interpretation.citationIds, 'OUT-PHQ9')
-  add(result.depression.monitoringNote.citationIds, 'OUT-MONITORING')
+  if (result.depression) {
+    add(result.depression.interpretation.citationIds, 'OUT-PHQ9')
+    add(result.depression.monitoringNote.citationIds, 'OUT-MONITORING')
+  }
 
   for (const gene of result.genes) {
     add(sourceIdsForGene(gene), `OUT-GENE-${gene.gene}`)
@@ -120,14 +122,16 @@ export function buildValidationChecks(result: AnalysisResult): ValidationCheck[]
     {
       id: 'CHECK-INPUT',
       label: 'Input origin is explicit',
-      passed: ['fixture', 'reduced-tagsnp', 'pharmcat-json', 'pharmcat-docker'].includes(result.pharmcat.provenance),
+      passed: result.pharmcat.provenance === 'pharmcat-json',
       detail: `Gene-call origin: ${result.pharmcat.provenance}.`,
     },
     {
       id: 'CHECK-PHQ',
-      label: 'PHQ-9 input is complete',
-      passed: result.care.checkIn.responses.length === 9,
-      detail: `${result.care.checkIn.responses.length} of 9 item values were supplied.`,
+      label: 'Symptom input is explicit',
+      passed: result.care.checkIn === null || result.care.checkIn.responses.length === 9,
+      detail: result.care.checkIn === null
+        ? 'No PHQ-9 was supplied; no symptom result was created.'
+        : `${result.care.checkIn.responses.length} of 9 item values were supplied.`,
     },
     {
       id: 'CHECK-GENES',

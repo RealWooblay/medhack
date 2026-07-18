@@ -12,10 +12,13 @@
  * answers. Only derived clinical facts and controlled enum values leave the browser.
  */
 
-import { canonicalDrug, findDrugMentions } from '../data/drug-lexicon'
+import { canonicalDrug } from '../data/drug-lexicon'
 import { matchLifestyle } from '../engine/lifestyle-fit'
 import type { AnalysisResult, LifestyleContext } from '../engine/types'
-import { normaliseNumber } from '../engine/validator'
+import {
+  CLINICAL_REVIEW_SYSTEM_PROMPT,
+  CLINICAL_REVIEW_TASK,
+} from './clinical-review-prompt'
 
 export const CLINICAL_REVIEW_ACTIONS = [
   'evidence_gap',
@@ -89,11 +92,6 @@ export type CounterfactualRequest =
 
 export interface ClinicalReviewItem {
   action: ClinicalReviewAction
-  /**
-   * Untrusted model wording retained for audit. Patient-facing UI must render the action,
-   * approved fact IDs and typed rerun request through reviewed deterministic templates.
-   */
-  summary: string
   factIds: string[]
   drugNames: string[]
   sourceIds: string[]
@@ -108,8 +106,6 @@ export type ClinicalReviewRejectionKind =
   | 'unknown_fact'
   | 'unknown_drug'
   | 'unknown_source'
-  | 'unknown_number'
-  | 'unsupported_claim'
   | 'invalid_counterfactual'
   | 'ungrounded_reference'
 
@@ -267,9 +263,11 @@ export function buildClinicalReviewContext(
       id: `GENE:${gene.gene}`,
       domain: 'gene_result',
       text:
-        `${gene.gene} derived genetic phenotype: ${gene.geneticPhenotype}. ` +
-        `Phenotype used by the deterministic guidance lookup: ${gene.functionalPhenotype}. ` +
-        `Medicine-adjustment status: ${humanise(gene.status)}.${modifierText}`,
+        `${gene.gene} phenotype imported from PharmCAT: ${gene.geneticPhenotype}. ` +
+        `Medicine-adjustment status: ${humanise(gene.status)}.` +
+        `${gene.modeledFunctionalPhenotype
+          ? ` Research-convention estimate: ${gene.modeledFunctionalPhenotype} at activity score ${gene.modeledFunctionalActivityScore}; this estimate does not replace PharmCAT guidance.`
+          : ''}${modifierText}`,
       drugNames: gene.modifiers.map((modifier) => modifier.drug),
       sourceIds: geneSources,
     })
@@ -304,7 +302,9 @@ export function buildClinicalReviewContext(
         id: `PGX:${generic}:${finding.gene}:${index + 1}`,
         domain: 'pgx_guidance',
         text:
-          `${generic}: the deterministic ${finding.gene} lookup used ${finding.phenotypeUsed}. ` +
+          `${generic}: the imported PharmCAT annotation used ${finding.geneResults
+            .map((geneResult) => `${geneResult.gene} ${geneResult.phenotype}`)
+            .join(' and ')}. ` +
           `Captured action: ${humanise(finding.action)}. Captured guideline text: ${finding.guidelineText}` +
           `${finding.strength ? ` Strength: ${finding.strength}.` : ''}`,
         drugNames: [generic],
@@ -382,7 +382,7 @@ export function buildClinicalReviewContext(
     })
   })
 
-  if (options.includeSymptomContext) {
+  if (options.includeSymptomContext && result.depression) {
     addFact(facts, result, {
       id: 'SYMPTOM-CONTEXT',
       domain: 'symptom_context',
@@ -469,47 +469,6 @@ export function buildClinicalReviewContext(
 
 const ACTIONS = new Set<string>(CLINICAL_REVIEW_ACTIONS)
 const OPERATIONS = new Set<string>(COUNTERFACTUAL_OPERATIONS)
-const NUMBER_RE = /(?<![A-Za-z0-9])\d+(?:,\d{3})*(?:\.\d+)?(?![A-Za-z0-9])/g
-const QUANTITY_RE = /(?<![A-Za-z0-9])(\d+(?:,\d{3})*(?:\.\d+)?)\s*-?\s*(mg|mcg|micrograms?|milligrams?|g|grams?|mL|ml|millilitres?|milliliters?|%|percent|weeks?|days?|hours?|months?|years?|doses?|tablets?|pills?|times|fold)\b/gi
-const WORD_NUMBERS: Record<string, number> = {
-  half: 0.5,
-  one: 1,
-  two: 2,
-  three: 3,
-  four: 4,
-  five: 5,
-  six: 6,
-  seven: 7,
-  eight: 8,
-  nine: 9,
-  ten: 10,
-  eleven: 11,
-  twelve: 12,
-  twenty: 20,
-  thirty: 30,
-  forty: 40,
-  fifty: 50,
-  hundred: 100,
-}
-const SPELLED_QUANTITY_RE = new RegExp(
-  `\\b(${Object.keys(WORD_NUMBERS).join('|')})[\\s-]` +
-    '(mg|mcg|micrograms?|milligrams?|grams?|ml|millilitres?|milliliters?|percent|' +
-    'weeks?|days?|hours?|months?|years?|doses?|tablets?|pills?|times|fold)\\b',
-  'gi',
-)
-
-function normaliseUnit(unit: string): string {
-  const value = unit.toLowerCase().replace(/s$/, '')
-  if (value === 'milligram' || value === 'mg') return 'mg'
-  if (value === 'microgram' || value === 'mcg') return 'mcg'
-  if (value === 'millilitre' || value === 'milliliter' || value === 'ml') return 'ml'
-  if (value === 'gram' || value === 'g') return 'g'
-  if (value === 'percent' || value === '%') return '%'
-  return value
-}
-
-const quantityKey = (value: string, unit: string): string =>
-  `${normaliseNumber(value)}|${normaliseUnit(unit)}`
 
 interface ReviewAllowList {
   factIds: Set<string>
@@ -517,26 +476,16 @@ interface ReviewAllowList {
   drugs: Set<string>
   currentMedications: Set<string>
   protocolDrugs: Set<string>
-  numbers: Set<string>
-  quantities: Set<string>
   factsById: Map<string, ClinicalReviewFact>
 }
 
 function buildReviewAllowList(context: ClinicalReviewContext): ReviewAllowList {
-  const numbers = new Set<string>()
-  const quantities = new Set<string>()
-  for (const fact of context.facts) {
-    for (const match of fact.text.matchAll(NUMBER_RE)) numbers.add(normaliseNumber(match[0]))
-    for (const match of fact.text.matchAll(QUANTITY_RE)) quantities.add(quantityKey(match[1], match[2]))
-  }
   return {
     factIds: new Set(context.facts.map((fact) => fact.id)),
     sourceIds: new Set(context.sources.map((source) => source.id)),
     drugs: new Set(context.allowedDrugs),
     currentMedications: new Set(context.currentMedications),
     protocolDrugs: new Set(context.availableProtocolDrugs),
-    numbers,
-    quantities,
     factsById: new Map(context.facts.map((fact) => [fact.id, fact])),
   }
 }
@@ -669,77 +618,6 @@ function parseCounterfactual(
   }
 }
 
-const UNSUPPORTED_CLAIMS: Array<{ pattern: RegExp; label: string }> = [
-  { pattern: /\b(rs\d+|diplotype|star[- ]allele|variant call|genotype is)\b/i, label: 'variant calling' },
-  { pattern: /\b(you have|diagnosed with|diagnosis is|meets? criteria for)\b/i, label: 'diagnosis' },
-  { pattern: /\b(best|better|more effective|most effective|likely to work|will work)\b/i, label: 'efficacy ranking or prediction' },
-  {
-    pattern: /\b(you should|you must|i recommend|we recommend)\b.{0,60}\b(start|stop|take|switch|increase|decrease|avoid)\b/i,
-    label: 'prescribing instruction',
-  },
-  {
-    pattern: /^(?:please\s+)?(start|stop|take|switch|increase|decrease|avoid)\b/i,
-    label: 'prescribing instruction',
-  },
-  {
-    pattern: /\b(should|must)\s+be\s+(started|stopped|taken|switched|increased|decreased|avoided)\b/i,
-    label: 'prescribing instruction',
-  },
-  {
-    pattern: /\b(source|guideline)\b.{0,50}\b(wrong|incorrect|ignore|overrides?|wins)\b/i,
-    label: 'source-conflict decision',
-  },
-]
-
-function validateNumbers(
-  summary: string,
-  allow: ReviewAllowList,
-  itemIndex: number,
-): ClinicalReviewRejection[] {
-  const issues: ClinicalReviewRejection[] = []
-  const quantitySpans: Array<[number, number]> = []
-  for (const match of summary.matchAll(QUANTITY_RE)) {
-    quantitySpans.push([match.index!, match.index! + match[0].length])
-    if (!allow.quantities.has(quantityKey(match[1], match[2]))) {
-      issues.push(
-        rejection(
-          itemIndex,
-          'unknown_number',
-          match[0],
-          'The model returned a clinical quantity that is not present with the same unit in an approved fact.',
-        ),
-      )
-    }
-  }
-  for (const match of summary.matchAll(NUMBER_RE)) {
-    if (quantitySpans.some(([start, end]) => match.index! >= start && match.index! < end)) continue
-    if (!allow.numbers.has(normaliseNumber(match[0]))) {
-      issues.push(
-        rejection(
-          itemIndex,
-          'unknown_number',
-          match[0],
-          'The model returned a number that is not present in an approved fact.',
-        ),
-      )
-    }
-  }
-  for (const match of summary.matchAll(SPELLED_QUANTITY_RE)) {
-    const value = normaliseNumber(String(WORD_NUMBERS[match[1].toLowerCase()]))
-    if (!allow.quantities.has(quantityKey(value, match[2]))) {
-      issues.push(
-        rejection(
-          itemIndex,
-          'unknown_number',
-          match[0],
-          'Spelling out a clinical quantity does not bypass the approved-number check.',
-        ),
-      )
-    }
-  }
-  return issues
-}
-
 function validateItem(
   raw: unknown,
   itemIndex: number,
@@ -753,7 +631,7 @@ function validateItem(
   }
 
   const candidate = raw as Record<string, unknown>
-  const allowedKeys = new Set(['action', 'summary', 'factIds', 'drugNames', 'sourceIds', 'rerunRequest'])
+  const allowedKeys = new Set(['action', 'factIds', 'drugNames', 'sourceIds', 'rerunRequest'])
   const extraKey = Object.keys(candidate).find((key) => !allowedKeys.has(key))
   if (extraKey) {
     return {
@@ -776,9 +654,6 @@ function validateItem(
     }
   }
   if (
-    typeof candidate.summary !== 'string' ||
-    candidate.summary.trim().length === 0 ||
-    candidate.summary.length > 700 ||
     !isStringArray(candidate.factIds) ||
     !isStringArray(candidate.drugNames) ||
     !isStringArray(candidate.sourceIds) ||
@@ -827,41 +702,8 @@ function validateItem(
     issues.push(rejection(itemIndex, 'ungrounded_reference', ungroundedSource, 'The source is not attached to any referenced fact.'))
   }
 
-  for (const mention of findDrugMentions(candidate.summary)) {
-    const generic = mention.generic.toLowerCase()
-    if (!allow.drugs.has(generic) || !drugNames.includes(generic)) {
-      issues.push(
-        rejection(
-          itemIndex,
-          'unknown_drug',
-          mention.surface,
-          'Every drug mentioned in model text must be allowed and declared in the item drugNames array.',
-        ),
-      )
-    }
-  }
-
-  issues.push(...validateNumbers(candidate.summary, allow, itemIndex))
-  for (const rule of UNSUPPORTED_CLAIMS) {
-    const match = candidate.summary.match(rule.pattern)
-    if (match) {
-      issues.push(
-        rejection(
-          itemIndex,
-          'unsupported_claim',
-          match[0],
-          `The clinical-review layer is not allowed to perform ${rule.label}.`,
-        ),
-      )
-      break
-    }
-  }
-
   if (candidate.action === 'input_conflict' && factIds.length < 2) {
     issues.push(rejection(itemIndex, 'malformed_item', 'factIds', 'A conflict must identify at least two facts in tension.'))
-  }
-  if (candidate.action === 'clinician_question' && !candidate.summary.trim().endsWith('?')) {
-    issues.push(rejection(itemIndex, 'malformed_item', candidate.summary, 'A clinician question must be written as a question.'))
   }
   if (candidate.action === 'lifestyle_constraint') {
     const lifestyleGrounded = referencedFacts.some((fact) =>
@@ -903,7 +745,6 @@ function validateItem(
   return {
     item: {
       action: candidate.action as ClinicalReviewAction,
-      summary: candidate.summary.trim(),
       factIds,
       drugNames,
       sourceIds,
@@ -1003,12 +844,12 @@ export class NotConnectedClinicalReviewProvider implements ClinicalReviewProvide
 }
 
 interface ChatCompletionResponse {
+  model?: string
   choices?: Array<{ message?: { content?: string } }>
 }
 
 export interface MedGemmaClinicalReviewOptions {
   endpoint: string
-  model?: string
   /** Explicit base origin is useful in tests and server rendering. Browser callers omit it. */
   origin?: string
   fetchImpl?: typeof fetch
@@ -1032,39 +873,16 @@ function governedEndpoint(endpoint: string, explicitOrigin?: string): string {
   return endpoint.startsWith('/') ? endpoint : target.toString()
 }
 
-const SYSTEM_PROMPT = `You are a constrained medical-model review planner for antidepressant pharmacogenomics.
-Reason across the supplied fixed facts to find useful relationships, but do not create clinical facts.
-
-Allowed actions:
-- evidence_gap: identify information that is missing before a clinician can interpret the fixed result.
-- input_conflict: point to two or more supplied facts that appear inconsistent; do not decide which is correct.
-- clinician_question: formulate one precise question that the patient can take to the prescriber.
-- lifestyle_constraint: connect a selected medicine's sourced daily-life requirement to recorded lifestyle context.
-- request_counterfactual: request a deterministic rerun. Do not answer the hypothetical yourself.
-
-Never call a variant or diplotype; diagnose; prescribe; choose, rank, or predict efficacy of a medicine; calculate or
-invent a dose; resolve a source conflict; or advise starting, stopping, switching, increasing, decreasing, or avoiding
-a medicine. Absence of a fact is not proof that the opposite is true.
-
-Return JSON only, with this exact shape:
-{"items":[{"action":"evidence_gap|input_conflict|clinician_question|lifestyle_constraint|request_counterfactual","summary":"string","factIds":["exact supplied fact ID"],"drugNames":["lowercase generic names mentioned"],"sourceIds":["exact supplied source ID"],"rerunRequest":{"operation":"add_current_medication|remove_current_medication|select_lifestyle_drug|set_lifestyle_context","drug":"lowercase generic when required","dimension":"controlled dimension when required","value":"controlled value when required"}}]}
-
-Omit rerunRequest for every action except request_counterfactual. Every summary must be grounded by factIds. Every
-drug or source named must be listed and must occur in the referenced facts. Use no number unless it appears verbatim
-in a referenced fact. Keep each summary to one concise observation or question.`
-
 export class MedGemmaClinicalReviewProvider implements ClinicalReviewProvider {
   readonly name: string
   readonly mode = 'ai' as const
   private readonly endpoint: string
-  private readonly model: string
   private readonly fetchImpl: typeof fetch
 
   constructor(options: MedGemmaClinicalReviewOptions) {
     this.endpoint = governedEndpoint(options.endpoint, options.origin)
-    this.model = options.model ?? 'google/medgemma-27b-text-it'
     this.fetchImpl = options.fetchImpl ?? fetch
-    this.name = `MedGemma clinical review · ${this.model}`
+    this.name = 'Configured medical-model review'
   }
 
   async review(result: AnalysisResult, options: ClinicalReviewOptions = {}): Promise<ClinicalReviewResult> {
@@ -1075,15 +893,15 @@ export class MedGemmaClinicalReviewProvider implements ClinicalReviewProvider {
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: this.model,
+          model: 'server-controlled',
           temperature: 0,
           response_format: { type: 'json_object' },
           messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'system', content: CLINICAL_REVIEW_SYSTEM_PROMPT },
             {
               role: 'user',
               content: JSON.stringify({
-                task: 'Perform a constrained cross-fact clinical review. Return requests, not treatment decisions.',
+                task: CLINICAL_REVIEW_TASK,
                 context,
               }),
             },
@@ -1095,7 +913,7 @@ export class MedGemmaClinicalReviewProvider implements ClinicalReviewProvider {
         return {
           status: 'error',
           provider: this.name,
-          model: this.model,
+          model: null,
           items: [],
           rejections: [],
           message: `The governed MedGemma endpoint returned HTTP ${response.status}. No AI output was used.`,
@@ -1103,9 +921,22 @@ export class MedGemmaClinicalReviewProvider implements ClinicalReviewProvider {
       }
 
       const payload = (await response.json()) as ChatCompletionResponse
+      const serverModel = typeof payload.model === 'string' && /^[A-Za-z0-9._/@:+-]{1,200}$/.test(payload.model)
+        ? payload.model
+        : null
+      if (!serverModel) {
+        return {
+          status: 'error',
+          provider: this.name,
+          model: null,
+          items: [],
+          rejections: [],
+          message: 'The endpoint did not attest its deployed model identity. No AI output was used.',
+        }
+      }
       const content = payload.choices?.[0]?.message?.content
       if (typeof content !== 'string') {
-        return validateClinicalReviewOutput(null, context, this.name, this.model)
+        return validateClinicalReviewOutput(null, context, `Medical-model review · ${serverModel}`, serverModel)
       }
 
       let decoded: unknown
@@ -1113,14 +944,14 @@ export class MedGemmaClinicalReviewProvider implements ClinicalReviewProvider {
         // Deliberately do not strip Markdown fences. The endpoint contract is JSON only.
         decoded = JSON.parse(content)
       } catch {
-        return validateClinicalReviewOutput(null, context, this.name, this.model)
+        return validateClinicalReviewOutput(null, context, `Medical-model review · ${serverModel}`, serverModel)
       }
-      return validateClinicalReviewOutput(decoded, context, this.name, this.model)
+      return validateClinicalReviewOutput(decoded, context, `Medical-model review · ${serverModel}`, serverModel)
     } catch (error) {
       return {
         status: 'error',
         provider: this.name,
-        model: this.model,
+        model: null,
         items: [],
         rejections: [],
         message:
@@ -1133,7 +964,6 @@ export class MedGemmaClinicalReviewProvider implements ClinicalReviewProvider {
 
 export interface CreateClinicalReviewProviderOptions {
   endpoint?: string
-  model?: string
   origin?: string
   fetchImpl?: typeof fetch
 }
@@ -1146,7 +976,6 @@ export function createClinicalReviewProvider(
   if (!endpoint) return new NotConnectedClinicalReviewProvider()
   return new MedGemmaClinicalReviewProvider({
     endpoint,
-    model: options.model ?? import.meta.env.VITE_MEDGEMMA_MODEL,
     origin: options.origin,
     fetchImpl: options.fetchImpl,
   })

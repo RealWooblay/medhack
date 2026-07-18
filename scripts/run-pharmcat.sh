@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 #
-# Run the real PharmCAT against a VCF and emit the JSON this app's adapter consumes.
+# Run the official PharmCAT container against a VCF and emit the artefacts this app expects.
 #
-# The app ships with known-diplotype fixtures so a demo cannot fail on live variant
-# calling. This script is how those fixtures are regenerated from the actual reference
-# implementation, and how you would wire the real thing in for production use.
+# The caller is deliberately separate from the browser app. The browser never turns a raw
+# VCF into a clinical result. This script is a local operator tool and is also the command a
+# governed asynchronous worker can wrap.
 #
 # We wrap PharmCAT rather than forking it — its maintainers state that customisation is
 # unsupported, and the entire premise here is that the guideline facts come from the
 # PharmGKB reference implementation rather than from us.
 #
 # Usage:
-#   ./scripts/run-pharmcat.sh path/to/sample.vcf [outdir]
+#   PHARMCAT_IMAGE='pgkb/pharmcat:<version>@sha256:<manifest-digest>' \
+#     ./scripts/run-pharmcat.sh path/to/sample.vcf [outdir]
 #
 # Requires Docker.
 
@@ -19,8 +20,13 @@ set -euo pipefail
 
 VCF="${1:?usage: run-pharmcat.sh <sample.vcf> [outdir]}"
 OUTDIR="${2:-pharmcat-out}"
-# PharmCAT 3.4.0, pinned to the multi-architecture image digest published 2026-07-14.
-IMAGE="pgkb/pharmcat:3.4.0@sha256:bc498d55c33094002bd7e14221a6b3fcd7243a587675369bc1a5ecf6ac0e5319"
+IMAGE="${PHARMCAT_IMAGE:-}"
+
+if [[ ! "$IMAGE" =~ ^pgkb/pharmcat:[0-9]+\.[0-9]+\.[0-9]+@sha256:[0-9a-f]{64}$ ]]; then
+  echo "error: PHARMCAT_IMAGE must be an official version pinned to a full sha256 manifest digest" >&2
+  echo "example: pgkb/pharmcat:<version>@sha256:<64 lowercase hex characters>" >&2
+  exit 1
+fi
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "error: docker is required but not on PATH" >&2
@@ -56,17 +62,22 @@ Output written to the directory above:
   *.report.html      human-readable report
   *.missing_pgx_var.vcf  positions PharmCAT expected and did not find
 
-Wiring it into the app
-----------------------
-Implement PharmCATAdapter (src/engine/pharmcat/adapter.ts) against *.report.json:
+Importing the result
+--------------------
+Upload *.report.json to the app. The adapter:
 
   - `genes` is a map keyed by gene symbol. Read `sourceDiplotypes` for display and
     `recommendationDiplotypes` for the guideline join — they are DIFFERENT arrays, and
     joining on the wrong one silently mismatches recommendations.
-  - `drugs` is nested two levels: PrescribingGuidanceSource -> drug name -> DrugReport.
-    The outer keys are CPIC_GUIDELINE | DPWG_GUIDELINE | FDA_LABEL | FDA_ASSOC. That enum
-    is the discriminator our citation layer keys off.
-  - `uncalledHaplotypes` and the missing-variant VCF feed the confidence scorer directly.
+  - imports exact CPIC Guideline Annotation recommendation text rather than reconstructing
+    a recommendation from a shortened local table;
+  - retains every gene result attached to a recommendation, including combined-gene rules;
+  - keeps PharmCAT and data versions with the result; and
+  - labels coverage unknown when the separate missing-position artefact is unavailable.
+
+The current browser import accepts Reporter JSON only. A production worker must return the
+Reporter JSON together with the missing-position VCF and an immutable run manifest so the
+coverage state can be checked instead of assumed.
 
 Consumer array data
 -------------------
@@ -81,7 +92,7 @@ CYP2D6, supply an outside call instead:
 
   printf 'CYP2D6\t*1/*1\n' > outside.tsv
   docker run --rm -v "$PWD:/pharmcat/data" \
-    pgkb/pharmcat:3.4.0@sha256:bc498d55c33094002bd7e14221a6b3fcd7243a587675369bc1a5ecf6ac0e5319 \
+    "$PHARMCAT_IMAGE" \
     pharmcat_pipeline /pharmcat/data/sample.vcf -o /pharmcat/data/out \
     -reporterJson -po /pharmcat/data/outside.tsv
 

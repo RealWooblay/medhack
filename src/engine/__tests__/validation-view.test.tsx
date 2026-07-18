@@ -2,8 +2,10 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { App } from '../../App'
 import { runAnalysis } from '../pipeline'
-import { TagSnpAdapter } from '../pharmcat/adapter'
-import { FIXTURES, fixtureToFileText } from '../pharmcat/fixtures'
+import {
+  CAPTURED_EXAMPLE_ASSAY,
+  CapturedPharmCATExampleAdapter,
+} from '../pharmcat/fixtures'
 import type { CareContext } from '../types'
 import {
   buildValidationChecks,
@@ -30,19 +32,17 @@ const care: CareContext = {
 }
 
 async function validationResult() {
-  const fixture = FIXTURES[0]
   return runAnalysis({
-    adapter: new TagSnpAdapter(),
+    adapter: new CapturedPharmCATExampleAdapter(),
     genome: {
-      fileName: fixture.fileName,
-      contents: fixtureToFileText(fixture),
-      assayType: fixture.assayType,
+      fileName: 'pharmcat.example.report.json',
+      assayType: CAPTURED_EXAMPLE_ASSAY,
     },
     input: {
-      genomeFileName: fixture.fileName,
-      assayType: fixture.assayType,
-      currentMedications: fixture.suggestedMedications,
-      pastTrials: fixture.suggestedTrials,
+      genomeFileName: 'pharmcat.example.report.json',
+      assayType: CAPTURED_EXAMPLE_ASSAY,
+      currentMedications: ['fluoxetine'],
+      pastTrials: [],
       careContext: care,
     },
   })
@@ -58,8 +58,8 @@ describe('simplified validation surface', () => {
     expect(markup).toContain('Daily life')
     expect(markup).toContain('AI review')
     expect(markup).toContain('Evidence')
-    expect(markup).toContain('Add DNA results')
-    expect(markup).toContain('Raw DNA stays on this device and never goes to the medical AI')
+    expect(markup).toContain('Start with a result')
+    expect(markup).toContain('Official example')
     expect(markup).not.toContain('Report sections')
     expect(markup).not.toContain('Sample journey')
     expect(markup).not.toContain('PHQ-9')
@@ -67,12 +67,12 @@ describe('simplified validation surface', () => {
     expect(markup).not.toContain('shortlist')
   })
 
-  it('runs fictional input through the actual reduced file parser', async () => {
+  it('runs only the captured official PharmCAT report through the real parser', async () => {
     const result = await validationResult()
 
-    expect(result.pharmcat.provenance).toBe('reduced-tagsnp')
-    expect(result.pharmcat.reportId).toMatch(/^tagsnp-/)
-    expect(result.pharmcat.pharmcatVersion).toMatch(/not PharmCAT/i)
+    expect(result.pharmcat.provenance).toBe('pharmcat-json')
+    expect(result.pharmcat.reportId).toMatch(/^pharmcat-/)
+    expect(result.pharmcat.pharmcatVersion).toBe('v3.3.0-8-g8ff5870f')
     expect(result.genes).toHaveLength(3)
     expect(result.pharmcat.genes.find((gene) => gene.gene === 'CYP2D6')?.structuralVariationUnresolved).toBe(true)
   })
@@ -85,8 +85,10 @@ describe('simplified validation surface', () => {
       for (const id of ids) expect(known.has(id), `missing source ${id}`).toBe(true)
     }
 
-    expectKnown(result.depression.interpretation.citationIds)
-    expectKnown(result.depression.monitoringNote.citationIds)
+    if (result.depression) {
+      expectKnown(result.depression.interpretation.citationIds)
+      expectKnown(result.depression.monitoringNote.citationIds)
+    }
     result.genes.forEach((gene) => expectKnown(sourceIdsForGene(gene)))
     result.excludedGenes.forEach((gene) => expectKnown(gene.rationale.citationIds))
     result.shortlist.forEach((drug) => {
@@ -116,7 +118,6 @@ describe('simplified validation surface', () => {
     expect(checks.length).toBeGreaterThan(0)
     expect(checks.every((check) => check.passed)).toBe(true)
     expect(result.narrative.generator).toBe('deterministic-template')
-    expect(result.narrative.renderedRejectionCount).toBe(0)
-    expect(result.narrative.probeRejectionCount).toBeGreaterThan(0)
+    expect(result.narrative.rejections).toEqual([])
   })
 })

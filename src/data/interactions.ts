@@ -1,18 +1,15 @@
 /**
  * Phenoconversion reference data — extension 1, the technical centrepiece.
  *
- * Classifications are taken from the FDA's table of clinical index inhibitors and
- * inducers, which is the same source CPIC uses when it operationalises phenoconversion.
- * Where a drug is commonly described as an inhibitor in the wider literature but is not
- * in the FDA index list, it is recorded as weak and annotated rather than promoted — the
- * engine follows one source rather than blending several.
+ * Classifications are taken from the FDA healthcare-professional examples table. Absence
+ * from that non-exhaustive table is kept distinct from evidence of no interaction.
  *
  * Two classifications here are worth reading twice, because they are the reason the demo
  * patient's result looks the way it does:
  *
  *  - The captured table classifies fluoxetine as a strong inhibitor of CYP2D6 and CYP2C19.
- *    This engine applies the supported CYP2D6 activity-score method only. CYP2C19 is flagged
- *    as unresolved; it is not converted to a poor-metaboliser phenotype.
+ *    This engine may show the CYP2D6 research-convention estimate with uncertainty. CYP2C19
+ *    is flagged as unresolved; neither result replaces the imported PharmCAT guidance.
  *  - CYP2D6 has no clinically relevant inducers at all. The engine never shifts a CYP2D6
  *    phenotype upward on the basis of a co-medication, because there is nothing to shift it.
  */
@@ -36,7 +33,7 @@ export const ENZYME_MODIFIERS: EnzymeModifierTable[] = [
     enzyme: 'CYP2D6',
     strongInhibitors: ['bupropion', 'fluoxetine', 'paroxetine', 'quinidine', 'terbinafine'],
     moderateInhibitors: ['abiraterone', 'cinacalcet', 'duloxetine', 'lorcaserin', 'mirabegron', 'rolapitant'],
-    weakInhibitors: ['amiodarone', 'celecoxib', 'cimetidine', 'escitalopram', 'hydroxyzine', 'sertraline'],
+    weakInhibitors: ['amiodarone', 'celecoxib', 'cimetidine', 'escitalopram', 'sertraline'],
     strongInducers: [],
     moderateInducers: [],
     note:
@@ -50,13 +47,12 @@ export const ENZYME_MODIFIERS: EnzymeModifierTable[] = [
     enzyme: 'CYP2C19',
     strongInhibitors: ['fluconazole', 'fluoxetine', 'fluvoxamine', 'ticlopidine'],
     moderateInhibitors: ['cenobamate', 'felbamate', 'voriconazole'],
-    weakInhibitors: ['omeprazole', 'esomeprazole', 'cimetidine'],
+    weakInhibitors: ['omeprazole'],
     strongInducers: ['rifampin'],
     moderateInducers: ['apalutamide', 'efavirenz', 'enzalutamide', 'phenytoin'],
     note:
-      'Proton pump inhibitors are frequently described as CYP2C19 inhibitors and are themselves CYP2C19 ' +
-      'substrates, but omeprazole and esomeprazole are not in the FDA index list of moderate CYP2C19 ' +
-      'inhibitors, so they are carried here as weak and produce no phenotype shift on their own.',
+      'The FDA table lists omeprazole as a weak CYP2C19 inhibitor. Esomeprazole is absent from the ' +
+      'captured table and is not inferred here.',
     citationIds: ['fda-interaction-table'],
   },
   {
@@ -67,34 +63,35 @@ export const ENZYME_MODIFIERS: EnzymeModifierTable[] = [
     strongInducers: ['carbamazepine'],
     moderateInducers: ['efavirenz', 'rifampin'],
     note:
-      'The FDA table lists no clinical index inhibitors of CYP2B6. Clopidogrel and ticlopidine are reported ' +
-      'as CYP2B6 inhibitors in the literature but are not FDA-indexed, so they are recorded without applying ' +
-      'a phenotype shift rather than being promoted on weaker evidence.',
+      'The FDA table lists no strong or moderate CYP2B6 inhibitors. It lists clopidogrel and ticlopidine ' +
+      'as weak inhibitors, so this build records them without applying a phenotype estimate.',
     citationIds: ['fda-interaction-table'],
   },
   {
     /**
      * Not a CPIC-actionable antidepressant gene, so it never drives a dosing recommendation
      * here. It is carried because St John's Wort induction of CYP3A4 is a real, common and
-     * citable interaction that belongs in the lifestyle layer.
+     * citable interaction that belongs in the lifestyle layer. FDA reports the combined
+     * CYP3A pathway rather than CYP3A4 and CYP3A5 separately.
      */
-    enzyme: 'CYP3A4',
+    enzyme: 'CYP3A',
     strongInhibitors: ['clarithromycin', 'itraconazole', 'ketoconazole', 'nefazodone', 'ritonavir', 'voriconazole'],
     moderateInhibitors: ['aprepitant', 'ciprofloxacin', 'diltiazem', 'erythromycin', 'fluconazole', 'verapamil'],
     weakInhibitors: ['cimetidine'],
     strongInducers: ['carbamazepine', 'phenytoin', 'rifampin', "St John's Wort"],
-    moderateInducers: ['efavirenz', 'phenobarbital', 'modafinil'],
+    moderateInducers: ['efavirenz', 'phenobarbital'],
     citationIds: ['fda-interaction-table'],
   },
   {
     enzyme: 'CYP1A2',
-    strongInhibitors: ['fluvoxamine', 'ciprofloxacin'],
-    moderateInhibitors: ['oral contraceptive', 'mexiletine'],
+    strongInhibitors: ['fluvoxamine'],
+    moderateInhibitors: ['ciprofloxacin', 'oral contraceptive', 'mexiletine'],
     weakInhibitors: [],
     strongInducers: [],
     moderateInducers: ['phenytoin', 'rifampin'],
     note:
-      'Tobacco smoke is a clinically significant CYP1A2 inducer, but it is a behaviour rather than a ' +
+      'Ciprofloxacin is classified as moderate in the FDA table, with a note that it can behave as a strong ' +
+      'inhibitor for highly sensitive substrates. Tobacco smoke is a clinically significant CYP1A2 inducer, but it is a behaviour rather than a ' +
       'medication, so it is handled in the lifestyle layer instead of here.',
     citationIds: ['fda-interaction-table'],
   },
@@ -103,17 +100,17 @@ export const ENZYME_MODIFIERS: EnzymeModifierTable[] = [
 /**
  * Multiplier applied to a genetic activity score.
  *
- * CPIC's operational rule, used verbatim in its own guidelines: for a strong inhibitor the
- * CYP2D6 activity score is adjusted to 0 and the predicted phenotype is poor metaboliser;
- * for a moderate inhibitor the score is multiplied by 0.5 and re-mapped. Weak inhibitors
- * get no adjustment, because the exposure change was judged not clinically actionable.
+ * Research convention described in the CPIC antidepressant supplement: a strong inhibitor
+ * is modeled with CYP2D6 activity score 0 and a moderate inhibitor with score x 0.5. The
+ * result is an uncertain estimate in this build, not a validated prescribing phenotype.
  */
 export const EFFECT_MULTIPLIERS: Record<ModifierEffect, number> = {
   strong_inhibitor: 0,
   moderate_inhibitor: 0.5,
   weak_inhibitor: 1,
   moderate_inducer: 1,
-  strong_inducer: 1.5,
+  // No numeric inducer conversion is claimed; these values are never used as estimates.
+  strong_inducer: 1,
 }
 
 export const EFFECT_LABELS: Record<ModifierEffect, string> = {
@@ -127,10 +124,10 @@ export const EFFECT_LABELS: Record<ModifierEffect, string> = {
 /** Ranked worst-to-best so the engine can pick a single dominant modifier. */
 const EFFECT_SEVERITY: ModifierEffect[] = [
   'strong_inhibitor',
-  'moderate_inhibitor',
-  'weak_inhibitor',
-  'moderate_inducer',
   'strong_inducer',
+  'moderate_inhibitor',
+  'moderate_inducer',
+  'weak_inhibitor',
 ]
 
 export function severityRank(effect: ModifierEffect): number {

@@ -1,124 +1,95 @@
-/**
- * The upload path.
- *
- * The fixtures render to real 23andMe-format files, so round-tripping one through the
- * parser and the tag-SNP caller proves the upload path works rather than asserting it does.
- */
-
 import { describe, expect, it } from 'vitest'
-import { TagSnpAdapter, parseGenomeFile } from '../pharmcat/adapter'
-import { fixtureToFileText, fixtureById } from '../pharmcat/fixtures'
+import {
+  parseGenomeFile,
+  PharmCATReportJsonAdapter,
+  recommendationActionFromText,
+} from '../pharmcat/adapter'
+import {
+  CAPTURED_EXAMPLE_ASSAY,
+  CAPTURED_PHARMCAT_EXAMPLE_JSON,
+} from '../pharmcat/fixtures'
 import { runAnalysis } from '../pipeline'
 
 const VCF_SAMPLE = `##fileformat=VCFv4.2
 ##contig=<ID=chr10>
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE
-chr10	94781859	rs4244285	G	A	.	PASS	.	GT	0/1
-chr10	94761900	rs12248560	C	T	.	PASS	.	GT	0/0
-chr22	42128945	rs3892097	G	A	.	PASS	.	GT	0/0
+#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE
+chr10\t94781859\trs4244285\tG\tA\t.\tPASS\t.\tGT\t0/1
+chr10\t94761900\trs12248560\tC\tT\t.\tPASS\t.\tGT\t0/0
 `
 
-describe('genome file parsing', () => {
-  it('round-trips a fixture through the 23andMe format', () => {
-    const fixture = fixtureById('demo-phenoconversion')!
-    const parsed = parseGenomeFile(fixtureToFileText(fixture))
-
-    expect(parsed.format).toBe('23andme')
-    expect(parsed.calls).toEqual(fixture.calls)
-  })
-
-  it('parses a VCF, resolving genotypes against REF and ALT', () => {
+describe('raw-file syntax inspection helper', () => {
+  it('can read selected marker syntax without producing a star allele', () => {
     const parsed = parseGenomeFile(VCF_SAMPLE)
-
     expect(parsed.format).toBe('vcf')
-    expect(parsed.calls.rs4244285).toBe('GA') // heterozygous -> CYP2C19*1/*2
-    expect(parsed.calls.rs12248560).toBe('CC')
-    expect(parsed.calls.rs3892097).toBe('GG')
+    expect(parsed.calls).toEqual({ rs4244285: 'GA', rs12248560: 'CC' })
   })
 
-  it('ignores rsIDs it does not care about, and malformed lines', () => {
-    const noisy = `# comment\nrs99999999\t1\t123\tAA\nrs4244285\t10\t94781859\tAG\nbroken line\n`
-    const parsed = parseGenomeFile(noisy)
-
-    expect(Object.keys(parsed.calls)).toEqual(['rs4244285'])
-  })
-
-  it('supports safe consumer delimiters and keeps -- as a no-call', () => {
-    const parsed = parseGenomeFile(`rs4244285,10,94781859,AG
-rs12248560 10 94761900 TT
-rs3892097\t22\t42128945\t--`)
-
-    expect(parsed.format).toBe('23andme')
-    expect(parsed.calls).toEqual({ rs4244285: 'AG', rs12248560: 'TT' })
-  })
-
-  it('does not coerce missing or invalid VCF allele indexes to REF', () => {
+  it('does not coerce missing or invalid VCF allele indexes to reference', () => {
     const parsed = parseGenomeFile(`${VCF_SAMPLE}
 chr10\t94780653\trs4986893\tG\tA\t.\tPASS\t.\tGT\t./.
 chr22\t42130692\trs1065852\tG\tA\t.\tPASS\t.\tGT\t2/2`)
-
     expect(parsed.calls.rs4986893).toBeUndefined()
     expect(parsed.calls.rs1065852).toBeUndefined()
   })
-
-  it('drops a supported rsID when duplicate rows disagree', () => {
-    const parsed = parseGenomeFile(`rs4244285\t10\t94781859\tAG
-rs4244285\t10\t94781859\tGG`)
-
-    expect(parsed.calls.rs4244285).toBeUndefined()
-  })
 })
 
-describe('an uploaded file produces the same analysis as the fixture', () => {
-  it('reaches the same phenotypes through the tag-SNP caller', async () => {
-    const fixture = fixtureById('demo-phenoconversion')!
-    const contents = fixtureToFileText(fixture)
-
+describe('official PharmCAT Reporter JSON import', () => {
+  it('parses the captured official example through the production adapter', async () => {
     const result = await runAnalysis({
-      adapter: new TagSnpAdapter(),
-      genome: { fileName: 'uploaded.txt', contents, assayType: 'consumer-array' },
-      input: {
-        genomeFileName: 'uploaded.txt',
-        assayType: 'consumer-array',
-        currentMedications: ['fluoxetine'],
-        pastTrials: fixture.suggestedTrials,
+      adapter: new PharmCATReportJsonAdapter(),
+      genome: {
+        fileName: 'pharmcat.example.report.json',
+        contents: CAPTURED_PHARMCAT_EXAMPLE_JSON,
+        assayType: CAPTURED_EXAMPLE_ASSAY,
       },
-    })
-
-    const cyp2d6 = result.genes.find((g) => g.gene === 'CYP2D6')!
-    const cyp2c19 = result.genes.find((g) => g.gene === 'CYP2C19')!
-
-    expect(cyp2c19.diplotype).toBe('*1/*2')
-    expect(cyp2c19.geneticPhenotype).toBe('Intermediate Metabolizer')
-    expect(cyp2d6.diplotype).toBe('*1/*1')
-    expect(cyp2d6.functionalPhenotype).toBe('Poor Metabolizer')
-    const medicines = result.shortlist.filter((d) => !d.isCurrentMedication).map((d) => d.drug)
-    expect(medicines).toEqual([...medicines].sort((a, b) => a.localeCompare(b)))
-    expect(result.shortlist.find((drug) => drug.drug === 'sertraline')).toBeDefined()
-  })
-
-  it('reports an indeterminate phenotype rather than guessing when a gene has no coverage', async () => {
-    // A file carrying only CYP2C19 positions says nothing about CYP2D6.
-    const partial = `# rsid\tchromosome\tposition\tgenotype\nrs4244285\t10\t94781859\tAG\n`
-
-    const result = await runAnalysis({
-      adapter: new TagSnpAdapter(),
-      genome: { fileName: 'partial.txt', contents: partial, assayType: 'consumer-array' },
       input: {
-        genomeFileName: 'partial.txt',
-        assayType: 'consumer-array',
+        genomeFileName: 'pharmcat.example.report.json',
+        assayType: CAPTURED_EXAMPLE_ASSAY,
         currentMedications: [],
         pastTrials: [],
       },
     })
 
-    const cyp2d6 = result.genes.find((g) => g.gene === 'CYP2D6')!
-    const cyp2c19 = result.genes.find((g) => g.gene === 'CYP2C19')!
-    expect(cyp2d6.geneticPhenotype).toBe('Indeterminate')
-    expect(cyp2d6.functionalPhenotype).toBe('Indeterminate')
-    expect(cyp2d6.confidence.level).toBe('low')
-    expect(cyp2d6.diplotype).toBe('unknown')
-    expect(cyp2c19.geneticPhenotype).toBe('Indeterminate')
-    expect(cyp2c19.diplotype).toBe('unknown')
+    expect(result.pharmcat.pharmcatVersion).toBe('v3.3.0-8-g8ff5870f')
+    expect(result.pharmcat.pharmcatDataVersion).toBe('2026-07-13-11-40')
+    expect(result.genes.find((gene) => gene.gene === 'CYP2C19')).toMatchObject({
+      diplotype: '*38/*38',
+      geneticPhenotype: 'Normal Metabolizer',
+    })
+    expect(result.genes.find((gene) => gene.gene === 'CYP2D6')?.confidence.level).toBe('low')
+  })
+
+  it('preserves PharmCAT combined-gene annotations instead of intersecting flat rows', async () => {
+    const report = await new PharmCATReportJsonAdapter().analyze({
+      fileName: 'pharmcat.example.report.json',
+      contents: CAPTURED_PHARMCAT_EXAMPLE_JSON,
+      assayType: CAPTURED_EXAMPLE_ASSAY,
+    })
+    const sertraline = report.recommendations.find((item) => item.drug === 'sertraline')!
+    const amitriptyline = report.recommendations.find((item) => item.drug === 'amitriptyline')!
+
+    expect(sertraline.geneResults).toEqual([
+      { gene: 'CYP2B6', phenotype: 'Normal Metabolizer' },
+      { gene: 'CYP2C19', phenotype: 'Normal Metabolizer' },
+    ])
+    expect(amitriptyline.geneResults.map((item) => item.gene)).toEqual(['CYP2C19', 'CYP2D6'])
+    expect(amitriptyline.action).toBe('decrease_start')
+  })
+
+  it('fails closed for malformed or generic JSON', async () => {
+    const adapter = new PharmCATReportJsonAdapter()
+    await expect(adapter.analyze({ fileName: 'bad.json', contents: '{', assayType: 'unknown' }))
+      .rejects.toThrow(/not valid PharmCAT/i)
+    await expect(adapter.analyze({ fileName: 'generic.json', contents: '{}', assayType: 'unknown' }))
+      .rejects.toThrow(/supported PharmCAT Reporter structure/i)
+  })
+
+  it('uses recommendation wording only to create neutral UI groups', () => {
+    expect(recommendationActionFromText('Initiate therapy with recommended starting dose.')).toBe('standard')
+    expect(recommendationActionFromText('Consider a 25% reduction of recommended starting dose.')).toBe('decrease_start')
+    expect(recommendationActionFromText('Avoid use. Consider an alternative drug.')).toBe('avoid')
+    expect(recommendationActionFromText('Consider a clinically appropriate antidepressant not predominantly metabolized by CYP2C19.')).toBe('alternative')
+    expect(recommendationActionFromText('Consider a slower titration schedule and lower maintenance dose, or select a clinically appropriate alternative.')).toBe('alternative')
+    expect(recommendationActionFromText('No recommendation.')).toBe('no_recommendation')
   })
 })
