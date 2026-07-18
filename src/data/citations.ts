@@ -62,8 +62,8 @@ export const CITATIONS: Record<string, Citation> = {
     label: 'FDA interaction table',
     kind: 'fda-table',
     title:
-      'FDA — Drug Development and Drug Interactions: Table of Substrates, Inhibitors and Inducers',
-    url: 'https://www.fda.gov/drugs/drug-interactions-labeling/drug-development-and-drug-interactions-table-substrates-inhibitors-and-inducers',
+      "FDA — For Healthcare Professionals: Examples of Drugs that Interact with CYP Enzymes and Transporter Systems",
+    url: 'https://www.fda.gov/drugs/drug-interactions-labeling/healthcare-professionals-fdas-examples-drugs-interact-cyp-enzymes-and-transporter-systems',
   },
   'fda-pgx-associations': {
     id: 'fda-pgx-associations',

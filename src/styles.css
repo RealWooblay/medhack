@@ -867,7 +867,17 @@ details > summary {
   background: var(--amber-soft);
 }
 
+.fit-status--prescriber-review {
+  color: #742722;
+  background: var(--red-soft);
+}
+
 .fit-status--answer-needed {
+  color: #59665f;
+  background: #e8ecea;
+}
+
+.fit-status--not-assessed {
   color: #59665f;
   background: #e8ecea;
 }

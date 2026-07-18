@@ -62,12 +62,14 @@ export interface MedGemmaProviderOptions {
 
 function minimiseFacts(facts: NarrativeFacts) {
   return {
-    depression: {
-      score: facts.depression.score,
-      severity: facts.depression.severity,
-      interpretation: facts.depression.interpretation,
-      monitoringNote: facts.depression.monitoringNote,
-    },
+    depression: facts.depression
+      ? {
+          score: facts.depression.score,
+          severity: facts.depression.severity,
+          interpretation: facts.depression.interpretation,
+          monitoringNote: facts.depression.monitoringNote,
+        }
+      : null,
     goals: facts.care.goals,
     currentMedications: facts.currentMedications,
     genes: facts.genes.map((gene) => ({
@@ -77,6 +79,8 @@ function minimiseFacts(facts: NarrativeFacts) {
       functionalPhenotype: gene.functionalPhenotype,
       geneticActivityScore: gene.geneticActivityScore,
       functionalActivityScore: gene.functionalActivityScore,
+      modeledFunctionalPhenotype: gene.modeledFunctionalPhenotype,
+      modeledFunctionalActivityScore: gene.modeledFunctionalActivityScore,
       status: gene.status,
       explanation: gene.explanation,
       unresolvedWarning: gene.unresolvedWarning,

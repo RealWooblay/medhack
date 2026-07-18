@@ -56,44 +56,39 @@ export function matchLifestyle(
     if (value) facts.push(value)
   }
 
-  if (care.lifestyle.mealRoutine !== 'regular') {
-    add(
-      fact(protocol, 'vilazodone-food', {
-        dimension: 'meals',
-        verdict: 'needs_planning',
-        title: 'Needs a reliable meal',
-        detail:
-          'You described meals as irregular or variable. This medicine has a specific food requirement, so missed meals could also mean an unreliable dose.',
-      }),
-    )
+  const protocolItems = [...protocol.items, ...protocol.interactionItems]
+  const byId = (ids: string[]) => ids.find((id) => protocolItems.some((item) => item.id === id))
+
+  const strictFoodId = byId(['vilazodone-food', 'venlafaxine-food-time'])
+  const flexibleFoodId = byId([
+    'paroxetine-morning', 'sertraline-food', 'escitalopram-timing', 'citalopram-daily',
+    'desvenlafaxine-time', 'duloxetine-food', 'vortioxetine-food',
+  ])
+  const foodId = strictFoodId ?? flexibleFoodId
+  if (foodId) {
+    const needsMealPlan = Boolean(strictFoodId) && care.lifestyle.mealRoutine !== 'regular'
+    add(fact(protocol, foodId, {
+      dimension: 'meals',
+      verdict: needsMealPlan ? 'needs_planning' : 'supports_routine',
+      title: needsMealPlan ? 'The food instruction needs a reliable meal plan' : 'The recorded meal pattern fits this captured food instruction',
+      detail: needsMealPlan
+        ? 'Meals were recorded as irregular or variable, while this draft label summary says the medicine is taken with food.'
+        : 'This match checks only the captured food instruction; it is not a medicine-safety finding.',
+    }))
   }
 
-  if (care.lifestyle.dailySchedule !== 'regular') {
-    const flexibleIds = protocol.drug === 'escitalopram'
-        ? ['escitalopram-timing']
-        : []
-    for (const flexibleId of flexibleIds) {
-      add(
-        fact(protocol, flexibleId, {
-          dimension: 'schedule',
-          verdict: 'supports_routine',
-          title: 'The label allows morning or evening dosing',
-          detail:
-            'You recorded a variable schedule. The captured label allows morning or evening dosing; a consistent plan still needs to be agreed.',
-        }),
-      )
-    }
-    for (const fixedId of ['fluoxetine-morning', 'paroxetine-morning', 'mirtazapine-evening', 'venlafaxine-food-time', 'desvenlafaxine-time']) {
-      add(
-        fact(protocol, fixedId, {
-          dimension: 'schedule',
-          verdict: 'needs_planning',
-          title: 'The label timing needs a plan',
-          detail:
-            'You recorded a variable schedule and this captured label has a specific timing instruction. Discuss a workable, consistent plan.',
-        }),
-      )
-    }
+  const timingItem = protocolItems.find((item) => item.category === 'timing')
+  if (timingItem) {
+    const flexibleTiming = ['escitalopram-timing', 'citalopram-daily'].includes(timingItem.id)
+    const needsTimingPlan = care.lifestyle.dailySchedule !== 'regular' && !flexibleTiming
+    add(fact(protocol, timingItem.id, {
+      dimension: 'schedule',
+      verdict: needsTimingPlan ? 'needs_planning' : 'supports_routine',
+      title: needsTimingPlan ? 'The timing instruction needs a routine plan' : 'The recorded schedule can be planned within this timing instruction',
+      detail: needsTimingPlan
+        ? 'A variable or shift-work schedule was recorded and this draft label summary has a specific time or consistency requirement.'
+        : 'A consistent plan still needs to be agreed with the prescriber.',
+    }))
   }
 
   if (care.lifestyle.sleep === 'trouble_sleeping') {
@@ -102,47 +97,51 @@ export function matchLifestyle(
     )
   }
 
-  if (care.lifestyle.sleep === 'sleeping_too_much') {
-    add(
-      fact(protocol, 'mirtazapine-somnolence', {
+  if (protocolItems.some((item) => item.id === 'mirtazapine-somnolence')) {
+    const excessiveSleep = care.lifestyle.sleep === 'sleeping_too_much'
+    if (excessiveSleep) {
+      add(fact(protocol, 'mirtazapine-somnolence', {
         dimension: 'sleep',
         verdict: 'clinician_review',
-        title: 'The label warning matters for your current sleep pattern',
-        detail:
-          'You reported sleeping too much. The captured mirtazapine label warns that somnolence is very common, so this needs prescriber review.',
-      }),
-    )
-  }
-
-  if (care.lifestyle.alcohol !== 'none') {
-    for (const alcoholId of ['sertraline-alcohol', 'bupropion-alcohol']) {
-      add(
-        fact(protocol, alcoholId, {
-          dimension: 'alcohol',
-          verdict: alcoholId === 'bupropion-alcohol' ? 'clinician_review' : 'needs_planning',
-          title: 'The recorded alcohol use needs review against the label',
-          detail:
-            'You recorded alcohol use and this medicine has a drug-specific label warning. Discuss it rather than changing regular use abruptly on your own.',
-        }),
-      )
+        title: 'The somnolence warning matches the recorded sleep concern',
+        detail: 'Sleeping too much was recorded and the draft mirtazapine summary includes a somnolence warning.',
+      }))
+    } else {
+      unknowns.push('The mirtazapine somnolence warning cannot predict how the medicine would affect the recorded sleep pattern.')
     }
   }
 
-  if (care.lifestyle.drivingOrMachinery) {
-    add(
-      fact(protocol, `${protocol.drug}-driving`, {
-        dimension: 'driving',
-        verdict: 'needs_planning',
-        title: 'This drug has a specific driving precaution',
-        detail:
-          'You recorded driving or machinery use. The captured label for this exact medicine includes an impairment precaution, so a safety plan is needed.',
-      }),
-    )
-    if (!facts.some((value) => value.dimension === 'driving')) {
-      unknowns.push(
-        'Driving or machinery was recorded, but this evidence snapshot has no drug-specific driving comparison for this option.',
-      )
+  const alcoholItem = protocolItems.find((item) => item.id.includes('alcohol'))
+  if (alcoholItem) {
+    const usesAlcohol = care.lifestyle.alcohol !== 'none'
+    const heavyOnly = alcoholItem.id === 'duloxetine-heavy-alcohol'
+    if (heavyOnly && usesAlcohol) {
+      unknowns.push('The alcohol answer records frequency, not amount, so it cannot establish whether the duloxetine heavy-intake warning applies.')
+    } else {
+      const verdict: Exclude<DailyFitVerdict, 'unknown'> = !usesAlcohol
+        ? 'supports_routine'
+        : alcoholItem.id === 'bupropion-alcohol'
+          ? 'clinician_review'
+          : 'needs_planning'
+      add(fact(protocol, alcoholItem.id, {
+        dimension: 'alcohol',
+        verdict,
+        title: !usesAlcohol
+          ? 'No alcohol use was recorded against this warning'
+          : 'The recorded alcohol use needs review against this warning',
+        detail: 'This is a match to one draft drug-specific warning, not a general safety assessment.',
+      }))
     }
+  }
+
+  const drivingId = `${protocol.drug}-driving`
+  if (protocolItems.some((item) => item.id === drivingId)) {
+    add(fact(protocol, drivingId, {
+      dimension: 'driving',
+      verdict: care.lifestyle.drivingOrMachinery ? 'needs_planning' : 'supports_routine',
+      title: care.lifestyle.drivingOrMachinery ? 'The driving precaution needs a plan' : 'No driving or machinery use was recorded against this precaution',
+      detail: 'This checks only the captured impairment precaution for this medicine.',
+    }))
   }
 
   if (care.lifestyle.missedDoses !== 'rarely') {
@@ -151,16 +150,13 @@ export function matchLifestyle(
     )
   }
 
-  if (care.lifestyle.eatingDisorderHistory) {
-    add(
-      fact(protocol, 'bupropion-eating-disorder', {
-        dimension: 'medical_history',
-        verdict: 'clinician_review',
-        title: 'The recorded history matches a label contraindication',
-        detail:
-          'You recorded current or prior anorexia nervosa or bulimia. The captured bupropion label lists that history as a contraindication; the prescriber must review it.',
-      }),
-    )
+  if (protocolItems.some((item) => item.id === 'bupropion-eating-disorder')) {
+    add(fact(protocol, 'bupropion-eating-disorder', {
+      dimension: 'medical_history',
+      verdict: care.lifestyle.eatingDisorderHistory ? 'clinician_review' : 'supports_routine',
+      title: care.lifestyle.eatingDisorderHistory ? 'The recorded history matches this contraindication' : 'This contraindication was not reported in the answer',
+      detail: 'This checks one captured history item only and does not establish that bupropion is suitable.',
+    }))
   }
 
   const verdict = facts.length

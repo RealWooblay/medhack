@@ -33,10 +33,7 @@ export const PHQ_FREQUENCY_LABELS: Record<PhqFrequency, string> = {
 }
 
 export const DEFAULT_CARE_CONTEXT: CareContext = {
-  checkIn: {
-    responses: [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    functionalImpact: 'not_difficult',
-  },
+  checkIn: null,
   goals: [],
   lifestyle: {
     sleep: 'settled',
@@ -60,23 +57,31 @@ function severityFor(score: number): DepressionSeverity {
 
 export function normaliseCareContext(input: CareContext | undefined): CareContext {
   if (!input) return DEFAULT_CARE_CONTEXT
-  const responses = PHQ9_ITEMS.map((_, index) => input.checkIn.responses[index] ?? 0)
+  if (!input.checkIn) return { ...input, checkIn: null }
+  if (
+    input.checkIn.responses.length !== PHQ9_ITEMS.length ||
+    input.checkIn.responses.some((value) => ![0, 1, 2, 3].includes(value))
+  ) {
+    throw new Error('A PHQ-9 result requires all 9 responses. Missing responses are not filled with zero.')
+  }
   return {
     ...input,
-    checkIn: { ...input.checkIn, responses },
+    checkIn: { ...input.checkIn, responses: [...input.checkIn.responses] },
   }
 }
 
 export function scoreDepressionCheckIn(care: CareContext): DepressionSummary {
-  const score = care.checkIn.responses.reduce<number>((sum, response) => sum + response, 0)
+  if (!care.checkIn) throw new Error('No PHQ-9 was supplied for this run.')
+  const checkIn = care.checkIn
+  const score = checkIn.responses.reduce<number>((sum, response) => sum + response, 0)
   const severity = severityFor(score)
-  const safetyResponsePositive = (care.checkIn.responses[8] ?? 0) > 0 || care.needsImmediateSupport
+  const safetyResponsePositive = (checkIn.responses[8] ?? 0) > 0 || care.needsImmediateSupport
 
   return {
     instrument: 'PHQ-9',
     score,
     severity,
-    functionalImpact: care.checkIn.functionalImpact,
+    functionalImpact: checkIn.functionalImpact,
     safetyResponsePositive,
     interpretation: {
       text:

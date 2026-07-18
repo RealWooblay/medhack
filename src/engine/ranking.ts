@@ -7,14 +7,15 @@
  *
  * Two design decisions carry most of the value:
  *
- *  1. The CPIC lookup uses the supported functional phenotype when a recorded current
- *     inhibitor has a validated adjustment method.
+ *  1. Medicine guidance comes from the exact CPIC annotation in the imported PharmCAT
+ *     report, including combined-gene rules. Current-medicine effects remain a separate
+ *     review question and never overwrite that source annotation.
  *
  *  2. This build does not calculate a post-washout state or combine the evidence lanes into
  *     a treatment score.
  */
 
-import { lookupRecommendation, profileOf, SHORTLIST_CANDIDATES, type DrugProfile } from '../data/cpic'
+import { profileOf, SHORTLIST_CANDIDATES, type DrugProfile } from '../data/cpic'
 import { canonicalDrug } from '../data/drug-lexicon'
 import type {
   Claim,
@@ -22,8 +23,8 @@ import type {
   GeneFinding,
   GenePhenotypeResult,
   InteractionFlag,
+  PharmCATDrugRecommendation,
   PgxReviewCategory,
-  Phenotype,
   RecommendationAction,
   TrialReconstruction,
 } from './types'
@@ -105,27 +106,25 @@ function headlineFor(findings: GeneFinding[], cpicCovered: boolean): string {
 
 function findingsFor(
   profile: DrugProfile,
-  genes: GenePhenotypeResult[],
-  usePhenotype: (g: GenePhenotypeResult) => Phenotype,
+  recommendations: PharmCATDrugRecommendation[],
 ): GeneFinding[] {
-  const findings: GeneFinding[] = []
-  for (const geneName of profile.primaryGenes) {
-    const gene = genes.find((g) => g.gene === geneName)
-    if (!gene) continue
-    const phenotype = usePhenotype(gene)
-    const rec = lookupRecommendation(geneName, phenotype, profile.drug)
-    if (!rec) continue
-    findings.push({
-      gene: geneName,
-      phenotypeUsed: phenotype,
-      usedFunctionalPhenotype: phenotype !== gene.geneticPhenotype,
-      action: rec.action,
-      guidelineText: rec.text,
-      strength: rec.strength,
-      citationIds: rec.citationIds,
-    })
-  }
-  return findings
+  return recommendations
+    .filter((recommendation) => recommendation.drug === profile.drug)
+    .map((recommendation) => ({
+      geneResults: recommendation.geneResults,
+      gene: recommendation.gene,
+      phenotypeUsed: recommendation.phenotype,
+      usedFunctionalPhenotype: false,
+      action: recommendation.action,
+      guidelineText: recommendation.text,
+      strength: recommendation.strength,
+      population: recommendation.population,
+      dosingInformation: recommendation.dosingInformation,
+      alternateDrugAvailable: recommendation.alternateDrugAvailable,
+      otherPrescribingGuidance: recommendation.otherPrescribingGuidance,
+      citationIds: recommendation.citationIds,
+      sourceUrl: recommendation.sourceUrl,
+    }))
 }
 
 /* ------------------------------------------------------------------ */
@@ -139,11 +138,11 @@ function enzymeIndependenceFor(profile: DrugProfile, genes: GenePhenotypeResult[
     const isPrimary = profile.primaryGenes.includes(gene.gene)
     if (isPrimary) continue
 
-    if (gene.converted) {
+    if (gene.status === 'uncertain_extent') {
       claims.push({
         text:
-          `${gene.gene} is functionally a ${gene.functionalPhenotype} for this patient, but ${profile.drug} ` +
-          `dosing is not governed by ${gene.gene}. ${profile.metabolicNote}`,
+          `A current medicine may change ${gene.gene} activity, but the research-convention estimate is ` +
+          `uncertain and ${profile.drug} dosing is not governed by ${gene.gene}. ${profile.metabolicNote}`,
         citationIds: profile.citationIds,
       })
     } else if (gene.status === 'unvalidated_method') {
@@ -175,6 +174,23 @@ function interactionFlagsFor(
   genes: GenePhenotypeResult[],
 ): InteractionFlag[] {
   const flags: InteractionFlag[] = []
+
+  // Imported PharmCAT guidance is genotype-only. A supported medicine effect is shown as
+  // a separate review question; it never silently rewrites PharmCAT's annotation.
+  for (const gene of genes) {
+    if (gene.status !== 'uncertain_extent' || !profile.primaryGenes.includes(gene.gene)) continue
+    const modifier = gene.modifiers[0]
+    flags.push({
+      withDrug: modifier?.drug ?? 'a current medication',
+      severity: 'caution',
+      text:
+        `The imported PharmCAT guidance uses the genetic ${gene.gene} result. ` +
+        `${modifier?.drug ?? 'A current medication'} may lower ${gene.gene} activity. A research convention ` +
+        `models this as ${gene.modeledFunctionalPhenotype ?? 'an uncertain change'}, but that is not a validated ` +
+        'patient phenotype. The prescriber must reconcile the interaction; the imported guidance is not replaced.',
+      citationIds: [...new Set(['pharmcat', ...(gene.explanation?.citationIds ?? []), ...(gene.unresolvedWarning?.citationIds ?? [])])],
+    })
+  }
 
   // The candidate is dosed on a gene whose interaction the engine refused to resolve.
   for (const gene of genes) {
@@ -237,11 +253,12 @@ function capDrug(drug: string): string {
 
 export interface RankingInput {
   genes: GenePhenotypeResult[]
+  recommendations: PharmCATDrugRecommendation[]
   currentMedications: string[]
   history: TrialReconstruction[]
 }
 
-export function assembleDrugFindings({ genes, currentMedications, history }: RankingInput): DrugAssessment[] {
+export function assembleDrugFindings({ genes, recommendations, currentMedications, history }: RankingInput): DrugAssessment[] {
   const meds = currentMedications.map((m) => (canonicalDrug(m) ?? m).toLowerCase())
 
   const assessments: DrugAssessment[] = []
@@ -250,7 +267,7 @@ export function assembleDrugFindings({ genes, currentMedications, history }: Ran
     const profile = profileOf(drug)
     if (!profile) continue
 
-    const findings = findingsFor(profile, genes, (g) => g.functionalPhenotype)
+    const findings = findingsFor(profile, recommendations)
     const baseCategory = categoryFor(findings, profile.cpicCovered)
     const headline = headlineFor(findings, profile.cpicCovered)
     const independence = enzymeIndependenceFor(profile, genes)
@@ -265,7 +282,9 @@ export function assembleDrugFindings({ genes, currentMedications, history }: Ran
     if (findings.length) {
       reasonParts.push(
         findings
-          .map((f) => `${f.gene} ${f.phenotypeUsed.replace(' Metabolizer', '')}${f.usedFunctionalPhenotype ? ' (functional)' : ''}`)
+          .map((f) => f.geneResults
+            .map((result) => `${result.gene} ${result.phenotype.replace(' Metabolizer', '')}`)
+            .join(' + '))
           .join(', '),
       )
     }

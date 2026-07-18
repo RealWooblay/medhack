@@ -1,6 +1,9 @@
 {
   "name": "antidepressant-pgx-agent",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "version": "0.1.0",
   "type": "module",
   "description": "A six-step validator for antidepressant PGx, drug-specific daily life, constrained medical AI and evidence provenance.",
@@ -13,6 +16,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@vercel/oidc": "^3.8.0",
+    "google-auth-library": "^10.9.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

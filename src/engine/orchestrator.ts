@@ -1,20 +1,9 @@
 /**
- * The orchestration layer — the only place a language model is allowed to touch anything.
+ * The deterministic narrative layer used by the validation result.
  *
- * What the model is for: sequencing, cross-referencing, and translating clinician language
- * into something a person can act on at 8am with a glass of water. What it is not for:
- * producing a dose, a drug name, or a clinical fact. Those arrive already decided, from the
- * guideline lookup, and the model's output is checked against them before it renders.
- *
- * Offline mode, which is the default, produces the narrative deterministically from the
- * same fact objects a model would be handed. That prose still passes through the validator —
- * the boundary is wired in whether or not a model is present, and a template that quietly
- * bypassed the check would make the whole architecture decorative.
- *
- * Alongside it, `adversarialProbe` submits realistic model failure modes — invented doses,
- * a brand name nobody mentioned, a citation that drifted, a bare clinical assertion with no
- * source — to the same validator. Those are what populate the rejection log. They are
- * labelled in the UI as exactly what they are: a deliberate probe, not a real generation.
+ * It assembles source-linked template claims and passes them through the same claim validator.
+ * The separate clinical-review module may ask MedGemma for typed actions and fact IDs, but
+ * model-written medical prose never enters this narrative.
  */
 
 import type {
@@ -36,7 +25,7 @@ export interface NarrativeFacts {
   protocol: LifestyleProtocol | null
   currentMedications: string[]
   care: CareContext
-  depression: DepressionSummary
+  depression: DepressionSummary | null
 }
 
 /* ------------------------------------------------------------------ */
@@ -57,16 +46,17 @@ const GOAL_LABELS: Record<CareContext['goals'][number], string> = {
 }
 
 function journeyClaims(facts: NarrativeFacts): DraftClaim[] {
-  const claims: DraftClaim[] = [
-    {
+  const claims: DraftClaim[] = []
+  if (facts.depression) {
+    claims.push({
       section: 'journey_summary',
       text:
         `Your PHQ-9 check-in score is ${facts.depression.score} out of 27, which falls in the ` +
         `${facts.depression.severity.replace('_', ' ')} symptom range. This is a baseline for tracking ` +
         'change with your clinician, not a diagnosis and not a prediction of which treatment will work.',
       citationIds: facts.depression.interpretation.citationIds,
-    },
-  ]
+    })
+  }
 
   if (facts.care.goals.length) {
     const labels = facts.care.goals.map((goal) => GOAL_LABELS[goal])
@@ -80,11 +70,13 @@ function journeyClaims(facts: NarrativeFacts): DraftClaim[] {
     })
   }
 
-  claims.push({
-    section: 'monitoring_plan',
-    text: facts.depression.monitoringNote.text,
-    citationIds: facts.depression.monitoringNote.citationIds,
-  })
+  if (facts.depression) {
+    claims.push({
+      section: 'monitoring_plan',
+      text: facts.depression.monitoringNote.text,
+      citationIds: facts.depression.monitoringNote.citationIds,
+    })
+  }
 
   return claims
 }
@@ -103,20 +95,22 @@ function phenoconversionClaims(facts: NarrativeFacts): DraftClaim[] {
 
   // The gene that actually converted is the headline; the flagged-but-unresolved ones are
   // context for it, so they must not lead.
-  const ordered = [...facts.genes].sort((a, b) => Number(b.converted) - Number(a.converted))
+  const ordered = [...facts.genes].sort(
+    (a, b) => Number(b.status === 'uncertain_extent') - Number(a.status === 'uncertain_extent'),
+  )
 
   for (const gene of ordered) {
     const cause = gene.modifiers[0]
 
-    if (gene.converted && gene.explanation && cause) {
+    if (gene.status === 'uncertain_extent' && gene.explanation && cause) {
       claims.push({
         section: 'phenoconversion_explainer',
         text:
           `Your genetic ${gene.gene} result is ${gene.geneticPhenotype}. ${cap(cause.drug)} is recorded as ` +
-          `current and is classified as a ${cause.effect.replaceAll('_', ' ')} of ${gene.gene}. Using the ` +
-          `captured CYP2D6 method, the activity score changes from ${gene.geneticActivityScore} to ` +
-          `${gene.functionalActivityScore} during concurrent use. This is dosing context for a clinician, ` +
-          `not a prediction of benefit or harm.`,
+          `current and is classified as a ${cause.effect.replaceAll('_', ' ')} of ${gene.gene}. A common ` +
+          `research convention estimates an activity score of ${gene.modeledFunctionalActivityScore} and ` +
+          `${gene.modeledFunctionalPhenotype}; the extent is uncertain, so this estimate does not replace the ` +
+          `reported result or PharmCAT guidance.`,
         citationIds: gene.explanation.citationIds,
       })
     }
@@ -191,8 +185,8 @@ function protocolClaims(facts: NarrativeFacts): DraftClaim[] {
     {
       section: 'protocol_intro',
       text:
-        `Here is what taking ${facts.protocol.drug} actually looks like day to day. Every line comes from the ` +
-        `approved product label or a named clinical source, and you can open any of them to see where it came from.`,
+        `Here are the draft daily-life rules captured for ${facts.protocol.drug}. Every line keeps a source link, ` +
+        `but the cached summaries still require exact product-label and formulation verification before clinical use.`,
       citationIds: facts.protocol.items[0]?.citationIds ?? [],
     },
   ]

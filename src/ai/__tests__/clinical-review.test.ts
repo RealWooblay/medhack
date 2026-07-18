@@ -1,5 +1,8 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
-import { fixtureById, FixturePharmCATAdapter } from '../../engine/pharmcat/fixtures'
+import {
+  CAPTURED_EXAMPLE_ASSAY,
+  CapturedPharmCATExampleAdapter,
+} from '../../engine/pharmcat/fixtures'
 import { runAnalysis } from '../../engine/pipeline'
 import type { AnalysisResult, PatientInput } from '../../engine/types'
 import {
@@ -11,11 +14,10 @@ import {
 } from '../clinical-review'
 
 async function runPrivateFixture(): Promise<AnalysisResult> {
-  const fixture = fixtureById('demo-phenoconversion')!
   const input: PatientInput = {
-    genomeFileName: 'Jane-Doe-direct-identifier-raw-genome.txt',
-    assayType: fixture.assayType,
-    currentMedications: fixture.suggestedMedications,
+    genomeFileName: 'Jane-Doe-direct-identifier-pharmcat.report.json',
+    assayType: CAPTURED_EXAMPLE_ASSAY,
+    currentMedications: ['fluoxetine'],
     pastTrials: [
       {
         drug: 'paroxetine',
@@ -25,7 +27,7 @@ async function runPrivateFixture(): Promise<AnalysisResult> {
     ],
   }
   return runAnalysis({
-    adapter: new FixturePharmCATAdapter(fixture),
+    adapter: new CapturedPharmCATExampleAdapter(),
     genome: { fileName: input.genomeFileName, assayType: input.assayType },
     input,
   })
@@ -75,7 +77,7 @@ describe('privacy-minimised clinical review context', () => {
         (fact) => fact.domain === 'lifestyle_match' && fact.drugNames.includes('mirtazapine'),
       ),
     ).toBe(true)
-    expect(confirmed.facts.some((fact) => fact.id === 'SYMPTOM-CONTEXT')).toBe(true)
+    expect(confirmed.facts.some((fact) => fact.id === 'SYMPTOM-CONTEXT')).toBe(false)
   })
 
   it('returns an explicit not-connected result instead of simulated AI output', async () => {
@@ -106,14 +108,12 @@ describe('privacy-minimised clinical review context', () => {
         items: [
           {
             action: 'lifestyle_constraint',
-            summary: 'The sertraline protocol has a sourced daily-life requirement to compare with the recorded routine.',
             factIds: [lifestyleFact.id, routineFact.id],
             drugNames: ['sertraline'],
             sourceIds: [lifestyleFact.sourceIds[0]],
           },
           {
             action: 'clinician_question',
-            summary: 'Could the prescriber review how fluoxetine affects the recorded CYP2D6 result?',
             factIds: [geneFact.id],
             drugNames: ['fluoxetine'],
             sourceIds: geneFact.sourceIds.slice(0, 1),
@@ -128,7 +128,7 @@ describe('privacy-minimised clinical review context', () => {
     expect(review.rejections).toEqual([])
   })
 
-  it('rejects unknown actions, facts, drugs, sources, numbers and treatment claims', () => {
+  it('rejects unknown actions, facts, drugs, sources and prose outside the typed schema', () => {
     const context = buildClinicalReviewContext(result, { selectedDrug: 'sertraline' })
     const fact = context.facts.find((value) => value.id === 'GENE:CYP2D6')!
     const base = {
@@ -140,12 +140,11 @@ describe('privacy-minimised clinical review context', () => {
     const review = validateClinicalReviewOutput(
       {
         items: [
-          { ...base, action: 'recommend_drug', summary: 'Choose fluoxetine.' },
-          { ...base, action: 'evidence_gap', summary: 'A fact is missing.', factIds: ['FACT:MADE-UP'] },
-          { ...base, action: 'evidence_gap', summary: 'Lamotrigine has a gap.', drugNames: ['lamotrigine'] },
-          { ...base, action: 'evidence_gap', summary: 'The source is missing.', sourceIds: ['invented-source'] },
-          { ...base, action: 'evidence_gap', summary: 'A 37 mg dose is missing.' },
-          { ...base, action: 'evidence_gap', summary: 'Fluoxetine is better and likely to work.' },
+          { ...base, action: 'recommend_drug' },
+          { ...base, action: 'evidence_gap', factIds: ['FACT:MADE-UP'] },
+          { ...base, action: 'evidence_gap', drugNames: ['lamotrigine'] },
+          { ...base, action: 'evidence_gap', sourceIds: ['invented-source'] },
+          { ...base, action: 'evidence_gap', summary: 'Untrusted medical prose is not accepted.' },
         ],
       },
       context,
@@ -159,8 +158,7 @@ describe('privacy-minimised clinical review context', () => {
         'unknown_fact',
         'unknown_drug',
         'unknown_source',
-        'unknown_number',
-        'unsupported_claim',
+        'malformed_item',
         'ungrounded_reference',
       ]),
     )
@@ -177,7 +175,6 @@ describe('privacy-minimised clinical review context', () => {
         items: [
           {
             action: 'request_counterfactual',
-            summary: 'Re-run the deterministic analysis without fluoxetine before answering how the recorded medicine effect changes.',
             factIds: [current.id],
             drugNames: ['fluoxetine'],
             sourceIds: [],
@@ -198,7 +195,6 @@ describe('privacy-minimised clinical review context', () => {
         items: [
           {
             action: 'request_counterfactual',
-            summary: 'Calculate a new fluoxetine dose.',
             factIds: [current.id],
             drugNames: ['fluoxetine'],
             sourceIds: [],
@@ -226,6 +222,7 @@ describe('privacy-minimised clinical review context', () => {
         ok: true,
         status: 200,
         json: async () => ({
+          model: 'google/medgemma-27b-text-it@test',
           choices: [
             {
               message: {
@@ -233,7 +230,6 @@ describe('privacy-minimised clinical review context', () => {
                   items: [
                     {
                       action: 'clinician_question',
-                      summary: 'Could the prescriber review the sourced sertraline lifestyle requirement?',
                       factIds: [fact.id],
                       drugNames: ['sertraline'],
                       sourceIds: fact.sourceIds.slice(0, 1),
@@ -277,7 +273,10 @@ describe('privacy-minimised clinical review context', () => {
       fetchImpl: vi.fn(async () => ({
         ok: true,
         status: 200,
-        json: async () => ({ choices: [{ message: { content: '```json\n{"items":[]}\n```' } }] }),
+        json: async () => ({
+          model: 'google/medgemma-27b-text-it@test',
+          choices: [{ message: { content: '```json\n{"items":[]}\n```' } }],
+        }),
       }) as Response),
     })
     const review = await provider.review(result)

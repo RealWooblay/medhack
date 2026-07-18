@@ -4,17 +4,19 @@ import {
   createClinicalReviewProvider,
   NotConnectedClinicalReviewProvider,
   type ClinicalReviewAction,
+  type ClinicalReviewFact,
   type ClinicalReviewItem,
   type ClinicalReviewResult,
 } from '../ai/clinical-review'
 import { AUSTRALIAN_SCOPE_DRAFT } from '../data/australian-scope'
+import { canonicalDrug } from '../data/drug-lexicon'
+import {
+  OFFICIAL_PHARMCAT_EXAMPLES,
+  type OfficialPharmCATExample,
+} from '../data/pharmcat-examples'
 import { matchLifestyle } from '../engine/lifestyle-fit'
 import { runAnalysis } from '../engine/pipeline'
-import {
-  PharmCATReportJsonAdapter,
-  TagSnpAdapter,
-} from '../engine/pharmcat/adapter'
-import { FIXTURES, fixtureToFileText, type Fixture } from '../engine/pharmcat/fixtures'
+import { PharmCATReportJsonAdapter } from '../engine/pharmcat/adapter'
 import {
   inspectGenomeInput,
   type InputInspection,
@@ -29,7 +31,6 @@ import type {
   GenePhenotypeResult,
   LifestyleContext,
   LifestyleProtocol,
-  RecommendationAction,
 } from '../engine/types'
 import {
   buildSourceUsage,
@@ -42,12 +43,13 @@ type InputMode = 'example' | 'upload'
 type RunStatus = 'idle' | 'reading' | 'running' | 'complete' | 'error'
 
 interface RunReceipt extends InputInspection {
-  source: 'fictional-example' | 'uploaded-file'
+  source: 'official-example' | 'uploaded-file'
   fileName: string
   sizeBytes: number
   contents: string
   assayType: AssayType
-  fixtureId?: string
+  exampleId?: string
+  sourceUrl?: string
 }
 
 interface RoutineAnswers {
@@ -80,10 +82,7 @@ const EMPTY_ROUTINE: RoutineAnswers = {
 }
 
 const BASE_CARE_CONTEXT: CareContext = {
-  checkIn: {
-    responses: [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    functionalImpact: 'not_difficult',
-  },
+  checkIn: null,
   goals: [],
   lifestyle: {
     sleep: 'settled',
@@ -101,6 +100,7 @@ const ASSAY_LABEL: Record<AssayType, string> = {
   'consumer-array': 'Consumer DNA array',
   wgs: 'Whole-genome sequencing',
   'targeted-pgx': 'Targeted PGx panel',
+  unknown: 'Not supplied in Reporter JSON',
 }
 
 const ROUTINE_QUESTIONS: Record<RoutineKey, RoutineQuestion> = {
@@ -183,13 +183,16 @@ function unique(values: string[]): string[] {
   return [...new Set(values)]
 }
 
-function parseMedicines(value: string): string[] {
-  return unique(
-    value
-      .split(',')
-      .map((medicine) => medicine.trim().toLowerCase())
-      .filter(Boolean),
-  )
+function parseMedicines(value: string): { recognised: string[]; unrecognised: string[] } {
+  const entered = unique(value.split(',').map((medicine) => medicine.trim()).filter(Boolean))
+  const recognised: string[] = []
+  const unrecognised: string[] = []
+  for (const medicine of entered) {
+    const generic = canonicalDrug(medicine)
+    if (generic) recognised.push(generic.toLowerCase())
+    else unrecognised.push(medicine)
+  }
+  return { recognised: unique(recognised), unrecognised }
 }
 
 function formatBytes(bytes: number): string {
@@ -214,30 +217,6 @@ function phenotypeWords(phenotype: GenePhenotypeResult['functionalPhenotype']): 
 function speedTitle(phenotype: GenePhenotypeResult['functionalPhenotype']): string {
   const words = phenotypeWords(phenotype)
   return words === 'in the usual range' ? 'Usual range' : capitalise(words)
-}
-
-function actionLabel(action: RecommendationAction): string {
-  switch (action) {
-    case 'avoid':
-    case 'alternative': return 'Discuss another medicine'
-    case 'decrease_start': return 'Discuss a lower starting dose and slower dose changes'
-    case 'decrease': return 'Discuss a dose reduction'
-    case 'increase': return 'Review the dose if response is inadequate'
-    case 'caution': return 'Extra prescriber review'
-    case 'standard_start_reduced_maintenance': return 'Usual start; review later dose changes'
-    case 'standard_start_conditional_increase': return 'Usual start; review if response is inadequate'
-    case 'standard': return 'Usual gene-based starting guidance'
-    case 'no_recommendation': return 'No gene rule available'
-  }
-}
-
-function originLabel(result: AnalysisResult): string {
-  switch (result.pharmcat.provenance) {
-    case 'pharmcat-json': return 'Imported PharmCAT report'
-    case 'pharmcat-docker': return 'PharmCAT pipeline'
-    case 'fixture': return 'Fictional fixture'
-    case 'reduced-tagsnp': return 'Six-marker teaching caller — not PharmCAT'
-  }
 }
 
 function sourcePublisher(citation: Citation): string {
@@ -305,35 +284,28 @@ function relevantRoutineQuestions(protocol: LifestyleProtocol): RoutineQuestion[
   const ids = new Set(items.map((item) => item.id))
   const questions: RoutineQuestion[] = []
 
-  if (items.some((item) => item.category === 'food')) questions.push(ROUTINE_QUESTIONS.mealRoutine)
+  const foodRuleIds = new Set([
+    'paroxetine-morning', 'sertraline-food', 'escitalopram-timing', 'citalopram-daily',
+    'venlafaxine-food-time', 'desvenlafaxine-time', 'duloxetine-food', 'vortioxetine-food',
+    'vilazodone-food',
+  ])
+  if (items.some((item) => item.category === 'food' || foodRuleIds.has(item.id))) questions.push(ROUTINE_QUESTIONS.mealRoutine)
   if (items.some((item) => item.category === 'timing')) questions.push(ROUTINE_QUESTIONS.dailySchedule)
   if ([...ids].some((id) => id.includes('alcohol'))) questions.push(ROUTINE_QUESTIONS.alcohol)
   if ([...ids].some((id) => id.includes('driving'))) questions.push(ROUTINE_QUESTIONS.drivingOrMachinery)
   if ([...ids].some((id) => id.includes('somnolence'))) questions.push(ROUTINE_QUESTIONS.sleep)
   if (ids.has('bupropion-eating-disorder')) questions.push(ROUTINE_QUESTIONS.eatingDisorderHistory)
 
-  questions.push(ROUTINE_QUESTIONS.missedDoses)
   return questions
-}
-
-function fixturePurpose(fixture: Fixture): string {
-  switch (fixture.id) {
-    case 'demo-phenoconversion': return 'Shows how a current medicine can change functional metabolism.'
-    case 'demo-ultrarapid': return 'Shows a faster-than-usual CYP2C19 result.'
-    case 'demo-poor-metaboliser': return 'Shows a much-slower CYP2D6 result.'
-    default: return 'Shows the full validation flow with fictional data.'
-  }
 }
 
 function FilePanel({
   mode,
   onMode,
-  fixture,
-  onFixture,
+  example,
+  onExample,
   medicines,
   onMedicines,
-  assayType,
-  onAssayType,
   uploadedFile,
   inspection,
   status,
@@ -343,12 +315,10 @@ function FilePanel({
 }: {
   mode: InputMode
   onMode: (mode: InputMode) => void
-  fixture: Fixture
-  onFixture: (fixture: Fixture) => void
+  example: OfficialPharmCATExample
+  onExample: (example: OfficialPharmCATExample) => void
   medicines: string
   onMedicines: (value: string) => void
-  assayType: '' | AssayType
-  onAssayType: (value: '' | AssayType) => void
   uploadedFile: { name: string; size: number; contents: string } | null
   inspection: InputInspection | null
   status: RunStatus
@@ -356,23 +326,25 @@ function FilePanel({
   onFile: (file: File) => void
   onRun: () => void
 }) {
-  const ready = mode === 'example' || Boolean(uploadedFile && inspection && inspection.status !== 'blocked' && assayType)
+  const medicineCheck = parseMedicines(medicines)
+  const inputReady = mode === 'example' || Boolean(uploadedFile && inspection?.canRunAnalysis)
+  const ready = inputReady && medicineCheck.unrecognised.length === 0
 
   return (
     <section className="screen" aria-labelledby="file-title">
       <div className="screen-heading">
-        <h1 id="file-title">Add DNA results</h1>
-        <p>Try the example or upload a supported result. Raw DNA stays on this device and never goes to the medical AI.</p>
+        <h1 id="file-title">Start with a result</h1>
+        <p>Use PharmCAT’s example or upload a PharmCAT report.</p>
       </div>
 
       <div className="choice-grid" role="group" aria-label="Choose input type">
         <button type="button" className={`choice ${mode === 'example' ? 'choice--selected' : ''}`} aria-pressed={mode === 'example'} onClick={() => onMode('example')}>
           <span className="choice-letter">A</span>
-          <span><strong>Try the example</strong><small>Fictional data showing the complete flow</small></span>
+          <span><strong>Official example</strong><small>Loaded from PharmCAT</small></span>
         </button>
         <button type="button" className={`choice ${mode === 'upload' ? 'choice--selected' : ''}`} aria-pressed={mode === 'upload'} onClick={() => onMode('upload')}>
           <span className="choice-letter">B</span>
-          <span><strong>Upload a file</strong><small>VCF, consumer DNA text or PharmCAT result</small></span>
+          <span><strong>Upload</strong><small>PharmCAT Reporter JSON</small></span>
         </button>
       </div>
 
@@ -380,12 +352,12 @@ function FilePanel({
         {mode === 'example' ? (
           <>
             <label className="field">
-              <span>Fictional example</span>
-              <select value={fixture.id} onChange={(event) => onFixture(FIXTURES.find((item) => item.id === event.target.value) ?? FIXTURES[0])}>
-                {FIXTURES.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+              <span>Example</span>
+              <select value={example.id} onChange={(event) => onExample(OFFICIAL_PHARMCAT_EXAMPLES.find((item) => item.id === event.target.value) ?? OFFICIAL_PHARMCAT_EXAMPLES[0])}>
+                {OFFICIAL_PHARMCAT_EXAMPLES.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
               </select>
             </label>
-            <div className="compact-note"><strong>Fictional · 6 markers</strong><span>{fixturePurpose(fixture)}</span></div>
+            <div className="compact-note"><strong>Real PharmCAT output</strong><span>{example.description} <a href={example.sourcePageUrl} target="_blank" rel="noreferrer">Source</a></span></div>
           </>
         ) : (
           <>
@@ -399,46 +371,42 @@ function FilePanel({
                 }}
               />
               <span className="upload-symbol">↑</span>
-              <strong>{status === 'reading' ? 'Reading file…' : 'Choose a DNA or PharmCAT file'}</strong>
-              <small>JSON, VCF, TXT, CSV or TSV</small>
+              <strong>{status === 'reading' ? 'Reading…' : 'Choose a file'}</strong>
+              <small>PharmCAT report JSON · raw DNA files are format-checked only</small>
             </label>
 
             {uploadedFile && inspection && (
               <div className={`file-ready ${inspection.status === 'blocked' ? 'file-ready--blocked' : ''}`}>
-                <div><strong>{inspection.status === 'blocked' ? 'Stopped' : `Ready: ${uploadedFile.name}`}</strong><span>{inspection.formatLabel} · {inspection.recognizedVariantCount} relevant marker(s) found</span></div>
+                <div><strong>{inspection.canRunAnalysis ? 'Ready' : 'Cannot produce a result here'}</strong><span>{uploadedFile.name} · {inspection.formatLabel}</span></div>
                 <small>{formatBytes(uploadedFile.size)}</small>
               </div>
             )}
 
             {inspection?.warnings[0] && (
-              <div className="plain-warning"><strong>{inspection.status === 'blocked' ? 'This file cannot be calculated safely.' : 'This input has limits.'}</strong><span>{inspection.warnings[0]}</span></div>
+              <div className="plain-warning"><strong>{inspection.canRunAnalysis ? 'Important limit' : 'Official PharmCAT run required'}</strong><span>{inspection.warnings[0]}</span></div>
             )}
-
-            <label className="field">
-              <span>What kind of test is this? <em>Choose from the test report</em></span>
-              <select value={assayType} onChange={(event) => onAssayType(event.target.value as '' | AssayType)}>
-                <option value="">Choose one</option>
-                <option value="consumer-array">Consumer DNA array</option>
-                <option value="targeted-pgx">Targeted PGx panel</option>
-                <option value="wgs">Whole-genome sequencing</option>
-              </select>
-            </label>
           </>
         )}
 
         <label className="field">
-          <span>Medicines taken now <em>Optional · separate with commas</em></span>
+          <span>Medicines taken now <em>Optional · these can change the review</em></span>
           <input value={medicines} onChange={(event) => onMedicines(event.target.value)} placeholder="For example: fluoxetine, bupropion" />
-          <small>Some medicines can temporarily change how a metabolism gene functions.</small>
+          <small>Enter generic or known brand names, separated by commas.</small>
         </label>
+
+        {medicineCheck.recognised.length > 0 && (
+          <div className="compact-note"><strong>Used in this run</strong><span>{medicineCheck.recognised.map(capitalise).join(', ')}</span></div>
+        )}
+        {medicineCheck.unrecognised.length > 0 && (
+          <div className="error-message" role="alert"><strong>Medicine not recognised</strong><span>{medicineCheck.unrecognised.join(', ')}. Fix or remove it before checking the result.</span></div>
+        )}
 
         {error && <div className="error-message" role="alert"><strong>Stopped</strong><span>{error}</span></div>}
 
         <div className="action-row">
           <button type="button" className="primary-button" disabled={!ready || status === 'running' || status === 'reading'} onClick={onRun}>
-            {status === 'running' ? 'Reading…' : 'Read gene results'}
+            {status === 'running' ? 'Checking…' : 'Check result'}
           </button>
-          <span>This does not choose a medicine.</span>
         </div>
       </div>
     </section>
@@ -446,44 +414,38 @@ function FilePanel({
 }
 
 function GenesPanel({ result, onNext }: { result: AnalysisResult; onNext: () => void }) {
-  const limitedMethod = result.pharmcat.provenance === 'reduced-tagsnp' || result.pharmcat.provenance === 'fixture'
-
   return (
     <section className="screen" aria-labelledby="genes-title">
       <div className="screen-heading">
-        <h1 id="genes-title">How your body may process medicines</h1>
-        <p>These results describe medicine metabolism. They do not describe depression or predict recovery.</p>
+        <h1 id="genes-title">3 antidepressant genes used here</h1>
+        <p>Other genes in the report are not used unless captured antidepressant guidance supports them.</p>
       </div>
 
-      {limitedMethod && (
-        <div className="shared-limit">
-          <strong>Demo-data limit</strong>
-          <span>This preview checks 6 markers, not the full genes. All {result.genes.length} results below share this one limit.</span>
-        </div>
-      )}
-
       {result.pharmcat.provenance === 'pharmcat-json' && (
-        <div className="shared-limit"><strong>Imported result</strong><span>Coverage stays unknown unless the matching PharmCAT missing-position record is supplied.</span></div>
+        <div className="shared-limit"><strong>Completeness cannot be checked</strong><span>The report does not include PharmCAT’s separate list of DNA positions that were missing.</span></div>
       )}
 
       <div className="gene-list">
         {result.genes.map((gene) => {
           const raw = result.pharmcat.genes.find((item) => item.gene === gene.gene)
-          const relevantDrugs = result.shortlist
-            .filter((drug) => drug.geneFindings.some((finding) => finding.gene === gene.gene))
-            .map((drug) => drug.drug)
           const modifierNames = unique(gene.modifiers.map((modifier) => modifier.drug)).map(capitalise)
+          const reportedPhenotype = gene.geneticPhenotype
 
           return (
             <article className="gene-row" key={gene.gene}>
               <div className="gene-result">
-                <strong>{speedTitle(gene.functionalPhenotype)}</strong>
+                <strong>{speedTitle(reportedPhenotype)}</strong>
                 <span>{gene.gene}</span>
               </div>
               <div className="gene-meaning">
-                {gene.converted ? (
+                {gene.status === 'uncertain_extent' ? (
                   <>
-                    <strong>Current medicine changes this result</strong>
+                    <strong>Current medicine may change enzyme activity</strong>
+                    <p>The report says {phenotypeWords(reportedPhenotype)}. {listWords(modifierNames)} may slow this enzyme. A research convention estimates {gene.modeledFunctionalPhenotype ? phenotypeWords(gene.modeledFunctionalPhenotype) : 'an uncertain change'}, but that estimate did not replace the report or medicine guidance.</p>
+                  </>
+                ) : gene.converted ? (
+                  <>
+                    <strong>Current medicine changes the value used for guidance</strong>
                     <p>Genes suggest {phenotypeWords(gene.geneticPhenotype)} activity. {listWords(modifierNames)} may make this enzyme work {phenotypeWords(gene.functionalPhenotype)} while taken.</p>
                   </>
                 ) : gene.status === 'unvalidated_method' ? (
@@ -491,17 +453,21 @@ function GenesPanel({ result, onNext }: { result: AnalysisResult; onNext: () => 
                     <strong>A current-medicine effect is unresolved</strong>
                     <p>The gene result is {phenotypeWords(gene.functionalPhenotype)}. This app cannot safely calculate how much the recorded medicine changes it.</p>
                   </>
+                ) : reportedPhenotype === 'Indeterminate' ? (
+                  <p>This report does not contain enough data to calculate {gene.gene}.</p>
                 ) : (
-                  <p>This enzyme works {phenotypeWords(gene.functionalPhenotype)} for medicines it processes.</p>
+                  <p>Medicines handled by {gene.gene} may be processed {phenotypeWords(reportedPhenotype)}.</p>
                 )}
-                <small>Used in guidance here for {listWords(relevantDrugs)}.</small>
               </div>
               <details className="science-details">
-                <summary>Science details</summary>
+                <summary>Details</summary>
                 <dl className="technical-list">
-                  <div><dt>Processing phenotype</dt><dd>{gene.functionalPhenotype}</dd></div>
+                  <div><dt>Reported phenotype</dt><dd>{reportedPhenotype}</dd></div>
                   <div><dt>Two gene versions</dt><dd>{gene.diplotype}</dd></div>
-                  <div><dt>Activity score</dt><dd>{gene.functionalActivityScore ?? 'Not defined'}</dd></div>
+                  <div><dt>Reported activity score</dt><dd>{gene.geneticActivityScore ?? 'Not defined'}</dd></div>
+                  {gene.modeledFunctionalPhenotype && <div><dt>Research-convention estimate</dt><dd>{gene.modeledFunctionalPhenotype} · score {gene.modeledFunctionalActivityScore}</dd></div>}
+                  <div><dt>Caller</dt><dd>{raw?.callSource ?? 'Not supplied'}</dd></div>
+                  <div><dt>Definition versions</dt><dd>Alleles: {raw?.alleleDefinitionVersion ?? 'not supplied'} · phenotype: {raw?.phenotypeVersion ?? 'not supplied'}</dd></div>
                   <div><dt>Coverage</dt><dd>{raw?.coverageScope ?? 'Not supplied'}; {raw?.positionsCalled ?? 'unknown'} called, {raw?.positionsMissing ?? 'unknown'} missing</dd></div>
                   <div><dt>Source</dt><dd><SourceLinks ids={sourceIdsForGene(gene)} result={result} /></dd></div>
                 </dl>
@@ -517,14 +483,19 @@ function GenesPanel({ result, onNext }: { result: AnalysisResult; onNext: () => 
 }
 
 function medicineSummary(drug: DrugAssessment): string {
-  const finding = drug.geneFindings[0]
-  if (!finding) return 'This is not a finding that the medicine is safe or suitable.'
-  if (drug.pgxCategory === 'usual_guidance') {
-    return finding.action === 'standard'
-      ? 'This result does not change the captured gene-based starting guidance.'
-      : `${actionLabel(finding.action)}. The rule uses ${finding.gene}, which is ${phenotypeWords(finding.phenotypeUsed)}.`
+  if (!drug.geneFindings.length) return 'This is not a finding that the medicine is safe or suitable.'
+  const reason = unique(
+    drug.geneFindings.flatMap((finding) => finding.geneResults)
+      .map((result) => result.phenotype === 'Indeterminate'
+        ? `there is not enough data for ${result.gene}`
+        : `${result.gene} is ${phenotypeWords(result.phenotype)}`),
+  ).join(' and ')
+  switch (drug.pgxCategory) {
+    case 'alternative_discussion': return `The report includes a discussion about another option. ${reason}.`
+    case 'dose_or_titration_review': return `The report includes a dose or dose-change review. ${reason}.`
+    case 'usual_guidance': return `No starting change is shown by the gene guidance. ${reason}.`
+    case 'no_gene_based_guidance': return `No gene rule is available here. ${reason}.`
   }
-  return `${actionLabel(finding.action)}. The rule uses ${finding.gene}, which is ${phenotypeWords(finding.phenotypeUsed)}.`
 }
 
 function MedicineRow({ drug, result, onExplore }: { drug: DrugAssessment; result: AnalysisResult; onExplore: (drug: string) => void }) {
@@ -535,15 +506,17 @@ function MedicineRow({ drug, result, onExplore }: { drug: DrugAssessment; result
         <p>{medicineSummary(drug)}</p>
         {drug.interactionFlags.length > 0 && <span className="inline-alert">A current medicine adds an interaction question.</span>}
       </div>
-      <button type="button" className="row-button" onClick={() => onExplore(drug.drug)}>Explore daily life</button>
+      <button type="button" className="row-button" onClick={() => onExplore(drug.drug)}>Daily life</button>
       {drug.geneFindings.length > 0 && (
         <details className="rule-details">
-          <summary>Why this appears</summary>
+          <summary>Exact rule</summary>
           {drug.geneFindings.map((finding) => (
             <div className="guideline-block" key={`${finding.gene}-${finding.phenotypeUsed}`}>
-              <strong>{finding.gene} · {finding.phenotypeUsed}</strong>
+              <strong>{finding.geneResults.map((item) => `${item.gene}: ${item.phenotype}`).join(' · ')}</strong>
+              <small>Population: {finding.population ?? 'not supplied'}</small>
               <p>{finding.guidelineText}</p>
               <SourceLinks ids={finding.citationIds} result={result} idsOnly />
+              {finding.sourceUrl && <> · <a href={finding.sourceUrl} target="_blank" rel="noreferrer">ClinPGx annotation</a></>}
             </div>
           ))}
           {drug.interactionFlags.map((flag) => (
@@ -559,9 +532,8 @@ function MedicineRow({ drug, result, onExplore }: { drug: DrugAssessment; result
   )
 }
 
-function MedicineGroup({ title, description, drugs, result, onExplore }: {
+function MedicineGroup({ title, drugs, result, onExplore }: {
   title: string
-  description: string
   drugs: DrugAssessment[]
   result: AnalysisResult
   onExplore: (drug: string) => void
@@ -569,7 +541,7 @@ function MedicineGroup({ title, description, drugs, result, onExplore }: {
   if (!drugs.length) return null
   return (
     <section className="medicine-group">
-      <div className="group-heading"><h2>{title}</h2><span>{description}</span></div>
+      <div className="group-heading"><h2>{title}</h2></div>
       <div className="medicine-list">{drugs.map((drug) => <MedicineRow key={drug.drug} drug={drug} result={result} onExplore={onExplore} />)}</div>
     </section>
   )
@@ -580,17 +552,20 @@ function MedicinesPanel({ result, onExplore }: { result: AnalysisResult; onExplo
   const doseReview = result.shortlist.filter((drug) => drug.pgxCategory === 'dose_or_titration_review')
   const usual = result.shortlist.filter((drug) => drug.pgxCategory === 'usual_guidance')
   const noRule = result.shortlist.filter((drug) => drug.pgxCategory === 'no_gene_based_guidance')
+  const cyp2d6 = result.pharmcat.genes.find((gene) => gene.gene === 'CYP2D6')
 
   return (
     <section className="screen" aria-labelledby="medicines-title">
       <div className="screen-heading">
-        <h1 id="medicines-title">What to discuss with the prescriber</h1>
-        <p>These rules can change dose guidance. They cannot predict which antidepressant will work.</p>
+        <h1 id="medicines-title">Medicine guidance</h1>
+        <p>Prescribing rules found in the PharmCAT report. This cannot predict which medicine will work.</p>
       </div>
 
-      <MedicineGroup title="Ask about another option" description="The captured gene rule raises an alternative-medicine question." drugs={alternatives} result={result} onExplore={onExplore} />
-      <MedicineGroup title="Dose needs discussion" description="Starting dose or later dose changes need review." drugs={doseReview} result={result} onExplore={onExplore} />
-      <MedicineGroup title="Usual start; later plan may change" description="Some rules still change later dose or follow-up planning." drugs={usual} result={result} onExplore={onExplore} />
+      <div className="shared-limit"><strong>Imported-call limits</strong><span>Coverage cannot be checked here. {cyp2d6?.callSource === 'OUTSIDE' ? 'The CYP2D6 outside caller and structural-variant method are not identified or validated by Reporter JSON.' : 'CYP2D6 structural and copy-number variation is unresolved.'}</span></div>
+
+      <MedicineGroup title="Ask about another option" drugs={alternatives} result={result} onExplore={onExplore} />
+      <MedicineGroup title="Review the dose" drugs={doseReview} result={result} onExplore={onExplore} />
+      <MedicineGroup title="No starting change shown" drugs={usual} result={result} onExplore={onExplore} />
 
       {noRule.length > 0 && (
         <details className="no-rule-group">
@@ -600,30 +575,23 @@ function MedicinesPanel({ result, onExplore }: { result: AnalysisResult; onExplo
         </details>
       )}
 
-      <div className="single-source"><strong>Rule source</strong><span>Captured CPIC prescribing guidelines · exact text and versions are in Evidence.</span></div>
+      <div className="single-source"><strong>Source</strong><span>Exact CPIC annotations in the imported PharmCAT report.</span></div>
     </section>
   )
 }
 
-function routineFitStatus(question: RoutineQuestion, routine: RoutineAnswers, facts: DailyFitFact[]): { label: 'Fits' | 'Needs a plan' | 'Answer needed'; detail: string } {
+function routineFitStatus(question: RoutineQuestion, routine: RoutineAnswers, facts: DailyFitFact[]): { label: 'Fits' | 'Needs a plan' | 'Prescriber review' | 'Answer needed' | 'Not assessed'; detail: string } {
   const answer = routine[question.key]
   if (!answer) return { label: 'Answer needed', detail: `Answer ${question.label.toLowerCase()} to run this match.` }
 
   const fact = facts.find((item) => item.dimension === question.dimension)
   if (fact) {
-    return fact.verdict === 'supports_routine'
-      ? { label: 'Fits', detail: fact.title }
-      : { label: 'Needs a plan', detail: fact.title }
+    if (fact.verdict === 'supports_routine') return { label: 'Fits', detail: fact.title }
+    if (fact.verdict === 'clinician_review') return { label: 'Prescriber review', detail: fact.title }
+    return { label: 'Needs a plan', detail: fact.title }
   }
 
-  if (question.key === 'missedDoses' && answer !== 'rarely') {
-    return { label: 'Needs a plan', detail: 'Ask for a practical missed-dose and reminder plan.' }
-  }
-  if (question.key === 'sleep' && answer !== 'settled') {
-    return { label: 'Needs a plan', detail: 'The current evidence cannot compare medicines by sleep effect.' }
-  }
-
-  return { label: 'Fits', detail: 'No conflict with the captured instruction was found.' }
+  return { label: 'Not assessed', detail: 'No drug-specific rule in this build can compare this answer.' }
 }
 
 function DailyLifePanel({
@@ -651,24 +619,24 @@ function DailyLifePanel({
     <section className="screen" aria-labelledby="daily-title">
       <div className="screen-heading">
         <h1 id="daily-title">{selectedDrug ? `Living with ${capitalise(selectedDrug)}` : 'Daily life with a medicine'}</h1>
-        <p>Drug-specific label facts matched to your routine. Nothing generic.</p>
+        <p>Compare draft cached US-label summaries with your routine.</p>
       </div>
 
       <label className="field medicine-picker">
-        <span>Medicine being discussed <em>This is not a recommendation</em></span>
+        <span>Medicine</span>
         <select value={selectedDrug} onChange={(event) => onSelectedDrug(event.target.value)}>
           <option value="">Choose a medicine</option>
           {result.shortlist.map((drug) => <option key={drug.drug} value={drug.drug}>{capitalise(drug.drug)}</option>)}
         </select>
       </label>
 
-      {!protocol && <div className="empty-state"><strong>Choose a medicine</strong><span>Its own instructions and only the routine questions they require will appear here.</span></div>}
+      {!protocol && <div className="empty-state"><strong>Choose a medicine</strong><span>Its instructions will appear here.</span></div>}
 
       {protocol && (
         <>
           <div className="daily-columns">
             <section className="panel-card">
-              <div className="panel-heading"><h2>Daily instructions</h2><span>Captured for this medicine</span></div>
+              <div className="panel-heading"><h2>Draft label summary</h2></div>
               {protocolItems.length ? (
                 <div className="instruction-list">
                   {protocolItems.map((item) => (
@@ -683,7 +651,7 @@ function DailyLifePanel({
             </section>
 
             <section className="panel-card">
-              <div className="panel-heading"><h2>Your routine</h2><span>Only fields used by this check</span></div>
+              <div className="panel-heading"><h2>Your routine</h2></div>
               <div className="routine-grid">
                 {questions.map((question) => (
                   <label className="compact-field" key={question.key}>
@@ -699,7 +667,7 @@ function DailyLifePanel({
           </div>
 
           <section className="fit-panel">
-            <div className="panel-heading"><h2>Fit with your routine</h2><span>Compatibility with captured instructions, not a safety score</span></div>
+            <div className="panel-heading"><h2>Routine fit</h2></div>
             <div className="fit-list">
               {questions.map((question) => {
                 const status = routineFitStatus(question, routine, match?.facts ?? [])
@@ -714,8 +682,8 @@ function DailyLifePanel({
             </div>
           </section>
 
-          <div className="single-source"><strong>Source: US FDA label snapshot</strong><span><SourceLinks ids={sourceIds} result={result} /> · Australian product information is not loaded yet.</span></div>
-          <div className="page-action"><button type="button" className="primary-button" onClick={onNext}>Open medical AI review</button></div>
+          <div className="single-source"><strong>Draft US evidence</strong><span><SourceLinks ids={sourceIds} result={result} /> · cached summaries need source-text verification; Australian labels are not loaded.</span></div>
+          <div className="page-action"><button type="button" className="primary-button" onClick={onNext}>AI review</button></div>
         </>
       )}
     </section>
@@ -741,12 +709,23 @@ function counterfactualText(item: ClinicalReviewItem): string {
   }
 }
 
-function canonicalReviewText(item: ClinicalReviewItem): string {
+function factLead(text: string): string {
+  const firstSentence = text.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim() ?? text.trim()
+  return firstSentence.length > 180 ? `${firstSentence.slice(0, 177).trimEnd()}…` : firstSentence
+}
+
+function canonicalReviewText(item: ClinicalReviewItem, factsById: Map<string, ClinicalReviewFact>): string {
+  const facts = item.factIds
+    .map((id) => factsById.get(id))
+    .filter((fact): fact is ClinicalReviewFact => Boolean(fact))
+    .slice(0, 2)
+    .map((fact) => factLead(fact.text))
+  const subject = facts.join(' · ') || 'The linked facts need review.'
   switch (item.action) {
-    case 'evidence_gap': return 'What additional verified information is needed before these facts are interpreted?'
-    case 'input_conflict': return 'Which input or source needs clarification before these facts are used together?'
-    case 'clinician_question': return `How should the verified facts below be considered${item.drugNames.length ? ` for ${listWords(item.drugNames)}` : ''}?`
-    case 'lifestyle_constraint': return 'How can the sourced daily instruction and the confirmed routine be planned together?'
+    case 'evidence_gap': return `More evidence is needed: ${subject}`
+    case 'input_conflict': return `Reconcile these facts: ${subject}`
+    case 'clinician_question': return `Ask the prescriber about: ${subject}`
+    case 'lifestyle_constraint': return `Plan around: ${subject}`
     case 'request_counterfactual': return counterfactualText(item)
   }
 }
@@ -756,12 +735,14 @@ function AiReviewPanel({
   selectedDrug,
   routine,
   review,
+  trustedContext,
   onReview,
 }: {
   result: AnalysisResult
   selectedDrug: string
   routine: RoutineAnswers
   review: ClinicalReviewResult | null
+  trustedContext: boolean
   onReview: (review: ClinicalReviewResult | null) => void
 }) {
   const [running, setRunning] = useState(false)
@@ -781,7 +762,8 @@ function AiReviewPanel({
     [confirmedLifestyle, result, selectedDrug],
   )
   const factsById = useMemo(() => new Map(context.facts.map((fact) => [fact.id, fact])), [context])
-  const connected = providerState.provider.mode === 'ai'
+  const modelConfigured = providerState.provider.mode === 'ai'
+  const connected = modelConfigured && trustedContext
   const answers = Object.keys(confirmedLifestyle).length
 
   const runReview = async () => {
@@ -799,13 +781,16 @@ function AiReviewPanel({
   return (
     <section className="screen" aria-labelledby="ai-title">
       <div className="screen-heading">
-        <h1 id="ai-title">Medical AI review</h1>
-        <p>The model coordinates verified gene, medicine, interaction and routine facts. It is not a chatbot and it cannot create a clinical rule.</p>
+        <h1 id="ai-title">AI review</h1>
+        <p>MedGemma reviews facts produced by this run.</p>
       </div>
 
       <div className={`model-status ${connected ? 'model-status--connected' : ''}`}>
         <span className="status-dot" aria-hidden="true" />
-        <div><strong>{connected ? 'MedGemma endpoint connected' : 'Medical AI is not connected'}</strong><span>{connected ? 'Ready for a governed, structured review.' : 'No AI result has been created. Gene, medicine and daily-life checks still work without it.'}</span></div>
+        <div>
+          <strong>{!trustedContext ? 'AI review blocked for this upload' : connected ? 'MedGemma configured' : 'MedGemma not configured'}</strong>
+          <span>{!trustedContext ? 'The report needs a governed run manifest before its facts can be sent to a model.' : connected ? 'Run a review to test the endpoint.' : 'No AI result has been created.'}</span>
+        </div>
       </div>
 
       <div className="review-inputs">
@@ -816,57 +801,40 @@ function AiReviewPanel({
         <span>{answers} confirmed routine answer{answers === 1 ? '' : 's'}</span>
       </div>
 
-      {!review && (
-        <>
-          <div className="ai-jobs">
-            <article><strong>Find what is missing</strong><span>Select the next relevant question from the verified context.</span></article>
-            <article><strong>Coordinate constraints</strong><span>Connect gene, current-medicine, label and confirmed routine facts.</span></article>
-            <article><strong>Re-run “what if?”</strong><span>Request a typed scenario; deterministic code must calculate it again.</span></article>
-            <article><strong>Prepare follow-up</strong><span>Later, organise recorded symptoms, side effects, adherence and clinician decisions.</span></article>
-          </div>
-
-          <section className="ai-contract">
-            <div><strong>Model may return</strong><span>Approved actions, fact IDs, source IDs, missing-data flags and typed scenario requests.</span></div>
-            <div><strong>Model cannot return</strong><span>A gene call, dose, drug ranking, diagnosis, treatment instruction or invented fact.</span></div>
-          </section>
-        </>
-      )}
-
       {connected && !review && (
         <div className="ai-ready">
-          <strong>Structured review connection found</strong>
-          <span>Only derived and confirmed facts are sent. Raw DNA, filenames, diplotypes, direct identifiers and unconfirmed routine defaults are excluded.</span>
-          <button type="button" className="primary-button" disabled={running} onClick={() => void runReview()}>{running ? 'Reviewing…' : 'Run medical AI review'}</button>
+          <span>It can find gaps, conflicts and useful prescriber questions. Raw DNA is never sent.</span>
+          <button type="button" className="primary-button" disabled={running} onClick={() => void runReview()}>{running ? 'Reviewing…' : 'Run review'}</button>
         </div>
       )}
 
-      {!connected && (
+      {!connected && trustedContext && (
         <div className="connection-help">
-          <strong>{providerState.configurationError ? 'Endpoint configuration stopped safely' : 'To validate the live model'}</strong>
-          <span>{providerState.configurationError ?? <>Connect a governed same-origin endpoint with <code>VITE_MEDGEMMA_ENDPOINT</code>. No browser API key is supported.</>}</span>
+          <strong>{providerState.configurationError ? 'Connection stopped' : 'Model setup required'}</strong>
+          <span>{providerState.configurationError ?? 'Deploy MedGemma on Vertex and configure the same-origin API.'}</span>
         </div>
       )}
 
       {review && review.status === 'complete' && (
-        <section className="review-output" aria-label="Validated AI review">
+        <section className="review-output" aria-label="Fact-linked AI review">
           <div className="review-output__heading">
-            <div><h2>Validated review</h2><p>MedGemma selected relationships; the app renders fixed wording and the cited facts.</p></div>
+            <div><h2>Fact-linked review</h2></div>
             <button type="button" className="secondary-button" onClick={() => void runReview()}>Run again</button>
           </div>
           <div className="review-items">
             {review.items.map((item, index) => (
               <article className="review-item" key={`${item.action}-${index}`}>
                 <span>{REVIEW_ACTION_LABEL[item.action]}</span>
-                <strong>{canonicalReviewText(item)}</strong>
+                <strong>{canonicalReviewText(item, factsById)}</strong>
                 <details>
-                  <summary>Proof · {item.factIds.length} fact{item.factIds.length === 1 ? '' : 's'}</summary>
+                  <summary>Evidence · {item.factIds.length} fact{item.factIds.length === 1 ? '' : 's'}</summary>
                   <ul>{item.factIds.map((id) => <li key={id}><code>{id}</code><span>{factsById.get(id)?.text ?? 'Fact not found in the current review context.'}</span></li>)}</ul>
                   {item.sourceIds.length > 0 && <p>Sources: {item.sourceIds.join(', ')}</p>}
                 </details>
               </article>
             ))}
           </div>
-          <div className="review-audit"><strong>{review.provider}</strong><span>{review.items.length} accepted · {review.rejections.length} rejected · raw model wording retained only for audit</span></div>
+          <div className="review-audit"><strong>{review.provider}</strong><span>{review.items.length} passed grounding checks · {review.rejections.length} failed</span></div>
           {review.rejections.length > 0 && (
             <details className="rejection-log"><summary>See rejected model output</summary><ul>{review.rejections.map((item, index) => <li key={`${item.kind}-${index}`}><strong>{item.kind}</strong><span>{item.reason}</span></li>)}</ul></details>
           )}
@@ -908,6 +876,8 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
       exportedAt: new Date().toISOString(),
       input: {
         fileName: receipt.fileName,
+        source: receipt.source,
+        sourceUrl: receipt.sourceUrl ?? null,
         sha256: receipt.sha256,
         detectedFormat: receipt.kind,
         assayType: receipt.assayType,
@@ -933,28 +903,20 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
   return (
     <section className="screen" aria-labelledby="evidence-title">
       <div className="screen-heading">
-        <h1 id="evidence-title">Proof</h1>
-        <p>Every visible conclusion links to the input, rule and model statement that produced it.</p>
-      </div>
-
-      <div className="evidence-summary">
-        <div><span>File</span><strong>{receipt.fileName}</strong></div>
-        <div><span>Gene method</span><strong>{originLabel(result)}</strong></div>
-        <div><span>Medicine rules</span><strong>Versioned local CPIC lookup</strong></div>
-        <div><span>Medical AI</span><strong>{review ? `${review.status} · ${review.items.length} accepted` : endpointConnected ? 'Connected · not run' : 'Not connected'}</strong></div>
+        <h1 id="evidence-title">Evidence trail</h1>
+        <p>See the inputs, rules and sources used in this run.</p>
       </div>
 
       <div className="evidence-groups">
         <details className="evidence-group">
           <summary><span>1</span><strong>Input file</strong><small>Format, hash and transformations</small></summary>
           <dl className="evidence-list">
-            <div><dt>Data origin</dt><dd>{receipt.source === 'fictional-example' ? 'Fictional example' : 'Uploaded file'}</dd></div>
+            <div><dt>Data origin</dt><dd>{receipt.source === 'official-example' && receipt.sourceUrl ? <a href={receipt.sourceUrl} target="_blank" rel="noreferrer">Official PharmCAT example</a> : 'Uploaded report'}</dd></div>
             <div><dt>File</dt><dd>{receipt.fileName} · {formatBytes(receipt.sizeBytes)}</dd></div>
             <div><dt>SHA-256</dt><dd><code>{receipt.sha256}</code></dd></div>
             <div><dt>Detected format</dt><dd>{receipt.formatLabel}</dd></div>
             <div><dt>Genome build</dt><dd>{receipt.genomeBuild ?? 'Not proven'}</dd></div>
-            <div><dt>Test type</dt><dd>{ASSAY_LABEL[receipt.assayType]} · selected or fixture-declared, not independently verified</dd></div>
-            <div><dt>Supported sites seen</dt><dd>{receipt.recognizedVariantCount}</dd></div>
+            <div><dt>Assay</dt><dd>{ASSAY_LABEL[receipt.assayType]} · use the upstream run manifest to verify it</dd></div>
             <div><dt>Blocking code</dt><dd>{receipt.blockingCode ?? 'None'}</dd></div>
             <div><dt>Transformations</dt><dd>{receipt.transformations.length ? receipt.transformations.join(' · ') : 'None'}</dd></div>
             <div><dt>Warnings</dt><dd>{receipt.warnings.length ? receipt.warnings.join(' · ') : 'None recorded'}</dd></div>
@@ -965,13 +927,14 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
           <summary><span>2</span><strong>Gene calls</strong><small>Caller, versions, coverage and calculation</small></summary>
           <div className="table-wrap">
             <table>
-              <thead><tr><th>Gene</th><th>Two gene versions</th><th>Genetic result</th><th>Functional result</th><th>Coverage</th><th>Source</th></tr></thead>
+              <thead><tr><th>Gene</th><th>Two gene versions</th><th>Reported result</th><th>Modeled estimate</th><th>Caller and versions</th><th>Coverage</th><th>Source</th></tr></thead>
               <tbody>{result.genes.map((gene) => {
                 const raw = result.pharmcat.genes.find((item) => item.gene === gene.gene)
                 return (
                   <tr key={gene.gene}>
-                    <td>{gene.gene}</td><td>{gene.diplotype}</td><td>{gene.geneticPhenotype}</td><td>{gene.functionalPhenotype}</td>
-                    <td>{raw?.coverageScope}; called {raw?.positionsCalled}; missing {raw?.positionsMissing}; CYP2D6 structure {raw?.structuralVariationUnresolved ? 'unresolved' : 'no unresolved flag'}</td>
+                    <td>{gene.gene}</td><td>{gene.diplotype}</td><td>{gene.geneticPhenotype}</td><td>{gene.modeledFunctionalPhenotype ? `${gene.modeledFunctionalPhenotype}; score ${gene.modeledFunctionalActivityScore}` : 'Not modeled'}</td>
+                    <td>{raw?.callSource ?? 'unknown'}; allele definitions {raw?.alleleDefinitionVersion ?? 'unknown'}; phenotype rules {raw?.phenotypeVersion ?? 'unknown'}</td>
+                    <td>{raw?.coverageScope}; called {raw?.positionsCalled ?? 'unknown'}; missing {raw?.positionsMissing ?? 'unknown'}; CYP2D6 structure {raw?.structuralVariationUnresolved ? 'unresolved' : 'no unresolved flag'}</td>
                     <td><SourceLinks ids={sourceIdsForGene(gene)} result={result} idsOnly /></td>
                   </tr>
                 )
@@ -989,7 +952,7 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
               <thead><tr><th>Medicine</th><th>Gene result used</th><th>Action</th><th>Captured text</th><th>Source</th></tr></thead>
               <tbody>{result.shortlist.flatMap((drug) => drug.geneFindings.length
                 ? drug.geneFindings.map((finding) => (
-                    <tr key={`${drug.drug}-${finding.gene}`}><td>{drug.drug}</td><td>{finding.gene} · {finding.phenotypeUsed}</td><td>{finding.action}</td><td>{finding.guidelineText}</td><td><SourceLinks ids={finding.citationIds} result={result} idsOnly /></td></tr>
+                    <tr key={`${drug.drug}-${finding.gene}`}><td>{drug.drug}</td><td>{finding.geneResults.map((item) => `${item.gene}: ${item.phenotype}`).join(' · ')} · population: {finding.population ?? 'not supplied'}</td><td>{finding.action}</td><td>{finding.guidelineText}</td><td><SourceLinks ids={finding.citationIds} result={result} idsOnly />{finding.sourceUrl && <> · <a href={finding.sourceUrl} target="_blank" rel="noreferrer">annotation</a></>}</td></tr>
                   ))
                 : [<tr key={drug.drug}><td>{drug.drug}</td><td>Not used</td><td>no_recommendation</td><td>No captured gene–drug row. This is not a safety finding.</td><td><SourceLinks ids={drug.citationIds} result={result} idsOnly /></td></tr>]
               )}</tbody>
@@ -1007,8 +970,8 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
         </details>
 
         <details className="evidence-group">
-          <summary><span>4</span><strong>Daily-life rules</strong><small>Exact label facts and jurisdiction</small></summary>
-          <p><strong>Jurisdiction:</strong> US FDA label snapshot. Australian PI/CMI is not loaded.</p>
+          <summary><span>4</span><strong>Daily-life rules</strong><small>Draft cached US-label summaries</small></summary>
+          <p><strong>Status:</strong> Validation data only. The cached US summaries still need source-text, product and formulation verification. Australian PI/CMI is not loaded.</p>
           {!selectedProtocol && <p>No medicine selected.</p>}
           {selectedProtocol && (
             <div className="table-wrap">
@@ -1029,19 +992,19 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
             <div><dt>AI review run</dt><dd>{review ? review.status : 'No'}</dd></div>
             <div><dt>Provider</dt><dd>{review?.provider ?? 'None'}</dd></div>
             <div><dt>Model</dt><dd>{review?.model ?? 'None'}</dd></div>
-            <div><dt>Accepted structured items</dt><dd>{review?.items.length ?? 0}</dd></div>
-            <div><dt>Rejected items or checks</dt><dd>{review?.rejections.length ?? 0}</dd></div>
+            <div><dt>Items that passed grounding checks</dt><dd>{review?.items.length ?? 0}</dd></div>
+            <div><dt>Items that failed grounding checks</dt><dd>{review?.rejections.length ?? 0}</dd></div>
             <div><dt>Raw genome sent to AI</dt><dd>No</dd></div>
             <div><dt>Core clinical result</dt><dd>Deterministic; AI cannot mutate it</dd></div>
             <div><dt>Current narrative method</dt><dd>{result.narrative.model}</dd></div>
           </dl>
           {review && review.items.length > 0 && (
             <>
-              <h3>Accepted model proposals — audit text only</h3>
+              <h3>Model proposals that passed grounding checks</h3>
               <div className="table-wrap">
                 <table>
-                  <thead><tr><th>Action</th><th>Raw model wording</th><th>Fact IDs</th><th>Source IDs</th></tr></thead>
-                  <tbody>{review.items.map((item, index) => <tr key={`${item.action}-${index}`}><td>{item.action}</td><td>{item.summary}</td><td>{item.factIds.join(', ')}</td><td>{item.sourceIds.join(', ') || 'None'}</td></tr>)}</tbody>
+                  <thead><tr><th>Action</th><th>Displayed wording</th><th>Fact IDs</th><th>Source IDs</th></tr></thead>
+                  <tbody>{review.items.map((item, index) => <tr key={`${item.action}-${index}`}><td>{item.action}</td><td>Deterministic wording assembled from the linked facts</td><td>{item.factIds.join(', ')}</td><td>{item.sourceIds.join(', ') || 'None'}</td></tr>)}</tbody>
                 </table>
               </div>
             </>
@@ -1064,6 +1027,8 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
           <h3>Run input</h3>
           <pre>{JSON.stringify({
             fileName: receipt.fileName,
+            source: receipt.source,
+            sourceUrl: receipt.sourceUrl ?? null,
             sha256: receipt.sha256,
             detectedFormat: receipt.kind,
             assayType: receipt.assayType,
@@ -1086,9 +1051,8 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
 export function ValidationConsole() {
   const [tab, setTab] = useState<TabId>('file')
   const [mode, setMode] = useState<InputMode>('example')
-  const [fixtureId, setFixtureId] = useState(FIXTURES[0].id)
-  const [medicines, setMedicines] = useState(FIXTURES[0].suggestedMedications.join(', '))
-  const [assayType, setAssayType] = useState<'' | AssayType>('')
+  const [exampleId, setExampleId] = useState(OFFICIAL_PHARMCAT_EXAMPLES[0].id)
+  const [medicines, setMedicines] = useState(OFFICIAL_PHARMCAT_EXAMPLES[0].suggestedMedications.join(', '))
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number; contents: string } | null>(null)
   const [inspection, setInspection] = useState<InputInspection | null>(null)
   const [receipt, setReceipt] = useState<RunReceipt | null>(null)
@@ -1099,9 +1063,9 @@ export function ValidationConsole() {
   const [status, setStatus] = useState<RunStatus>('idle')
   const [error, setError] = useState<string | null>(null)
 
-  const fixture = useMemo(
-    () => FIXTURES.find((item) => item.id === fixtureId) ?? FIXTURES[0],
-    [fixtureId],
+  const example = useMemo(
+    () => OFFICIAL_PHARMCAT_EXAMPLES.find((item) => item.id === exampleId) ?? OFFICIAL_PHARMCAT_EXAMPLES[0],
+    [exampleId],
   )
 
   const resetResult = () => {
@@ -1119,17 +1083,21 @@ export function ValidationConsole() {
     setMode(nextMode)
     resetResult()
     if (nextMode === 'example') {
-      setMedicines(fixture.suggestedMedications.join(', '))
-      setAssayType('')
+      setMedicines(example.suggestedMedications.join(', '))
     } else {
       setMedicines('')
     }
   }
 
-  const chooseFixture = (nextFixture: Fixture) => {
-    setFixtureId(nextFixture.id)
-    setMedicines(nextFixture.suggestedMedications.join(', '))
+  const chooseExample = (nextExample: OfficialPharmCATExample) => {
+    setExampleId(nextExample.id)
+    setMedicines(nextExample.suggestedMedications.join(', '))
     resetResult()
+  }
+
+  const changeMedicines = (value: string) => {
+    setMedicines(value)
+    if (result || receipt) resetResult()
   }
 
   const readFile = async (file: File) => {
@@ -1157,23 +1125,22 @@ export function ValidationConsole() {
       let fileName: string
       let contents: string
       let sizeBytes: number
-      let selectedAssay: AssayType
+      const selectedAssay: AssayType = 'unknown'
       let source: RunReceipt['source']
 
       if (mode === 'example') {
-        fileName = fixture.fileName
-        contents = fixtureToFileText(fixture)
+        const response = await fetch(example.reportUrl, { cache: 'no-store' })
+        if (!response.ok) throw new Error(`PharmCAT's example server returned HTTP ${response.status}. No substitute data was used.`)
+        contents = await response.text()
+        fileName = new URL(example.reportUrl).pathname.split('/').at(-1) ?? 'pharmcat-example.report.json'
         sizeBytes = new Blob([contents]).size
-        selectedAssay = fixture.assayType
-        source = 'fictional-example'
+        source = 'official-example'
         checked = await inspectGenomeInput(fileName, contents)
       } else {
         if (!uploadedFile || !inspection) throw new Error('Choose a file first.')
-        if (!assayType) throw new Error('Choose the test type shown on the test report.')
         fileName = uploadedFile.name
         contents = uploadedFile.contents
         sizeBytes = uploadedFile.size
-        selectedAssay = assayType
         source = 'uploaded-file'
         checked = inspection
       }
@@ -1181,15 +1148,17 @@ export function ValidationConsole() {
       if (checked.status === 'blocked') {
         throw new Error(`We could not safely read this file${checked.blockingCode ? ` (${checked.blockingCode})` : ''}. We did not guess the missing data.`)
       }
+      if (!checked.canRunAnalysis || checked.kind !== 'pharmcat-report-json') {
+        throw new Error('This file needs a successful official PharmCAT run before it can produce gene or medicine results.')
+      }
 
-      const adapter = checked.kind === 'pharmcat-report-json'
-        ? new PharmCATReportJsonAdapter()
-        : checked.canRunPrototype
-          ? new TagSnpAdapter()
-          : null
-      if (!adapter) throw new Error('This file can be inspected, but this browser build cannot calculate a result from it.')
+      const adapter = new PharmCATReportJsonAdapter()
 
-      const currentMedications = parseMedicines(medicines)
+      const medicineCheck = parseMedicines(medicines)
+      if (medicineCheck.unrecognised.length > 0) {
+        throw new Error(`Medicine not recognised: ${medicineCheck.unrecognised.join(', ')}. Fix or remove it before checking the result.`)
+      }
+      const currentMedications = medicineCheck.recognised
       const analysis = await runAnalysis({
         adapter,
         genome: {
@@ -1213,7 +1182,8 @@ export function ValidationConsole() {
         sizeBytes,
         contents,
         assayType: selectedAssay,
-        fixtureId: mode === 'example' ? fixture.id : undefined,
+        exampleId: mode === 'example' ? example.id : undefined,
+        sourceUrl: mode === 'example' ? example.reportUrl : undefined,
       })
       setResult(analysis)
       setSelectedDrug('')
@@ -1251,7 +1221,7 @@ export function ValidationConsole() {
       </header>
 
       <nav className="tab-bar" role="tablist" aria-label="Validation steps">
-        {tabs.map((item, index) => (
+        {tabs.map((item) => (
           <button
             type="button"
             role="tab"
@@ -1262,16 +1232,16 @@ export function ValidationConsole() {
             key={item.id}
             onClick={() => setTab(item.id)}
           >
-            <span>{index + 1}</span><strong>{item.label}</strong>
+            <strong>{item.label}</strong>
           </button>
         ))}
       </nav>
 
       {result && receipt && (
         <div className="run-context">
-          <strong>{receipt.source === 'fictional-example' ? 'Fictional example' : 'Uploaded file'}</strong>
-          <span>{receipt.recognizedVariantCount} marker{receipt.recognizedVariantCount === 1 ? '' : 's'}</span>
-          <span>Current medicines: {result.input.currentMedications.length ? result.input.currentMedications.map(capitalise).join(', ') : 'none recorded'}</span>
+          <strong>{receipt.source === 'official-example' ? 'Official PharmCAT example' : 'Uploaded report · origin not verified'}</strong>
+          <span>PharmCAT {result.pharmcat.pharmcatVersion}</span>
+          <span>Medicines: {result.input.currentMedications.length ? result.input.currentMedications.map(capitalise).join(', ') : 'not provided'}</span>
         </div>
       )}
 
@@ -1280,12 +1250,10 @@ export function ValidationConsole() {
           <FilePanel
             mode={mode}
             onMode={chooseMode}
-            fixture={fixture}
-            onFixture={chooseFixture}
+            example={example}
+            onExample={chooseExample}
             medicines={medicines}
-            onMedicines={setMedicines}
-            assayType={assayType}
-            onAssayType={setAssayType}
+            onMedicines={changeMedicines}
             uploadedFile={uploadedFile}
             inspection={inspection}
             status={status}
@@ -1306,7 +1274,7 @@ export function ValidationConsole() {
             onNext={() => setTab('ai')}
           />
         )}
-        {tab === 'ai' && result && <AiReviewPanel result={result} selectedDrug={selectedDrug} routine={routine} review={clinicalReview} onReview={setClinicalReview} />}
+        {tab === 'ai' && result && receipt && <AiReviewPanel result={result} selectedDrug={selectedDrug} routine={routine} review={clinicalReview} trustedContext={receipt.source === 'official-example'} onReview={setClinicalReview} />}
         {tab === 'evidence' && result && receipt && <EvidencePanel result={result} receipt={receipt} selectedDrug={selectedDrug} routine={routine} review={clinicalReview} />}
       </div>
     </main>

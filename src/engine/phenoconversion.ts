@@ -10,14 +10,15 @@
  *
  *   CPIC states, verbatim, that "consensus approaches for adjusting CYP2D6, CYP2C19, or
  *   CYP2B6 predicted phenotypes in the presence of inhibitors or inducers have not been
- *   established." A validated method does exist for CYP2D6 specifically — CPIC
- *   operationalises it in its own guidelines as: for a strong inhibitor the activity score
- *   is adjusted to 0 and the predicted phenotype is poor metaboliser; for a moderate
- *   inhibitor the score is multiplied by 0.5 and re-mapped. There is no such method for
+ *   established." CYP2D6 studies often model a strong inhibitor by setting activity score
+ *   to 0 and a moderate inhibitor by multiplying it by 0.5. That convention is useful for
+ *   exposing a possible interaction, but it is not treated here as a validated patient
+ *   phenotype or as dosing authority. There is no equivalent numeric convention for
  *   CYP2C19 or CYP2B6.
  *
- *   So this engine applies the multiplier to CYP2D6 and, for the other genes, raises a
- *   prominent unresolved-interaction warning instead of stepping the phenotype down a tier.
+ *   So this engine may show the CYP2D6 research-convention estimate beside the reported
+ *   genotype result, with uncertainty attached. It never replaces the reported phenotype or
+ *   PharmCAT recommendation. For the other genes it raises an unresolved-interaction warning.
  *   Inventing a converted phenotype for CYP2C19 would be exactly the failure mode the
  *   product exists to prevent, one layer below where anyone would think to look for it.
  */
@@ -36,8 +37,8 @@ import type {
 /** Sentence-initial capitalisation for generic drug names, which are stored lowercase. */
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
-/** Genes for which a validated, guideline-operationalised adjustment method exists. */
-const VALIDATED_ADJUSTMENT_GENES = new Set(['CYP2D6'])
+/** Genes for which this build has a sourced research convention it can show as an estimate. */
+const MODELED_ADJUSTMENT_GENES = new Set(['CYP2D6'])
 
 /** CPIC / DPWG consensus activity-score cut-offs for CYP2D6. */
 export function activityScoreToPhenotype(score: number): Phenotype {
@@ -50,6 +51,8 @@ export function activityScoreToPhenotype(score: number): Phenotype {
 export interface PhenoconversionOutcome {
   functionalPhenotype: Phenotype
   functionalActivityScore: number | null
+  modeledFunctionalPhenotype: Phenotype | null
+  modeledFunctionalActivityScore: number | null
   modifiers: PhenoconversionModifier[]
   converted: boolean
   status: PhenoconversionStatus
@@ -79,12 +82,16 @@ function findModifiers(gene: string, medications: string[]): PhenoconversionModi
 }
 
 function isActionable(effect: ModifierEffect): boolean {
-  return effect === 'strong_inhibitor' || effect === 'moderate_inhibitor'
+  return effect === 'strong_inhibitor' || effect === 'moderate_inhibitor' ||
+    effect === 'strong_inducer' || effect === 'moderate_inducer'
 }
+
+const isInhibitor = (effect: ModifierEffect): boolean => effect.endsWith('_inhibitor')
+const isInducer = (effect: ModifierEffect): boolean => effect.endsWith('_inducer')
 
 /* ------------------------------------------------------------------ */
 
-function convertedExplanation(
+function modeledEstimateExplanation(
   gene: string,
   dominant: PhenoconversionModifier,
   genetic: Phenotype,
@@ -94,20 +101,21 @@ function convertedExplanation(
 ): Claim {
   return {
     text:
-      `${cap(dominant.drug)} is a ${EFFECT_LABELS[dominant.effect]} of ${gene}. CPIC's method for ${gene} is to ` +
-      `adjust the activity score for a concurrent inhibitor and re-map it: a genetic ${gene} activity score of ` +
-      `${geneticScore} becomes an effective score of ${functionalScore}, which corresponds to a ${functional}. ` +
-      `The patient's ${gene} genotype predicts a ${genetic}, so while ${dominant.drug} is taken concurrently, ` +
-      `${gene} dosing decisions should follow the functional phenotype rather than the genetic one.`,
-    citationIds: [...dominant.citationIds, 'cpic-activity-score'],
+      `${cap(dominant.drug)} is a ${EFFECT_LABELS[dominant.effect]} of ${gene}. The CPIC antidepressant ` +
+      `supplement describes a common research convention for concurrent inhibitors: a reported ${gene} activity score of ` +
+      `${geneticScore} models to ${functionalScore}, which maps to ${functional}. The reported genetic result is ` +
+      `${genetic}. The modeled value is an uncertain estimate, not a validated patient phenotype, and it does ` +
+      `not replace the imported PharmCAT guidance or determine a dose.`,
+    citationIds: [...new Set([...dominant.citationIds, 'cpic-2023-sri', 'cpic-activity-score'])],
   }
 }
 
 function unvalidatedWarning(gene: string, dominant: PhenoconversionModifier, genetic: Phenotype): Claim {
+  const direction = isInducer(dominant.effect) ? 'higher' : 'lower'
   return {
     text:
       `${cap(dominant.drug)} is a ${EFFECT_LABELS[dominant.effect]} of ${gene}, so this patient's true ${gene} ` +
-      `activity is very likely lower than their genotype alone suggests. CPIC states that consensus approaches ` +
+      `activity may be ${direction} than their genotype alone suggests. CPIC states that consensus approaches ` +
       `for adjusting ${gene} predicted phenotypes in the presence of inhibitors or inducers have not been ` +
       `established, so no adjusted phenotype is calculated here — the reported ${gene} phenotype remains the ` +
       `genetic ${genetic}, and this interaction is flagged for prescriber judgement instead of being resolved ` +
@@ -116,13 +124,35 @@ function unvalidatedWarning(gene: string, dominant: PhenoconversionModifier, gen
   }
 }
 
-function uncertainExtentWarning(gene: string, dominant: PhenoconversionModifier): Claim {
+function opposingEffectsWarning(
+  gene: string,
+  modifiers: PhenoconversionModifier[],
+  genetic: Phenotype,
+): Claim {
+  const names = modifiers
+    .filter((modifier) => isActionable(modifier.effect))
+    .map((modifier) => `${cap(modifier.drug)} (${EFFECT_LABELS[modifier.effect]})`)
+    .join(', ')
   return {
     text:
-      `This patient is a genetic ${gene} ultrarapid metaboliser taking ${dominant.drug}, a ` +
-      `${EFFECT_LABELS[dominant.effect]}. CPIC notes that the extent to which ultrarapid metabolisers ` +
-      `phenoconvert under a strong inhibitor is unclear, so the resulting functional phenotype is reported ` +
-      `with that uncertainty attached rather than as a settled poor-metaboliser result.`,
+      `${names} have opposing effects on ${gene}. The reported phenotype remains ${genetic}. This build does ` +
+      `not collapse opposing inhibitor and inducer effects into a phenotype or dose; the combination requires ` +
+      `prescriber review.`,
+    citationIds: [...new Set(modifiers.flatMap((modifier) => modifier.citationIds).concat('cpic-2023-sri'))],
+  }
+}
+
+function uncertainExtentWarning(
+  gene: string,
+  dominant: PhenoconversionModifier,
+  genetic: Phenotype,
+): Claim {
+  return {
+    text:
+      `${cap(dominant.drug)} is recorded with a genetic ${gene} result of ${genetic}. CPIC states that ` +
+      `consensus approaches for converting predicted phenotypes in the presence of inhibitors have not been ` +
+      `established, and antidepressant-specific text notes uncertainty in the extent of CYP2D6 phenoconversion. ` +
+      `The modeled value is therefore shown only as a research-convention estimate.`,
     citationIds: [...dominant.citationIds, 'cpic-2023-sri'],
   }
 }
@@ -131,9 +161,8 @@ function noChangeExplanation(gene: string, mods: PhenoconversionModifier[]): Cla
   const names = mods.map((m) => `${m.drug} (${EFFECT_LABELS[m.effect]})`).join(', ')
   return {
     text:
-      `${cap(names)} act on ${gene}, but not strongly enough for any validated adjustment to apply, so the ` +
-      `functional phenotype matches the genetic one. They are recorded because adding a further inhibitor ` +
-      `could change that.`,
+      `${cap(names)} act on ${gene}, but the captured research convention does not change the displayed ` +
+      `genetic result. A stronger or opposing modifier would require a separate review.`,
     citationIds: mods[0].citationIds,
   }
 }
@@ -150,6 +179,8 @@ export function computePhenoconversion(
   const base: PhenoconversionOutcome = {
     functionalPhenotype: genetic,
     functionalActivityScore: gene.activityScore,
+    modeledFunctionalPhenotype: null,
+    modeledFunctionalActivityScore: null,
     modifiers,
     converted: false,
     status: 'no_modifiers',
@@ -160,13 +191,24 @@ export function computePhenoconversion(
   if (!modifiers.length) return base
 
   const dominant = modifiers[0]
+  const actionable = modifiers.filter((modifier) => isActionable(modifier.effect))
+  const hasOpposingEffects = actionable.some((modifier) => isInhibitor(modifier.effect)) &&
+    actionable.some((modifier) => isInducer(modifier.effect))
+
+  if (hasOpposingEffects) {
+    return {
+      ...base,
+      status: 'unvalidated_method',
+      unresolvedWarning: opposingEffectsWarning(gene.gene, modifiers, genetic),
+    }
+  }
 
   if (!isActionable(dominant.effect)) {
     return { ...base, status: 'no_change', explanation: noChangeExplanation(gene.gene, modifiers) }
   }
 
-  // No validated adjustment method for this gene — flag, do not convert.
-  if (!VALIDATED_ADJUSTMENT_GENES.has(gene.gene) || gene.activityScore === null) {
+  // No sourced numeric convention for this gene — flag, do not estimate.
+  if (!MODELED_ADJUSTMENT_GENES.has(gene.gene) || gene.activityScore === null) {
     return {
       ...base,
       status: 'unvalidated_method',
@@ -174,34 +216,23 @@ export function computePhenoconversion(
     }
   }
 
-  // CYP2D6 — CPIC's activity-score multiplier.
-  const functionalScore = Math.round(gene.activityScore * dominant.multiplier * 100) / 100
-  const functional = activityScoreToPhenotype(functionalScore)
-  const converted = functional !== genetic
-
-  if (genetic === 'Ultrarapid Metabolizer') {
-    return {
-      ...base,
-      functionalPhenotype: functional,
-      functionalActivityScore: functionalScore,
-      converted,
-      status: 'uncertain_extent',
-      explanation: converted
-        ? convertedExplanation(gene.gene, dominant, genetic, functional, gene.activityScore, functionalScore)
-        : null,
-      unresolvedWarning: uncertainExtentWarning(gene.gene, dominant),
-    }
-  }
-
+  // CYP2D6 research convention — calculate an estimate but never replace the reported call.
+  const modeledScore = Math.round(gene.activityScore * dominant.multiplier * 100) / 100
+  const modeledPhenotype = activityScoreToPhenotype(modeledScore)
   return {
     ...base,
-    functionalPhenotype: functional,
-    functionalActivityScore: functionalScore,
-    converted,
-    status: converted ? 'converted' : 'no_change',
-    explanation: converted
-      ? convertedExplanation(gene.gene, dominant, genetic, functional, gene.activityScore, functionalScore)
-      : noChangeExplanation(gene.gene, modifiers),
-    unresolvedWarning: null,
+    modeledFunctionalPhenotype: modeledPhenotype,
+    modeledFunctionalActivityScore: modeledScore,
+    converted: false,
+    status: 'uncertain_extent',
+    explanation: modeledEstimateExplanation(
+      gene.gene,
+      dominant,
+      genetic,
+      modeledPhenotype,
+      gene.activityScore,
+      modeledScore,
+    ),
+    unresolvedWarning: uncertainExtentWarning(gene.gene, dominant, genetic),
   }
 }
