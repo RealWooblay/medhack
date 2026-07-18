@@ -89,10 +89,6 @@ export function buildSourceUsage(result: AnalysisResult): SourceUsage[] {
     )
   }
 
-  for (const section of result.narrative.accepted) {
-    for (const claim of section.claims) add(claim.citationIds, `OUT-TEXT-${section.section.toUpperCase()}`)
-  }
-
   return Object.values(result.citations)
     .map((citation) => ({
       citation,
@@ -106,7 +102,16 @@ export function buildValidationChecks(result: AnalysisResult): ValidationCheck[]
   const referencedSources = buildSourceUsage(result).map((entry) => entry.citation.id)
   const medicationSourcesResolve = result.shortlist.every((drug) => {
     const ids = sourceIdsForMedication(drug)
-    return ids.length > 0 && ids.every((id) => knownSources.has(id))
+    const hasSourceBoundClaim =
+      drug.geneFindings.length > 0 ||
+      drug.interactionFlags.length > 0 ||
+      drug.confidenceCaveats.length > 0 ||
+      drug.enzymeIndependence.length > 0 ||
+      drug.retryRationale !== null
+    // A patient-entered medicine with no matched PharmCAT annotation is still shown so the
+    // absence is explicit. That empty state is not a sourced clinical claim.
+    return (!hasSourceBoundClaim && ids.length === 0) ||
+      (ids.length > 0 && ids.every((id) => knownSources.has(id)))
   })
   const geneSourcesResolve = result.genes.every((gene) =>
     sourceIdsForGene(gene).every((id) => knownSources.has(id)),
@@ -136,7 +141,7 @@ export function buildValidationChecks(result: AnalysisResult): ValidationCheck[]
     {
       id: 'CHECK-GENES',
       label: 'Gene outputs have source records',
-      passed: result.genes.length === 3 && geneSourcesResolve,
+      passed: result.genes.length > 0 && geneSourcesResolve,
       detail: `${result.genes.length} gene rows returned; each resolves to a registered source record.`,
     },
     {
@@ -150,14 +155,6 @@ export function buildValidationChecks(result: AnalysisResult): ValidationCheck[]
       label: 'Displayed source IDs resolve',
       passed: referencedSources.every((id) => knownSources.has(id)),
       detail: `${knownSources.size} source records are included in this run.`,
-    },
-    {
-      id: 'CHECK-AI',
-      label: 'Live AI is disabled',
-      passed: result.narrative.generator !== 'live-model',
-      detail: result.narrative.generator === 'live-model'
-        ? `A live model generated wording: ${result.narrative.model}.`
-        : `Explanation method: ${result.narrative.model}. Data sent to AI: none.`,
     },
   ]
 }

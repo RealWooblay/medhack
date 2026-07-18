@@ -12,6 +12,8 @@
  */
 
 import { excludedGeneCalls } from '../../data/excluded-genes'
+import { canonicalDrug, drugClassOf } from '../../data/drug-lexicon'
+import type { PharmCATRunManifest } from '../../pharmcat/types'
 import type { AssayType, GeneCall, PharmCATReport, PharmCATDrugRecommendation, Phenotype } from '../types'
 
 export interface GenomeInput {
@@ -19,6 +21,8 @@ export interface GenomeInput {
   /** Reporter JSON contents. */
   contents?: string
   assayType: AssayType
+  /** Set only for a restricted report hash-bound to a verified private run manifest. */
+  verifiedRunManifest?: PharmCATRunManifest
 }
 
 export interface PharmCATAdapter {
@@ -215,7 +219,7 @@ function asArray(value: unknown): unknown[] {
 }
 
 /**
- * Strict recognition of the current Reporter handoff used by this validation build.
+ * Strict recognition of the current Reporter handoff.
  * This checks structure, not authenticity: an uploaded report still needs a governed run
  * manifest before its origin can be trusted.
  */
@@ -238,19 +242,25 @@ export function isRecognisablePharmCATReporter(value: unknown): value is PharmCA
     typeof report.dataVersion === 'string' && report.dataVersion.trim().length > 0 &&
     Object.keys(genes).length > 0 &&
     hasSupportedGene &&
-    Object.keys(asRecord(asRecord(report.drugs)['CPIC Guideline Annotation'])).length > 0
+    report.drugs !== null && typeof report.drugs === 'object' && !Array.isArray(report.drugs)
   )
 }
 
-function parsePharmCATGene(geneName: string, raw: PharmCATGeneJson | undefined): GeneCall {
+function parsePharmCATGene(
+  geneName: string,
+  raw: PharmCATGeneJson | undefined,
+  manifest?: PharmCATRunManifest,
+): GeneCall {
   const source = asArray(raw?.sourceDiplotypes) as PharmCATDiplotypeJson[]
-  const recommendation = asArray(raw?.recommendationDiplotypes) as PharmCATDiplotypeJson[]
-  const candidates = source.length ? source : recommendation
+  // recommendationDiplotypes can be a collapsed lookup representation. It must never be
+  // substituted for the actual source call shown to the user.
+  const candidates = source
   const selected = candidates[0]
   const phenotypeValues = asArray(selected?.phenotypes)
     .filter((value): value is string => typeof value === 'string')
   const phenotypeRaw = phenotypeValues[0]
-  const ambiguous = candidates.length !== 1 || phenotypeValues.length !== 1
+  const label = typeof selected?.label === 'string' ? selected.label.trim() : ''
+  const ambiguous = candidates.length !== 1 || phenotypeValues.length !== 1 || !label
   const phenotype = !ambiguous && PHENOTYPES.includes(phenotypeRaw as Phenotype)
     ? phenotypeRaw as Phenotype
     : 'Indeterminate'
@@ -260,25 +270,35 @@ function parsePharmCATGene(geneName: string, raw: PharmCATGeneJson | undefined):
     : Number.NaN
   const uncalled = asArray(raw?.uncalledHaplotypes)
   const callSource = typeof raw?.callSource === 'string' ? raw.callSource : 'UNKNOWN'
+  const coverage = geneName === 'CYP2C19' || geneName === 'CYP2B6'
+    ? manifest?.coverage?.[geneName]
+    : undefined
+  const measured = coverage?.status === 'measured' &&
+    Number.isSafeInteger(coverage.positionsCalled) && coverage.positionsCalled >= 0 &&
+    Number.isSafeInteger(coverage.positionsMissing) && coverage.positionsMissing >= 0 &&
+    coverage.positionsCalled + coverage.positionsMissing > 0 &&
+    coverage.missingPositionLabels.length === coverage.positionsMissing
+      ? coverage
+      : null
 
   return {
     gene: geneName,
     callSource,
     alleleDefinitionVersion: typeof raw?.alleleDefinitionVersion === 'string' ? raw.alleleDefinitionVersion : null,
     phenotypeVersion: typeof raw?.phenotypeVersion === 'string' ? raw.phenotypeVersion : null,
-    diplotype: !ambiguous && typeof selected?.label === 'string' ? selected.label : 'ambiguous or no call',
+    diplotype: !ambiguous ? label : 'ambiguous or no call',
     phenotype,
-    activityScore: !ambiguous && Number.isFinite(activity) ? activity : null,
+    activityScore: !ambiguous && Number.isFinite(activity) && activity >= 0 ? activity : null,
     // Reporter JSON variant rows do not prove assay coverage and can include blank/no-call
     // records. Only the separate missing-position artefact and run manifest can establish
     // called/missing counts.
-    positionsCalled: null,
-    positionsMissing: null,
-    coverageScope: 'report-json-only',
-    missingPositionLabels: [
+    positionsCalled: measured?.positionsCalled ?? null,
+    positionsMissing: measured?.positionsMissing ?? null,
+    coverageScope: measured ? 'pharmcat-measured' : 'report-json-only',
+    missingPositionLabels: measured ? [...measured.missingPositionLabels] : [
       'Reporter JSON was supplied without PharmCAT’s missing-position VCF, so coverage completeness is unknown.',
       ...uncalled.map((value) => typeof value === 'string' ? value : JSON.stringify(value)),
-      ...(ambiguous ? ['PharmCAT reported more than one possible diplotype.'] : []),
+      ...(ambiguous ? ['PharmCAT did not report one unambiguous source diplotype.'] : []),
       ...(geneName === 'CYP2D6'
         ? [callSource === 'OUTSIDE'
             ? 'PharmCAT used an outside CYP2D6 call, but Reporter JSON does not identify or validate the structural-variant caller.'
@@ -289,10 +309,35 @@ function parsePharmCATGene(geneName: string, raw: PharmCATGeneJson | undefined):
   }
 }
 
-const TCA_DRUGS = new Set([
-  'amitriptyline', 'clomipramine', 'desipramine', 'doxepin', 'imipramine',
-  'nortriptyline', 'trimipramine',
+const ALLOWED_GUIDELINE_HOSTS = new Set([
+  'clinpgx.org',
+  'www.clinpgx.org',
+  'cpicpgx.org',
+  'www.cpicpgx.org',
+  'pharmgkb.org',
+  'www.pharmgkb.org',
 ])
+
+function safeGuidelineUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' && ALLOWED_GUIDELINE_HOSTS.has(url.hostname.toLowerCase())
+      ? url.toString()
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
+function antidepressantGuidelineCitation(drug: string): string | null {
+  const drugClass = drugClassOf(drug)
+  if (drugClass === 'TCA') return 'cpic-2016-tca'
+  if (drugClass === 'SSRI' || drugClass === 'SNRI' || drugClass === 'serotonin modulator') {
+    return 'cpic-2023-sri'
+  }
+  return null
+}
 
 /**
  * Convert exact PharmCAT recommendation wording into a neutral UI grouping. The original
@@ -352,12 +397,18 @@ export function parsePharmCATRecommendations(parsed: PharmCATReporterJson): Phar
 
   for (const [fallbackDrug, rawDrug] of Object.entries(cpic)) {
     const drugReport = asRecord(rawDrug) as PharmCATDrugJson
-    const drug = (typeof drugReport.name === 'string' ? drugReport.name : fallbackDrug).toLowerCase()
-    const fallbackUrl = asArray(drugReport.urls).find((value): value is string => typeof value === 'string')
+    const rawName = (typeof drugReport.name === 'string' ? drugReport.name : fallbackDrug).trim()
+    const drug = (canonicalDrug(rawName) ?? rawName).toLowerCase()
+    if (!drug) continue
+    // Reporter JSON can contain CPIC annotations from every specialty. This product only
+    // has source mappings and output semantics for the antidepressant SRI and TCA guidelines.
+    const citationId = antidepressantGuidelineCitation(drug)
+    if (!citationId) continue
+    const fallbackUrl = asArray(drugReport.urls).map(safeGuidelineUrl).find(Boolean)
 
     for (const rawGuideline of asArray(drugReport.guidelines)) {
       const guideline = asRecord(rawGuideline) as PharmCATGuidelineJson
-      const sourceUrl = typeof guideline.url === 'string' ? guideline.url : fallbackUrl
+      const sourceUrl = safeGuidelineUrl(guideline.url) ?? fallbackUrl
       for (const rawAnnotation of asArray(guideline.annotations)) {
         const annotation = asRecord(rawAnnotation) as PharmCATAnnotationJson
         if (typeof annotation.drugRecommendation !== 'string' || !annotation.drugRecommendation.trim()) continue
@@ -367,13 +418,14 @@ export function parsePharmCATRecommendations(parsed: PharmCATReporterJson): Phar
         const alternateDrugAvailable = typeof annotation.alternateDrugAvailable === 'boolean'
           ? annotation.alternateDrugAvailable
           : null
-        const parsedAction = recommendationActionFromText(text)
         recommendations.push({
           drug,
           geneResults,
           gene: geneResults.map((result) => result.gene).join(' + '),
           phenotype: geneResults[0].phenotype,
-          action: alternateDrugAvailable === true && parsedAction !== 'avoid' ? 'alternative' : parsedAction,
+          // The boolean flag describes whether an alternative exists; it is not itself a
+          // recommendation to switch. Only the recommendation text determines the grouping.
+          action: recommendationActionFromText(text),
           text,
           strength: typeof annotation.classification === 'string' ? annotation.classification : undefined,
           population: typeof annotation.population === 'string' ? annotation.population : null,
@@ -381,7 +433,7 @@ export function parsePharmCATRecommendations(parsed: PharmCATReporterJson): Phar
           alternateDrugAvailable,
           otherPrescribingGuidance: typeof annotation.otherPrescribingGuidance === 'boolean' ? annotation.otherPrescribingGuidance : null,
           source: 'CPIC',
-          citationIds: [TCA_DRUGS.has(drug) ? 'cpic-2016-tca' : 'cpic-2023-sri'],
+          citationIds: [citationId],
           ...(sourceUrl ? { sourceUrl } : {}),
         })
       }
@@ -429,9 +481,16 @@ export class PharmCATReportJsonAdapter implements PharmCATAdapter {
       throw new Error('The JSON does not match the supported PharmCAT Reporter structure. No result was created.')
     }
 
-    const genes = ['CYP2C19', 'CYP2D6', 'CYP2B6'].map((gene) =>
-      parsePharmCATGene(gene, asRecord(geneMap[gene]) as PharmCATGeneJson),
-    )
+    const genes = ['CYP2C19', 'CYP2D6', 'CYP2B6']
+      .filter((gene) => {
+        const raw = asRecord(geneMap[gene]) as PharmCATGeneJson
+        return typeof raw.callSource === 'string' && Array.isArray(raw.sourceDiplotypes)
+      })
+      .map((gene) => parsePharmCATGene(
+        gene,
+        asRecord(geneMap[gene]) as PharmCATGeneJson,
+        input.verifiedRunManifest,
+      ))
     const excludedObserved: Record<string, string> = {}
     for (const gene of ['SLC6A4', 'HTR2A']) {
       const raw = asRecord(geneMap[gene]) as PharmCATGeneJson

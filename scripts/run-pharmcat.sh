@@ -2,9 +2,9 @@
 #
 # Run the official PharmCAT container against a VCF and emit the artefacts this app expects.
 #
-# The caller is deliberately separate from the browser app. The browser never turns a raw
-# VCF into a clinical result. This script is a local operator tool and is also the command a
-# governed asynchronous worker can wrap.
+# This is a local operator smoke test for the pinned official image. The normal app path sends
+# a raw VCF to the private worker in services/pharmcat-worker; users do not run this script or
+# upload its report.
 #
 # We wrap PharmCAT rather than forking it — its maintainers state that customisation is
 # unsupported, and the entire premise here is that the guideline facts come from the
@@ -33,17 +33,26 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-VCF_DIR="$(cd "$(dirname "$VCF")" && pwd)"
 VCF_NAME="$(basename "$VCF")"
 mkdir -p "$OUTDIR"
 OUT_ABS="$(cd "$OUTDIR" && pwd)"
 
-echo "==> pulling $IMAGE"
-docker pull "$IMAGE"
+# The official pipeline may bgzip/index its input beside the VCF. Copy the file into an
+# isolated writable directory so the smoke test never modifies the operator's source file.
+SMOKE_INPUT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pgx-pharmcat-input.XXXXXX")"
+trap 'rm -rf -- "$SMOKE_INPUT_DIR"' EXIT
+cp -- "$VCF" "$SMOKE_INPUT_DIR/$VCF_NAME"
+
+if docker image inspect "$IMAGE" >/dev/null 2>&1; then
+  echo "==> using local pinned image $IMAGE"
+else
+  echo "==> pulling $IMAGE"
+  docker pull "$IMAGE"
+fi
 
 echo "==> running PharmCAT pipeline on $VCF_NAME"
 docker run --rm \
-  -v "$VCF_DIR:/pharmcat/in:ro" \
+  -v "$SMOKE_INPUT_DIR:/pharmcat/in" \
   -v "$OUT_ABS:/pharmcat/out" \
   "$IMAGE" \
   pharmcat_pipeline "/pharmcat/in/$VCF_NAME" \
@@ -62,9 +71,10 @@ Output written to the directory above:
   *.report.html      human-readable report
   *.missing_pgx_var.vcf  positions PharmCAT expected and did not find
 
-Importing the result
---------------------
-Upload *.report.json to the app. The adapter:
+Inspecting the result
+---------------------
+An expert can import *.report.json under "Other ways to start" for adapter inspection only.
+That import is not equivalent to a private genome run and cannot use the medical model. The adapter:
 
   - `genes` is a map keyed by gene symbol. Read `sourceDiplotypes` for display and
     `recommendationDiplotypes` for the guideline join — they are DIFFERENT arrays, and
@@ -75,9 +85,9 @@ Upload *.report.json to the app. The adapter:
   - keeps PharmCAT and data versions with the result; and
   - labels coverage unknown when the separate missing-position artefact is unavailable.
 
-The current browser import accepts Reporter JSON only. A production worker must return the
-Reporter JSON together with the missing-position VCF and an immutable run manifest so the
-coverage state can be checked instead of assumed.
+The implemented private worker returns restricted Reporter JSON together with measured coverage,
+the missing-position VCF and an immutable run manifest. Report-only import cannot prove those
+artefacts and therefore keeps coverage unknown.
 
 Consumer array data
 -------------------

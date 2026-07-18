@@ -1,24 +1,19 @@
 /**
  * The pipeline.
  *
- * Seven deterministic steps produce every clinical fact in the report. Only then is a
- * narrative layer allowed to run, and only over facts that are already fixed. The `trace`
- * this returns is rendered in the UI, because "the model did not decide this" is a claim
- * that should be inspectable rather than asserted.
+ * Deterministic steps produce every clinical fact in the result. The separate constrained
+ * medical-model review receives a privacy-minimised view only after this function finishes;
+ * it cannot change anything returned here.
  */
 
 import { CITATIONS } from '../data/citations'
-import { profileOf } from '../data/cpic'
-import { OfflineNarrativeProvider, type NarrativeProvider } from '../ai/provider'
 import { scoreGene } from './confidence'
 import { normaliseCareContext, scoreDepressionCheckIn } from './depression'
 import { reconstructTrials } from './history'
 import { buildProtocol } from './lifestyle'
 import { matchLifestyle } from './lifestyle-fit'
-import { type NarrativeFacts } from './orchestrator'
 import { computePhenoconversion } from './phenoconversion'
 import { assembleDrugFindings } from './ranking'
-import { buildAllowList, validateDraft } from './validator'
 import type { GenomeInput, PharmCATAdapter } from './pharmcat/adapter'
 import type {
   AnalysisResult,
@@ -30,7 +25,7 @@ import type {
 
 /* ------------------------------------------------------------------ */
 
-function collectCitationIds(result: Omit<AnalysisResult, 'narrative' | 'citations' | 'trace'>): string[] {
+function collectCitationIds(result: Omit<AnalysisResult, 'citations' | 'trace'>): string[] {
   const ids = new Set<string>()
   const add = (list: string[] | undefined) => list?.forEach((id) => ids.add(id))
 
@@ -77,20 +72,18 @@ export interface AnalysisOptions {
   adapter: PharmCATAdapter
   genome: GenomeInput
   input: PatientInput
-  narrativeProvider?: NarrativeProvider
 }
 
 export async function runAnalysis({
   adapter,
   genome,
   input,
-  narrativeProvider = new OfflineNarrativeProvider(),
 }: AnalysisOptions): Promise<AnalysisResult> {
   const trace: TraceStep[] = []
-  const step = async <T>(name: string, detail: string, kind: TraceStep['kind'], fn: () => T | Promise<T>) => {
+  const step = async <T>(name: string, detail: string, fn: () => T | Promise<T>) => {
     const started = performance.now()
     const value = await fn()
-    trace.push({ step: name, detail, kind, ms: Math.round((performance.now() - started) * 100) / 100 })
+    trace.push({ step: name, detail, ms: Math.round((performance.now() - started) * 100) / 100 })
     return value
   }
 
@@ -101,13 +94,11 @@ export async function runAnalysis({
     ? await step(
         'Score the depression check-in',
         'Score the complete PHQ-9 exactly as entered and keep it separate from medication selection.',
-        'deterministic',
         () => scoreDepressionCheckIn(care),
       )
     : await step(
         'No depression check-in',
         'No PHQ-9 was supplied, so no symptom score or symptom result was created.',
-        'deterministic',
         () => null,
       )
 
@@ -115,7 +106,6 @@ export async function runAnalysis({
   const pharmcat = await step(
     'Read gene calls',
     `${adapter.name} — gene calls and matched CPIC annotations retain the PharmCAT software and data versions.`,
-    'deterministic',
     () => adapter.analyze(genome),
   )
 
@@ -123,7 +113,6 @@ export async function runAnalysis({
   const genes = await step(
     'Apply supported phenoconversion and record confidence limits',
     'Adjust a phenotype only where the captured method supports it, then label assay and call limitations without assigning a probability.',
-    'deterministic',
     (): GenePhenotypeResult[] =>
       pharmcat.genes.map((gene) => {
         const outcome = computePhenoconversion(gene, input.currentMedications)
@@ -150,15 +139,13 @@ export async function runAnalysis({
   const history = await step(
     'Place PGx beside past trials',
     'Show whether a CPIC-covered gene–drug result raises a dosing question, without assigning a cause to the recorded outcome.',
-    'deterministic',
-    () => reconstructTrials(input.pastTrials, genes, profileOf),
+    () => reconstructTrials(input.pastTrials, genes, pharmcat.recommendations),
   )
 
   /* 6 — alphabetical medication findings */
   const shortlist = await step(
     'Assemble medication-specific PGx findings',
     'Use exact matched PharmCAT CPIC annotations and keep PGx, confidence, current-medicine effects and treatment history separate.',
-    'deterministic',
     () => assembleDrugFindings({
       genes,
       recommendations: pharmcat.recommendations,
@@ -171,7 +158,6 @@ export async function runAnalysis({
   const protocolsByDrug = await step(
     'Build lifestyle protocols',
     'Fuse label-sourced timing, food and interaction rules for each candidate with the patient\'s other medications.',
-    'deterministic',
     () =>
       Object.fromEntries(
         shortlist.map((d) => [d.drug, buildProtocol(d.drug, input.currentMedications)]),
@@ -181,10 +167,12 @@ export async function runAnalysis({
   const lifestyleMatches = await step(
     'Match options to daily life',
     'Compare the routine the person described with drug-specific, sourced protocol requirements without changing the PGx score.',
-    'deterministic',
     () =>
       Object.fromEntries(
-        Object.entries(protocolsByDrug).map(([drug, protocol]) => [drug, matchLifestyle(protocol, care)]),
+        Object.entries(protocolsByDrug).map(([drug, protocol]) => [
+          drug,
+          matchLifestyle(protocol, care, input.confirmedLifestyle ?? {}),
+        ]),
       ),
   )
 
@@ -208,48 +196,9 @@ export async function runAnalysis({
     lifestyleMatches,
   }
 
-  /* 7 — narrative, the only model-touched step */
-  const facts: NarrativeFacts = {
-    genes,
-    shortlist,
-    history,
-    protocol,
-    currentMedications: input.currentMedications,
-    care,
-    depression,
-  }
-
-  const draft = await step(
-    'Draft the explanation',
-    `${narrativeProvider.name} composes the patient and clinician narrative over fixed facts. No new clinical content may enter here.`,
-    narrativeProvider.mode === 'ai' ? 'model' : 'deterministic',
-    () => narrativeProvider.compose(facts),
-  )
-
-  /* 8 — the claim boundary */
-  const narrative = await step(
-    'Validate every sentence',
-    'Reject any sentence containing a number, drug name or citation that is not present in the structured clinical input.',
-    'validator',
-    () => {
-      const citationIds = collectCitationIds(partial)
-      const allow = buildAllowList({
-        facts: partial,
-        citationIds,
-        derivedCounts: [
-          input.pastTrials.length,
-          input.currentMedications.length,
-          shortlist.length,
-          genes.length,
-        ],
-      })
-      return validateDraft(draft, allow)
-    },
-  )
-
   const citations: Record<string, Citation> = Object.fromEntries(
     collectCitationIds(partial).map((id) => [id, CITATIONS[id]]),
   )
 
-  return { ...partial, narrative, citations, trace }
+  return { ...partial, citations, trace }
 }

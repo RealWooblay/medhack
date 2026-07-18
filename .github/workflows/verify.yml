@@ -1,0 +1,74 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  GO_IMAGE: "golang:1.22-bookworm@sha256:3d699e4d15d0f8f13c9195c0632a16702b8cbdece2955af1c23b37ae5d55a253"
+  NODE_IMAGE: "node:22-bookworm-slim@sha256:6c74791e557ce11fc957704f6d4fe134a7bc8d6f5ca4403205b2966bd488f6b3"
+  PHARMCAT_IMAGE: "pgkb/pharmcat:3.3.0@sha256:e9b02865a0abe1a0085ac0d7625f1ec33a06a56e9571d5befb16f90d4fedc435"
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  pharmcat-control:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm test
+        working-directory: services/pharmcat-control
+      - name: Build the pinned control image
+        run: >-
+          docker build
+          --build-arg NODE_IMAGE="$NODE_IMAGE"
+          --tag pgx-pharmcat-control:ci
+          services/pharmcat-control
+
+  pharmcat-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: services/pharmcat-worker/go.mod
+          cache: false
+      - run: go test ./...
+        working-directory: services/pharmcat-worker
+      - run: go vet ./...
+        working-directory: services/pharmcat-worker
+      - name: Build the pinned PharmCAT worker image
+        run: >-
+          docker build
+          --build-arg GO_IMAGE="$GO_IMAGE"
+          --build-arg PHARMCAT_IMAGE="$PHARMCAT_IMAGE"
+          --tag pgx-pharmcat-worker:ci
+          services/pharmcat-worker
+      - name: Run PharmCAT on the official example VCF
+        run: |
+          curl --fail --silent --show-error \
+            https://pharmcat.clinpgx.org/examples/pharmcat.example2.vcf \
+            --output /tmp/pharmcat.example2.vcf
+          echo "b4e7640b5cb68a3f91660041af8156f25dac0d5c5c1df15e8894ed7164da194e  /tmp/pharmcat.example2.vcf" \
+            | sha256sum --check
+          mkdir -p /tmp/pharmcat-smoke-output
+          PHARMCAT_IMAGE="$PHARMCAT_IMAGE" \
+            ./scripts/run-pharmcat.sh /tmp/pharmcat.example2.vcf /tmp/pharmcat-smoke-output
+          test -s /tmp/pharmcat-smoke-output/pharmcat.example2.report.json

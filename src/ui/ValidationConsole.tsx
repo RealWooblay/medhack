@@ -8,8 +8,8 @@ import {
   type ClinicalReviewItem,
   type ClinicalReviewResult,
 } from '../ai/clinical-review'
-import { AUSTRALIAN_SCOPE_DRAFT } from '../data/australian-scope'
 import { canonicalDrug } from '../data/drug-lexicon'
+import { labelFor } from '../data/openfda'
 import {
   OFFICIAL_PHARMCAT_EXAMPLES,
   type OfficialPharmCATExample,
@@ -21,6 +21,9 @@ import {
   inspectGenomeInput,
   type InputInspection,
 } from '../engine/pharmcat/input-inspection'
+import { worstRecommendationAction } from '../engine/ranking'
+import { runGenome } from '../pharmcat/client'
+import type { PharmCATRunManifest, PharmCATRunProgress } from '../pharmcat/types'
 import type {
   AnalysisResult,
   AssayType,
@@ -39,15 +42,22 @@ import {
 } from '../validation/view-model'
 
 type TabId = 'file' | 'genes' | 'medicines' | 'daily' | 'ai' | 'evidence'
-type InputMode = 'example' | 'upload'
-type RunStatus = 'idle' | 'reading' | 'running' | 'complete' | 'error'
+type InputMode = 'genome' | 'example' | 'report'
+type RunStatus = 'idle' | 'reading' | 'uploading' | 'analysing' | 'running' | 'complete' | 'error'
+
+interface SelectedFile {
+  file: File
+  /** Plain-text input used only for local format inspection or report parsing. */
+  contents: string | null
+}
 
 interface RunReceipt extends InputInspection {
-  source: 'official-example' | 'uploaded-file'
+  source: 'pharmcat-run' | 'official-example' | 'uploaded-report'
   fileName: string
   sizeBytes: number
   contents: string
   assayType: AssayType
+  runManifest?: PharmCATRunManifest
   exampleId?: string
   sourceUrl?: string
 }
@@ -84,23 +94,15 @@ const EMPTY_ROUTINE: RoutineAnswers = {
 const BASE_CARE_CONTEXT: CareContext = {
   checkIn: null,
   goals: [],
-  lifestyle: {
-    sleep: 'settled',
-    mealRoutine: 'regular',
-    dailySchedule: 'regular',
-    alcohol: 'none',
-    drivingOrMachinery: false,
-    missedDoses: 'rarely',
-    eatingDisorderHistory: false,
-  },
-  needsImmediateSupport: false,
+  lifestyle: {},
+  needsImmediateSupport: null,
 }
 
 const ASSAY_LABEL: Record<AssayType, string> = {
   'consumer-array': 'Consumer DNA array',
   wgs: 'Whole-genome sequencing',
   'targeted-pgx': 'Targeted PGx panel',
-  unknown: 'Not supplied in Reporter JSON',
+  unknown: 'Not established',
 }
 
 const ROUTINE_QUESTIONS: Record<RoutineKey, RoutineQuestion> = {
@@ -195,6 +197,13 @@ function parseMedicines(value: string): { recognised: string[]; unrecognised: st
   return { recognised: unique(recognised), unrecognised }
 }
 
+export function currentMedicinesResolved(value: string, confirmedNone: boolean): boolean {
+  const parsed = parseMedicines(value)
+  if (parsed.unrecognised.length > 0) return false
+  if (confirmedNone) return parsed.recognised.length === 0 && !value.trim()
+  return parsed.recognised.length > 0
+}
+
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} bytes`
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
@@ -222,7 +231,7 @@ function speedTitle(phenotype: GenePhenotypeResult['functionalPhenotype']): stri
 function sourcePublisher(citation: Citation): string {
   switch (citation.kind) {
     case 'cpic': return 'CPIC'
-    case 'fda-label': return 'US FDA / cached openFDA record'
+    case 'fda-label': return 'US prescribing information'
     case 'fda-table': return 'US FDA'
     case 'pharmgkb': return 'PharmGKB / PharmVar'
     case 'dpwg': return 'DPWG'
@@ -234,7 +243,7 @@ function listWords(values: string[], maximum = 4): string {
   const shown = values.slice(0, maximum).map(capitalise)
   const remaining = values.length - shown.length
   if (remaining > 0) return `${shown.join(', ')} and ${remaining} more`
-  if (shown.length <= 1) return shown[0] ?? 'no medicines in this build'
+  if (shown.length <= 1) return shown[0] ?? 'no medicines recorded'
   return `${shown.slice(0, -1).join(', ')} and ${shown.at(-1)}`
 }
 
@@ -255,15 +264,7 @@ function SourceLinks({ ids, result, idsOnly = false }: { ids: string[]; result: 
 function careFromRoutine(routine: RoutineAnswers): CareContext {
   return {
     ...BASE_CARE_CONTEXT,
-    lifestyle: {
-      sleep: routine.sleep || 'settled',
-      mealRoutine: routine.mealRoutine || 'regular',
-      dailySchedule: routine.dailySchedule || 'regular',
-      alcohol: routine.alcohol || 'none',
-      drivingOrMachinery: routine.drivingOrMachinery === 'yes',
-      missedDoses: routine.missedDoses || 'rarely',
-      eatingDisorderHistory: routine.eatingDisorderHistory === 'yes',
-    },
+    lifestyle: confirmedLifestyleFromRoutine(routine),
   }
 }
 
@@ -299,6 +300,14 @@ function relevantRoutineQuestions(protocol: LifestyleProtocol): RoutineQuestion[
   return questions
 }
 
+function isVcfGzipFile(file: File): boolean {
+  return /\.vcf\.gz$/i.test(file.name)
+}
+
+function isVcfFile(file: File): boolean {
+  return /\.vcf(?:\.gz)?$/i.test(file.name)
+}
+
 function FilePanel({
   mode,
   onMode,
@@ -306,6 +315,8 @@ function FilePanel({
   onExample,
   medicines,
   onMedicines,
+  noCurrentMedicines,
+  onNoCurrentMedicines,
   uploadedFile,
   inspection,
   status,
@@ -319,7 +330,9 @@ function FilePanel({
   onExample: (example: OfficialPharmCATExample) => void
   medicines: string
   onMedicines: (value: string) => void
-  uploadedFile: { name: string; size: number; contents: string } | null
+  noCurrentMedicines: boolean
+  onNoCurrentMedicines: (confirmed: boolean) => void
+  uploadedFile: SelectedFile | null
   inspection: InputInspection | null
   status: RunStatus
   error: string | null
@@ -327,103 +340,162 @@ function FilePanel({
   onRun: () => void
 }) {
   const medicineCheck = parseMedicines(medicines)
-  const inputReady = mode === 'example' || Boolean(uploadedFile && inspection?.canRunAnalysis)
-  const ready = inputReady && medicineCheck.unrecognised.length === 0
+  const gzipVcf = Boolean(uploadedFile && isVcfGzipFile(uploadedFile.file))
+  const validVcf = Boolean(uploadedFile && isVcfFile(uploadedFile.file))
+  const inputReady = mode === 'example'
+    || (mode === 'report' && Boolean(uploadedFile && inspection?.canRunAnalysis))
+    || (mode === 'genome' && validVcf)
+  const busy = ['reading', 'uploading', 'analysing', 'running'].includes(status)
+  const ready = inputReady && currentMedicinesResolved(medicines, noCurrentMedicines)
+  const buttonLabel = status === 'uploading'
+    ? 'Uploading…'
+    : status === 'analysing' || status === 'running'
+      ? 'Analysing…'
+      : mode === 'genome'
+        ? 'Analyse DNA'
+        : mode === 'example'
+          ? 'Use example'
+          : 'Read report'
 
   return (
-    <section className="screen" aria-labelledby="file-title">
+    <section className="screen screen--narrow" aria-labelledby="file-title">
       <div className="screen-heading">
-        <h1 id="file-title">Start with a result</h1>
-        <p>Use PharmCAT’s example or upload a PharmCAT report.</p>
-      </div>
-
-      <div className="choice-grid" role="group" aria-label="Choose input type">
-        <button type="button" className={`choice ${mode === 'example' ? 'choice--selected' : ''}`} aria-pressed={mode === 'example'} onClick={() => onMode('example')}>
-          <span className="choice-letter">A</span>
-          <span><strong>Official example</strong><small>Loaded from PharmCAT</small></span>
-        </button>
-        <button type="button" className={`choice ${mode === 'upload' ? 'choice--selected' : ''}`} aria-pressed={mode === 'upload'} onClick={() => onMode('upload')}>
-          <span className="choice-letter">B</span>
-          <span><strong>Upload</strong><small>PharmCAT Reporter JSON</small></span>
-        </button>
+        <h1 id="file-title">{mode === 'genome' ? 'Upload your DNA' : mode === 'example' ? 'Use a published example' : 'Import an existing report'}</h1>
+        <p>{mode === 'genome' ? 'We analyse the file and turn the genetic results into antidepressant guidance.' : mode === 'example' ? 'Run the complete app with a report published by PharmCAT.' : 'For experts who already have PharmCAT Reporter JSON.'}</p>
       </div>
 
       <div className="input-card">
-        {mode === 'example' ? (
-          <>
-            <label className="field">
-              <span>Example</span>
-              <select value={example.id} onChange={(event) => onExample(OFFICIAL_PHARMCAT_EXAMPLES.find((item) => item.id === event.target.value) ?? OFFICIAL_PHARMCAT_EXAMPLES[0])}>
-                {OFFICIAL_PHARMCAT_EXAMPLES.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
-              </select>
-            </label>
-            <div className="compact-note"><strong>Real PharmCAT output</strong><span>{example.description} <a href={example.sourcePageUrl} target="_blank" rel="noreferrer">Source</a></span></div>
-          </>
-        ) : (
+        {mode !== 'genome' && (
+          <button type="button" className="text-button" onClick={() => onMode('genome')}>← Upload DNA instead</button>
+        )}
+
+        {mode === 'genome' && (
           <>
             <label className="upload-box">
               <input
                 type="file"
-                accept=".json,.vcf,.txt,.csv,.tsv"
+                accept=".vcf,.vcf.gz,application/gzip"
                 onChange={(event) => {
                   const file = event.target.files?.[0]
                   if (file) onFile(file)
                 }}
               />
               <span className="upload-symbol">↑</span>
-              <strong>{status === 'reading' ? 'Reading…' : 'Choose a file'}</strong>
-              <small>PharmCAT report JSON · raw DNA files are format-checked only</small>
+              <strong>{status === 'reading' ? 'Checking file…' : uploadedFile ? 'Choose a different file' : 'Choose DNA file'}</strong>
+              <small>Single-person GRCh38 VCF or VCF.GZ</small>
             </label>
 
-            {uploadedFile && inspection && (
-              <div className={`file-ready ${inspection.status === 'blocked' ? 'file-ready--blocked' : ''}`}>
-                <div><strong>{inspection.canRunAnalysis ? 'Ready' : 'Cannot produce a result here'}</strong><span>{uploadedFile.name} · {inspection.formatLabel}</span></div>
-                <small>{formatBytes(uploadedFile.size)}</small>
+            {uploadedFile && (
+              <div className={`file-ready ${validVcf ? '' : 'file-ready--blocked'}`}>
+                <div>
+                  <strong>{validVcf ? 'File selected' : 'Cannot use this file'}</strong>
+                  <span>{uploadedFile.file.name}{gzipVcf ? ' · compressed VCF' : validVcf ? ' · VCF' : ''}</span>
+                </div>
+                <small>{formatBytes(uploadedFile.file.size)}</small>
               </div>
             )}
 
-            {inspection?.warnings[0] && (
-              <div className="plain-warning"><strong>{inspection.canRunAnalysis ? 'Important limit' : 'Official PharmCAT run required'}</strong><span>{inspection.warnings[0]}</span></div>
+            {uploadedFile && !validVcf && (
+              <div className="plain-warning"><strong>VCF required</strong><span>Consumer DNA files need a provider-specific, validated conversion before they can be analysed.</span></div>
+            )}
+
+            {validVcf && <p className="source-note">The file's genome build and sample count are checked automatically.</p>}
+          </>
+        )}
+
+        {mode === 'example' && (
+          <>
+            <label className="field">
+              <span>Published report</span>
+              <select value={example.id} onChange={(event) => onExample(OFFICIAL_PHARMCAT_EXAMPLES.find((item) => item.id === event.target.value) ?? OFFICIAL_PHARMCAT_EXAMPLES[0])}>
+                {OFFICIAL_PHARMCAT_EXAMPLES.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+              </select>
+            </label>
+            <p className="source-note">{example.description} <a href={example.sourcePageUrl} target="_blank" rel="noreferrer">View source</a></p>
+          </>
+        )}
+
+        {mode === 'report' && (
+          <>
+            <label className="upload-box upload-box--compact">
+              <input
+                type="file"
+                accept=".json,application/json"
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  if (file) onFile(file)
+                }}
+              />
+              <span className="upload-symbol">↑</span>
+              <strong>{status === 'reading' ? 'Checking report…' : 'Choose report'}</strong>
+              <small>PharmCAT Reporter JSON</small>
+            </label>
+            {uploadedFile && inspection && (
+              <div className={`file-ready ${inspection.canRunAnalysis ? '' : 'file-ready--blocked'}`}>
+                <div><strong>{inspection.canRunAnalysis ? 'Report ready' : 'Cannot use this report'}</strong><span>{uploadedFile.file.name}</span></div>
+                <small>{formatBytes(uploadedFile.file.size)}</small>
+              </div>
+            )}
+            {inspection?.warnings[0] && !inspection.canRunAnalysis && (
+              <div className="error-message" role="alert"><strong>Report problem</strong><span>{inspection.warnings[0]}</span></div>
             )}
           </>
         )}
 
-        <label className="field">
-          <span>Medicines taken now <em>Optional · these can change the review</em></span>
-          <input value={medicines} onChange={(event) => onMedicines(event.target.value)} placeholder="For example: fluoxetine, bupropion" />
-          <small>Enter generic or known brand names, separated by commas.</small>
+        <label className="field medicines-field">
+          <span>Current medicines and supplements</span>
+          <input disabled={noCurrentMedicines} value={medicines} onChange={(event) => onMedicines(event.target.value)} placeholder="For example: fluoxetine, ibuprofen" />
+          <small>Add prescriptions, over-the-counter medicines and supplements.</small>
         </label>
 
-        {medicineCheck.recognised.length > 0 && (
-          <div className="compact-note"><strong>Used in this run</strong><span>{medicineCheck.recognised.map(capitalise).join(', ')}</span></div>
-        )}
+        <label className="medicine-none">
+          <input type="checkbox" checked={noCurrentMedicines} onChange={(event) => onNoCurrentMedicines(event.target.checked)} />
+          <span>I take none</span>
+        </label>
+
         {medicineCheck.unrecognised.length > 0 && (
-          <div className="error-message" role="alert"><strong>Medicine not recognised</strong><span>{medicineCheck.unrecognised.join(', ')}. Fix or remove it before checking the result.</span></div>
+          <div className="error-message" role="alert"><strong>Medicine not recognised</strong><span>{medicineCheck.unrecognised.join(', ')}</span></div>
         )}
 
-        {error && <div className="error-message" role="alert"><strong>Stopped</strong><span>{error}</span></div>}
+        {status === 'uploading' && <div className="run-progress"><span /><strong>Uploading DNA securely…</strong></div>}
+        {status === 'analysing' && <div className="run-progress"><span /><strong>Analysing genes and medicine guidance…</strong></div>}
+        {error && <div className="error-message" role="alert"><strong>Analysis stopped</strong><span>{error}</span></div>}
 
         <div className="action-row">
-          <button type="button" className="primary-button" disabled={!ready || status === 'running' || status === 'reading'} onClick={onRun}>
-            {status === 'running' ? 'Checking…' : 'Check result'}
-          </button>
+          <button type="button" className="primary-button" disabled={!ready || busy} onClick={onRun}>{buttonLabel}</button>
         </div>
+
+        {mode === 'genome' && (
+          <details className="advanced-input">
+            <summary>Other ways to start</summary>
+            <div>
+              <button type="button" className="secondary-button" onClick={() => onMode('example')}>Use published example</button>
+              <button type="button" className="secondary-button" onClick={() => onMode('report')}>Import PharmCAT report</button>
+            </div>
+          </details>
+        )}
       </div>
     </section>
   )
 }
 
-function GenesPanel({ result, onNext }: { result: AnalysisResult; onNext: () => void }) {
+function GenesPanel({ result, runManifest, onNext }: { result: AnalysisResult; runManifest?: PharmCATRunManifest; onNext: () => void }) {
   return (
     <section className="screen" aria-labelledby="genes-title">
       <div className="screen-heading">
-        <h1 id="genes-title">3 antidepressant genes used here</h1>
-        <p>Other genes in the report are not used unless captured antidepressant guidance supports them.</p>
+        <h1 id="genes-title">How your body processes medicines</h1>
+        <p>These gene results can affect dose or safety. They cannot tell us which antidepressant will work.</p>
       </div>
 
-      {result.pharmcat.provenance === 'pharmcat-json' && (
-        <div className="shared-limit"><strong>Completeness cannot be checked</strong><span>The report does not include PharmCAT’s separate list of DNA positions that were missing.</span></div>
+      {result.pharmcat.provenance === 'pharmcat-json' && !runManifest && (
+        <div className="shared-limit"><strong>Coverage is not in this file</strong><span>Open Sources to see what could and could not be verified.</span></div>
       )}
+      {runManifest && runManifest.outputs.missingPositionCount > 0 && (
+        <div className="shared-limit"><strong>DNA coverage gap</strong><span>{runManifest.outputs.missingPositionCount} required position{runManifest.outputs.missingPositionCount === 1 ? ' was' : 's were'} missing. Affected results stay incomplete.</span></div>
+      )}
+      {runManifest?.exclusions.map((exclusion) => (
+        <div className="shared-limit" key={exclusion.gene}><strong>{exclusion.gene} was not reported</strong><span>{exclusion.reason}</span></div>
+      ))}
 
       <div className="gene-list">
         {result.genes.map((gene) => {
@@ -460,7 +532,7 @@ function GenesPanel({ result, onNext }: { result: AnalysisResult; onNext: () => 
                 )}
               </div>
               <details className="science-details">
-                <summary>Details</summary>
+                <summary>See gene details</summary>
                 <dl className="technical-list">
                   <div><dt>Reported phenotype</dt><dd>{reportedPhenotype}</dd></div>
                   <div><dt>Two gene versions</dt><dd>{gene.diplotype}</dd></div>
@@ -483,33 +555,44 @@ function GenesPanel({ result, onNext }: { result: AnalysisResult; onNext: () => 
 }
 
 function medicineSummary(drug: DrugAssessment): string {
-  if (!drug.geneFindings.length) return 'This is not a finding that the medicine is safe or suitable.'
-  const reason = unique(
+  if (!drug.geneFindings.length) return 'No matched PharmCAT antidepressant guidance.'
+  return unique(
     drug.geneFindings.flatMap((finding) => finding.geneResults)
       .map((result) => result.phenotype === 'Indeterminate'
-        ? `there is not enough data for ${result.gene}`
-        : `${result.gene} is ${phenotypeWords(result.phenotype)}`),
-  ).join(' and ')
-  switch (drug.pgxCategory) {
-    case 'alternative_discussion': return `The report includes a discussion about another option. ${reason}.`
-    case 'dose_or_titration_review': return `The report includes a dose or dose-change review. ${reason}.`
-    case 'usual_guidance': return `No starting change is shown by the gene guidance. ${reason}.`
-    case 'no_gene_based_guidance': return `No gene rule is available here. ${reason}.`
+        ? `${result.gene}: not enough data`
+        : `${result.gene}: ${phenotypeWords(result.phenotype)}`),
+  ).join(' · ')
+}
+
+export function exactDoseSentence(drug: DrugAssessment): string | null {
+  const worstAction = worstRecommendationAction(drug.geneFindings.map((finding) => finding.action))
+  if (!worstAction || worstAction === 'avoid' || worstAction === 'alternative') return null
+
+  for (const finding of drug.geneFindings.filter((item) => item.action === worstAction)) {
+    const sentence = finding.guidelineText.match(/(?:^|\.\s+)([^.]*\b\d{1,3}%[^.]*\.)/i)?.[1]?.trim()
+    if (sentence) return sentence
   }
+  return null
 }
 
 function MedicineRow({ drug, result, onExplore }: { drug: DrugAssessment; result: AnalysisResult; onExplore: (drug: string) => void }) {
+  const protocol = result.protocolsByDrug[drug.drug]
+  const hasDailyEvidence = Boolean(protocol && (protocol.items.length || protocol.interactionItems.length))
+  const doseSentence = exactDoseSentence(drug)
   return (
     <article className="medicine-row">
       <div className="medicine-copy">
         <h3>{capitalise(drug.drug)}</h3>
+        <strong className="medicine-guidance">{doseSentence ?? (drug.headline === 'avoid' ? 'Guideline says to avoid' : capitalise(drug.headline))}</strong>
         <p>{medicineSummary(drug)}</p>
         {drug.interactionFlags.length > 0 && <span className="inline-alert">A current medicine adds an interaction question.</span>}
       </div>
-      <button type="button" className="row-button" onClick={() => onExplore(drug.drug)}>Daily life</button>
+      <button type="button" className="row-button" disabled={!hasDailyEvidence} onClick={() => onExplore(drug.drug)}>
+        {hasDailyEvidence ? 'Check daily life' : 'No daily information'}
+      </button>
       {drug.geneFindings.length > 0 && (
         <details className="rule-details">
-          <summary>Exact rule</summary>
+          <summary>See source rule</summary>
           {drug.geneFindings.map((finding) => (
             <div className="guideline-block" key={`${finding.gene}-${finding.phenotypeUsed}`}>
               <strong>{finding.geneResults.map((item) => `${item.gene}: ${item.phenotype}`).join(' · ')}</strong>
@@ -557,47 +640,63 @@ function MedicinesPanel({ result, onExplore }: { result: AnalysisResult; onExplo
   return (
     <section className="screen" aria-labelledby="medicines-title">
       <div className="screen-heading">
-        <h1 id="medicines-title">Medicine guidance</h1>
-        <p>Prescribing rules found in the PharmCAT report. This cannot predict which medicine will work.</p>
+        <h1 id="medicines-title">What your genes change</h1>
+        <p>Source-backed guidance for dose and medicine choice. This does not predict whether a medicine will work.</p>
       </div>
 
-      <div className="shared-limit"><strong>Imported-call limits</strong><span>Coverage cannot be checked here. {cyp2d6?.callSource === 'OUTSIDE' ? 'The CYP2D6 outside caller and structural-variant method are not identified or validated by Reporter JSON.' : 'CYP2D6 structural and copy-number variation is unresolved.'}</span></div>
+      {cyp2d6?.structuralVariationUnresolved && (
+        <div className="shared-limit"><strong>CYP2D6 is incomplete</strong><span>Structural and copy-number variation could not be confirmed, so affected medicine results stay limited.</span></div>
+      )}
 
-      <MedicineGroup title="Ask about another option" drugs={alternatives} result={result} onExplore={onExplore} />
-      <MedicineGroup title="Review the dose" drugs={doseReview} result={result} onExplore={onExplore} />
-      <MedicineGroup title="No starting change shown" drugs={usual} result={result} onExplore={onExplore} />
+      <MedicineGroup title="Discuss a different medicine" drugs={alternatives} result={result} onExplore={onExplore} />
+      <MedicineGroup title="Dose may need changing" drugs={doseReview} result={result} onExplore={onExplore} />
+      <MedicineGroup title="No gene-based dose change" drugs={usual} result={result} onExplore={onExplore} />
 
       {noRule.length > 0 && (
         <details className="no-rule-group">
-          <summary>No gene rule available for {noRule.length} medicine{noRule.length === 1 ? '' : 's'}</summary>
-          <p>No rule is not evidence that a medicine is safe or suitable.</p>
+          <summary>No supported gene guidance for {noRule.length} medicine{noRule.length === 1 ? '' : 's'}</summary>
+          <p>This does not mean these medicines are safe or suitable.</p>
           <div className="medicine-list">{noRule.map((drug) => <MedicineRow key={drug.drug} drug={drug} result={result} onExplore={onExplore} />)}</div>
         </details>
       )}
-
-      <div className="single-source"><strong>Source</strong><span>Exact CPIC annotations in the imported PharmCAT report.</span></div>
     </section>
   )
 }
 
-function routineFitStatus(question: RoutineQuestion, routine: RoutineAnswers, facts: DailyFitFact[]): { label: 'Fits' | 'Needs a plan' | 'Prescriber review' | 'Answer needed' | 'Not assessed'; detail: string } {
+function routineFitStatus(question: RoutineQuestion, routine: RoutineAnswers, facts: DailyFitFact[]): { label: 'Matches' | 'May conflict' | 'Important' | 'Choose an answer' | 'Not checked'; detail: string } {
   const answer = routine[question.key]
-  if (!answer) return { label: 'Answer needed', detail: `Answer ${question.label.toLowerCase()} to run this match.` }
+  if (!answer) return { label: 'Choose an answer', detail: '' }
 
   const fact = facts.find((item) => item.dimension === question.dimension)
   if (fact) {
-    if (fact.verdict === 'supports_routine') return { label: 'Fits', detail: fact.title }
-    if (fact.verdict === 'clinician_review') return { label: 'Prescriber review', detail: fact.title }
-    return { label: 'Needs a plan', detail: fact.title }
+    if (fact.verdict === 'supports_routine') return { label: 'Matches', detail: 'Your answer matches this medicine instruction.' }
+    if (fact.verdict === 'clinician_review') return { label: 'Important', detail: 'Tell your doctor about this before starting.' }
+    return { label: 'May conflict', detail: 'This instruction may be difficult with your routine.' }
   }
 
-  return { label: 'Not assessed', detail: 'No drug-specific rule in this build can compare this answer.' }
+  return { label: 'Not checked', detail: 'The available medicine information cannot check this answer.' }
+}
+
+function lifestyleLabel(label: string): string {
+  const cleaned = label
+    .replace(/^LABEL\s+/i, '')
+    .replace(/\s+REVIEW$/i, '')
+    .toLowerCase()
+  if (cleaned === 'contraindication') return 'Important safety'
+  if (cleaned === 'review together') return 'Medicine combination'
+  return capitalise(cleaned)
+}
+
+function directRule(rule: string): string {
+  return rule.replace(/^The captured /, 'The ')
 }
 
 function DailyLifePanel({
   result,
   selectedDrug,
   onSelectedDrug,
+  productConfirmed,
+  onProductConfirmed,
   routine,
   onRoutine,
   onNext,
@@ -605,85 +704,116 @@ function DailyLifePanel({
   result: AnalysisResult
   selectedDrug: string
   onSelectedDrug: (drug: string) => void
+  productConfirmed: boolean
+  onProductConfirmed: (confirmed: boolean) => void
   routine: RoutineAnswers
   onRoutine: (routine: RoutineAnswers) => void
   onNext: () => void
 }) {
   const protocol = selectedDrug ? result.protocolsByDrug[selectedDrug] : null
+  const product = selectedDrug ? labelFor(selectedDrug) : undefined
   const questions = protocol ? relevantRoutineQuestions(protocol) : []
-  const match = protocol ? matchLifestyle(protocol, careFromRoutine(routine)) : null
+  const confirmedLifestyle = confirmedLifestyleFromRoutine(routine)
+  const match = protocol && productConfirmed
+    ? matchLifestyle(protocol, careFromRoutine(routine), confirmedLifestyle)
+    : null
   const protocolItems = protocol ? [...protocol.items, ...protocol.interactionItems] : []
   const sourceIds = unique(protocolItems.flatMap((item) => item.citationIds))
 
   return (
     <section className="screen" aria-labelledby="daily-title">
       <div className="screen-heading">
-        <h1 id="daily-title">{selectedDrug ? `Living with ${capitalise(selectedDrug)}` : 'Daily life with a medicine'}</h1>
-        <p>Compare draft cached US-label summaries with your routine.</p>
+        <h1 id="daily-title">{selectedDrug ? `Daily life with ${capitalise(selectedDrug)}` : 'Daily instructions'}</h1>
+        <p>Check the exact product, then compare its label with your routine.</p>
       </div>
 
-      <label className="field medicine-picker">
-        <span>Medicine</span>
+      <label className="field medicine-picker medicine-picker--simple">
+        <span>Choose a medicine</span>
         <select value={selectedDrug} onChange={(event) => onSelectedDrug(event.target.value)}>
-          <option value="">Choose a medicine</option>
+          <option value="">Select</option>
           {result.shortlist.map((drug) => <option key={drug.drug} value={drug.drug}>{capitalise(drug.drug)}</option>)}
         </select>
       </label>
 
-      {!protocol && <div className="empty-state"><strong>Choose a medicine</strong><span>Its instructions will appear here.</span></div>}
+      {!protocol && <div className="empty-state"><span>Choose a medicine to see its daily instructions.</span></div>}
 
       {protocol && (
         <>
-          <div className="daily-columns">
-            <section className="panel-card">
-              <div className="panel-heading"><h2>Draft label summary</h2></div>
-              {protocolItems.length ? (
-                <div className="instruction-list">
-                  {protocolItems.map((item) => (
-                    <article key={item.id}>
-                      <span>{item.label}</span>
-                      <strong>{item.rule}</strong>
-                      <details><summary>Why</summary><p>{item.why}</p></details>
-                    </article>
-                  ))}
-                </div>
-              ) : <p className="empty-copy">No drug-specific daily rule is captured. This does not mean there are no instructions or risks.</p>}
+          {product ? (
+            <section className="product-scope" aria-label="Product used for daily-life evidence">
+              <div>
+                <strong>{product.productName ?? capitalise(selectedDrug)}</strong>
+                <span>{product.dosageForm.toLowerCase()} · {product.route.join(', ').toLowerCase()} · {product.manufacturer ?? 'manufacturer not recorded'}</span>
+                <small>US label · NDC {product.productNdc} · SPL {product.setId} · version {product.versionId} · not matched to an Australian product</small>
+              </div>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={productConfirmed}
+                  onChange={(event) => onProductConfirmed(event.target.checked)}
+                />
+                <span>This is the exact product and form I want to check</span>
+              </label>
             </section>
+          ) : (
+            <p className="plain-warning">No product-specific daily information is available.</p>
+          )}
 
-            <section className="panel-card">
-              <div className="panel-heading"><h2>Your routine</h2></div>
-              <div className="routine-grid">
-                {questions.map((question) => (
-                  <label className="compact-field" key={question.key}>
-                    <span>{question.label}</span>
-                    <select value={routine[question.key]} onChange={(event) => onRoutine({ ...routine, [question.key]: event.target.value })}>
-                      <option value="">Choose</option>
-                      {question.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                    </select>
-                  </label>
+          <section className="daily-section" aria-labelledby="instructions-title">
+            <h2 id="instructions-title">What this label says</h2>
+            {protocolItems.length ? (
+              <div className="instruction-list">
+                {protocolItems.map((item) => (
+                  <article className={item.severity === 'critical' ? 'instruction instruction--important' : 'instruction'} key={item.id}>
+                    <span className="instruction-icon" aria-hidden="true">{item.icon}</span>
+                    <div>
+                      <span>{lifestyleLabel(item.label)}</span>
+                      <strong>{directRule(item.rule)}</strong>
+                    </div>
+                  </article>
                 ))}
               </div>
-            </section>
-          </div>
-
-          <section className="fit-panel">
-            <div className="panel-heading"><h2>Routine fit</h2></div>
-            <div className="fit-list">
-              {questions.map((question) => {
-                const status = routineFitStatus(question, routine, match?.facts ?? [])
-                return (
-                  <div className="fit-row" key={question.key}>
-                    <strong>{question.label}</strong>
-                    <span className={`fit-status fit-status--${status.label.toLowerCase().replaceAll(' ', '-')}`}>{status.label}</span>
-                    <small>{status.detail}</small>
-                  </div>
-                )
-              })}
-            </div>
+            ) : <p className="empty-copy">No daily instruction is available in the current evidence set.</p>}
           </section>
 
-          <div className="single-source"><strong>Draft US evidence</strong><span><SourceLinks ids={sourceIds} result={result} /> · cached summaries need source-text verification; Australian labels are not loaded.</span></div>
-          <div className="page-action"><button type="button" className="primary-button" onClick={onNext}>AI review</button></div>
+          {productConfirmed && questions.length > 0 && (
+            <section className="daily-section" aria-labelledby="routine-title">
+              <h2 id="routine-title">Does this fit your day?</h2>
+              <div className="routine-list">
+                {questions.map((question) => {
+                  const status = routineFitStatus(question, routine, match?.facts ?? [])
+                  const answered = Boolean(routine[question.key])
+                  return (
+                    <div className="routine-row" key={question.key}>
+                      <label className="compact-field">
+                        <span>{question.label}</span>
+                        <select value={routine[question.key]} onChange={(event) => onRoutine({ ...routine, [question.key]: event.target.value })}>
+                          <option value="">Select</option>
+                          {question.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                        </select>
+                      </label>
+                      {answered && (
+                        <div className={`routine-result routine-result--${status.label.toLowerCase().replaceAll(' ', '-')}`}>
+                          <strong>{status.label}</strong>
+                          <span>{status.detail}</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {!productConfirmed && protocolItems.length > 0 && (
+            <p className="product-wait">Confirm the exact product above before matching these facts to your routine.</p>
+          )}
+
+          <details className="daily-sources">
+            <summary>Sources</summary>
+            <p><SourceLinks ids={sourceIds} result={result} /></p>
+          </details>
+          <div className="page-action"><button type="button" className="primary-button" onClick={onNext}>Continue to AI review</button></div>
         </>
       )}
     </section>
@@ -735,14 +865,14 @@ function AiReviewPanel({
   selectedDrug,
   routine,
   review,
-  trustedContext,
+  attestedRunId,
   onReview,
 }: {
   result: AnalysisResult
   selectedDrug: string
   routine: RoutineAnswers
   review: ClinicalReviewResult | null
-  trustedContext: boolean
+  attestedRunId: string | null
   onReview: (review: ClinicalReviewResult | null) => void
 }) {
   const [running, setRunning] = useState(false)
@@ -763,13 +893,15 @@ function AiReviewPanel({
   )
   const factsById = useMemo(() => new Map(context.facts.map((fact) => [fact.id, fact])), [context])
   const modelConfigured = providerState.provider.mode === 'ai'
-  const connected = modelConfigured && trustedContext
+  const hasAttestedRun = Boolean(attestedRunId)
+  const connected = modelConfigured && hasAttestedRun
   const answers = Object.keys(confirmedLifestyle).length
 
   const runReview = async () => {
     setRunning(true)
     onReview(null)
     const nextReview = await providerState.provider.review(result, {
+      attestedRunId,
       selectedDrug,
       confirmedLifestyle,
       includeSymptomContext: false,
@@ -781,37 +913,33 @@ function AiReviewPanel({
   return (
     <section className="screen" aria-labelledby="ai-title">
       <div className="screen-heading">
-        <h1 id="ai-title">AI review</h1>
-        <p>MedGemma reviews facts produced by this run.</p>
+        <h1 id="ai-title">Clinical AI review</h1>
+        <p>MedGemma proposes source-linked gaps, conflicts and prescriber questions. Invalid proposals are rejected.</p>
       </div>
 
       <div className={`model-status ${connected ? 'model-status--connected' : ''}`}>
         <span className="status-dot" aria-hidden="true" />
         <div>
-          <strong>{!trustedContext ? 'AI review blocked for this upload' : connected ? 'MedGemma configured' : 'MedGemma not configured'}</strong>
-          <span>{!trustedContext ? 'The report needs a governed run manifest before its facts can be sent to a model.' : connected ? 'Run a review to test the endpoint.' : 'No AI result has been created.'}</span>
+          <strong>{!hasAttestedRun ? 'AI review unavailable' : connected ? 'MedGemma ready' : 'MedGemma not connected'}</strong>
+          <span>{!hasAttestedRun ? 'AI review requires a completed DNA analysis.' : connected ? 'The model can review this completed result.' : 'The medical model is not available in this deployment.'}</span>
         </div>
       </div>
 
       <div className="review-inputs">
-        <strong>Review input</strong>
-        <span>{result.genes.length} gene results</span>
-        <span>{result.input.currentMedications.length} current medicine{result.input.currentMedications.length === 1 ? '' : 's'}</span>
-        <span>{selectedDrug ? capitalise(selectedDrug) : 'No medicine selected'}</span>
-        <span>{answers} confirmed routine answer{answers === 1 ? '' : 's'}</span>
+        <span>{result.genes.length} gene results · {result.input.currentMedications.length ? `${result.input.currentMedications.length} current medicine${result.input.currentMedications.length === 1 ? '' : 's'}` : 'No current medicines or supplements'} · {selectedDrug ? capitalise(selectedDrug) : 'no medicine selected'} · {answers} routine answer{answers === 1 ? '' : 's'}</span>
       </div>
 
       {connected && !review && (
         <div className="ai-ready">
-          <span>It can find gaps, conflicts and useful prescriber questions. Raw DNA is never sent.</span>
+          <span>Only derived facts and source IDs are sent. Raw DNA stays out of the model.</span>
           <button type="button" className="primary-button" disabled={running} onClick={() => void runReview()}>{running ? 'Reviewing…' : 'Run review'}</button>
         </div>
       )}
 
-      {!connected && trustedContext && (
+      {!connected && hasAttestedRun && (
         <div className="connection-help">
-          <strong>{providerState.configurationError ? 'Connection stopped' : 'Model setup required'}</strong>
-          <span>{providerState.configurationError ?? 'Deploy MedGemma on Vertex and configure the same-origin API.'}</span>
+          <strong>Review unavailable</strong>
+          <span>{providerState.configurationError ?? 'No private model connection is configured here.'}</span>
         </div>
       )}
 
@@ -852,16 +980,22 @@ function AiReviewPanel({
   )
 }
 
-function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
+function EvidencePanel({ result, receipt, selectedDrug, productConfirmed, routine, review }: {
   result: AnalysisResult
   receipt: RunReceipt
   selectedDrug: string
+  productConfirmed: boolean
   routine: RoutineAnswers
   review: ClinicalReviewResult | null
 }) {
   const checks = buildValidationChecks(result)
   const sources = buildSourceUsage(result)
   const selectedProtocol = selectedDrug ? result.protocolsByDrug[selectedDrug] : null
+  const selectedProduct = selectedDrug ? labelFor(selectedDrug) : undefined
+  const confirmedLifestyle = confirmedLifestyleFromRoutine(routine)
+  const displayedLifestyleMatch = selectedProtocol && productConfirmed
+    ? matchLifestyle(selectedProtocol, careFromRoutine(routine), confirmedLifestyle)
+    : null
   const endpointConnected = Boolean(import.meta.env.VITE_MEDGEMMA_ENDPOINT?.trim())
   const rawFilePreview = receipt.contents.length > 12_000
     ? `${receipt.contents.slice(0, 12_000)}\n\n[Preview stopped at 12,000 characters]`
@@ -881,10 +1015,29 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
         sha256: receipt.sha256,
         detectedFormat: receipt.kind,
         assayType: receipt.assayType,
+        runManifest: receipt.runManifest ?? null,
         currentMedications: result.input.currentMedications,
+        currentMedicationsStatus: result.input.currentMedications.length ? 'provided' : 'confirmed_none',
       },
       selectedDrug: selectedDrug || null,
-      confirmedRoutineAnswers: routine,
+      dailyLife: {
+        productConfirmed,
+        product: selectedProduct ? {
+          generic: selectedProduct.generic,
+          productName: selectedProduct.productName,
+          dosageForm: selectedProduct.dosageForm,
+          route: selectedProduct.route,
+          manufacturer: selectedProduct.manufacturer,
+          applicationNumber: selectedProduct.applicationNumber,
+          productNdc: selectedProduct.productNdc,
+          setId: selectedProduct.setId,
+          versionId: selectedProduct.versionId,
+          effectiveTime: selectedProduct.effectiveTime,
+          sourceDigestSha256: selectedProduct.sourceDigestSha256,
+        } : null,
+        confirmedAnswers: confirmedLifestyle,
+        match: displayedLifestyleMatch,
+      },
       ai: {
         endpointConfigured: endpointConnected,
         review,
@@ -895,7 +1048,7 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
     const url = URL.createObjectURL(new Blob([payload], { type: 'application/json' }))
     const link = document.createElement('a')
     link.href = url
-    link.download = `pgx-validation-${receipt.sha256.slice(0, 8)}.json`
+    link.download = `pgx-run-${receipt.sha256.slice(0, 8)}.json`
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -903,20 +1056,22 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
   return (
     <section className="screen" aria-labelledby="evidence-title">
       <div className="screen-heading">
-        <h1 id="evidence-title">Evidence trail</h1>
-        <p>See the inputs, rules and sources used in this run.</p>
+        <h1 id="evidence-title">Sources and run details</h1>
+        <p>Every input, calculation and source used for these results.</p>
       </div>
 
       <div className="evidence-groups">
         <details className="evidence-group">
           <summary><span>1</span><strong>Input file</strong><small>Format, hash and transformations</small></summary>
           <dl className="evidence-list">
-            <div><dt>Data origin</dt><dd>{receipt.source === 'official-example' && receipt.sourceUrl ? <a href={receipt.sourceUrl} target="_blank" rel="noreferrer">Official PharmCAT example</a> : 'Uploaded report'}</dd></div>
+            <div><dt>Data origin</dt><dd>{receipt.source === 'pharmcat-run' ? 'Generated by this analysis' : receipt.source === 'official-example' && receipt.sourceUrl ? <a href={receipt.sourceUrl} target="_blank" rel="noreferrer">Published PharmCAT example</a> : 'Imported report; origin not verified'}</dd></div>
             <div><dt>File</dt><dd>{receipt.fileName} · {formatBytes(receipt.sizeBytes)}</dd></div>
             <div><dt>SHA-256</dt><dd><code>{receipt.sha256}</code></dd></div>
-            <div><dt>Detected format</dt><dd>{receipt.formatLabel}</dd></div>
-            <div><dt>Genome build</dt><dd>{receipt.genomeBuild ?? 'Not proven'}</dd></div>
-            <div><dt>Assay</dt><dd>{ASSAY_LABEL[receipt.assayType]} · use the upstream run manifest to verify it</dd></div>
+            <div><dt>Input format</dt><dd>{receipt.runManifest?.input.format ?? receipt.formatLabel}</dd></div>
+            <div><dt>Genome build</dt><dd>{receipt.runManifest?.input.genomeBuild ?? receipt.genomeBuild ?? 'Not proven'}</dd></div>
+            <div><dt>Assay</dt><dd>{ASSAY_LABEL[receipt.assayType]}</dd></div>
+            {receipt.runManifest && <div><dt>Run</dt><dd><code>{receipt.runManifest.runId}</code> · PharmCAT {receipt.runManifest.caller.pharmcatVersion} · <code>{receipt.runManifest.caller.imageDigest}</code></dd></div>}
+            {receipt.runManifest && <div><dt>Coverage</dt><dd>{receipt.runManifest.input.recordCount} VCF records · {receipt.runManifest.outputs.missingPositionCount} required positions missing</dd></div>}
             <div><dt>Blocking code</dt><dd>{receipt.blockingCode ?? 'None'}</dd></div>
             <div><dt>Transformations</dt><dd>{receipt.transformations.length ? receipt.transformations.join(' · ') : 'None'}</dd></div>
             <div><dt>Warnings</dt><dd>{receipt.warnings.length ? receipt.warnings.join(' · ') : 'None recorded'}</dd></div>
@@ -942,7 +1097,7 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
             </table>
           </div>
           <h3>Calculation trace</h3>
-          <ol className="pipeline-list">{result.trace.map((step) => <li key={step.step}><strong>{step.step}</strong><span>{step.detail}</span><small>{step.kind} · {step.ms} ms</small></li>)}</ol>
+          <ol className="pipeline-list">{result.trace.map((step) => <li key={step.step}><strong>{step.step}</strong><span>{step.detail}</span><small>{step.ms} ms</small></li>)}</ol>
         </details>
 
         <details className="evidence-group">
@@ -970,8 +1125,8 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
         </details>
 
         <details className="evidence-group">
-          <summary><span>4</span><strong>Daily-life rules</strong><small>Draft cached US-label summaries</small></summary>
-          <p><strong>Status:</strong> Validation data only. The cached US summaries still need source-text, product and formulation verification. Australian PI/CMI is not loaded.</p>
+          <summary><span>4</span><strong>Daily-life rules</strong><small>Pinned US prescribing-information records</small></summary>
+          <p>These records are pinned to a specific US product and version. Australian PI/CMI is not loaded.</p>
           {!selectedProtocol && <p>No medicine selected.</p>}
           {selectedProtocol && (
             <div className="table-wrap">
@@ -996,7 +1151,6 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
             <div><dt>Items that failed grounding checks</dt><dd>{review?.rejections.length ?? 0}</dd></div>
             <div><dt>Raw genome sent to AI</dt><dd>No</dd></div>
             <div><dt>Core clinical result</dt><dd>Deterministic; AI cannot mutate it</dd></div>
-            <div><dt>Current narrative method</dt><dd>{result.narrative.model}</dd></div>
           </dl>
           {review && review.items.length > 0 && (
             <>
@@ -1015,15 +1169,13 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
               <ul className="check-list">{review.rejections.map((item, index) => <li className="check-fail" key={`${item.kind}-${index}`}><strong>{item.kind} · {item.offendingToken}</strong><span>{item.reason}</span></li>)}</ul>
             </>
           )}
-          <h3>Software lineage checks — not clinical validation</h3>
+          <h3>Software lineage checks</h3>
+          <p>These checks verify processing and traceability, not clinical accuracy.</p>
           <ul className="check-list">{checks.map((check) => <li key={check.id} className={check.passed ? 'check-pass' : 'check-fail'}><strong>{check.passed ? 'PASS' : 'FAIL'} · {check.label}</strong><span>{check.detail}</span></li>)}</ul>
         </details>
 
         <details className="evidence-group">
-          <summary><span>6</span><strong>Raw export</strong><small>Candidate Australian scope and exact local previews</small></summary>
-          <div className="shared-limit"><strong>{AUSTRALIAN_SCOPE_DRAFT.status}</strong><span>Australian candidate list from {AUSTRALIAN_SCOPE_DRAFT.sourceCommit}; visible for review, not used in calculations.</span></div>
-          <p><strong>Candidate PGx scope:</strong> {AUSTRALIAN_SCOPE_DRAFT.pgxCandidates.join(', ')}.</p>
-          <p><strong>Current blockers:</strong> {AUSTRALIAN_SCOPE_DRAFT.blockers.join(' · ')}</p>
+          <summary><span>6</span><strong>Run export</strong><small>Exact inputs and engine output</small></summary>
           <h3>Run input</h3>
           <pre>{JSON.stringify({
             fileName: receipt.fileName,
@@ -1032,32 +1184,37 @@ function EvidencePanel({ result, receipt, selectedDrug, routine, review }: {
             sha256: receipt.sha256,
             detectedFormat: receipt.kind,
             assayType: receipt.assayType,
+            runManifest: receipt.runManifest ?? null,
             currentMedications: result.input.currentMedications,
+            currentMedicationsStatus: result.input.currentMedications.length ? 'provided' : 'confirmed_none',
             selectedDrug: selectedDrug || null,
-            confirmedRoutineAnswers: routine,
+            lifestyleProductConfirmed: productConfirmed,
+            confirmedRoutineAnswers: confirmedLifestyle,
           }, null, 2)}</pre>
-          <h3>Original file preview</h3>
+          <h3>{receipt.source === 'pharmcat-run' ? 'Generated report preview' : 'Original file preview'}</h3>
           <pre>{rawFilePreview}</pre>
           <h3>Engine result preview</h3>
           <pre>{rawResultPreview}</pre>
         </details>
       </div>
 
-      <div className="page-action"><button type="button" className="secondary-button" onClick={downloadBundle}>Download validation bundle</button></div>
+      <div className="page-action"><button type="button" className="secondary-button" onClick={downloadBundle}>Download run record</button></div>
     </section>
   )
 }
 
 export function ValidationConsole() {
   const [tab, setTab] = useState<TabId>('file')
-  const [mode, setMode] = useState<InputMode>('example')
+  const [mode, setMode] = useState<InputMode>('genome')
   const [exampleId, setExampleId] = useState(OFFICIAL_PHARMCAT_EXAMPLES[0].id)
-  const [medicines, setMedicines] = useState(OFFICIAL_PHARMCAT_EXAMPLES[0].suggestedMedications.join(', '))
-  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number; contents: string } | null>(null)
+  const [medicines, setMedicines] = useState('')
+  const [noCurrentMedicines, setNoCurrentMedicines] = useState(false)
+  const [uploadedFile, setUploadedFile] = useState<SelectedFile | null>(null)
   const [inspection, setInspection] = useState<InputInspection | null>(null)
   const [receipt, setReceipt] = useState<RunReceipt | null>(null)
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [selectedDrug, setSelectedDrug] = useState('')
+  const [lifestyleProductConfirmed, setLifestyleProductConfirmed] = useState(false)
   const [routine, setRoutine] = useState<RoutineAnswers>({ ...EMPTY_ROUTINE })
   const [clinicalReview, setClinicalReview] = useState<ClinicalReviewResult | null>(null)
   const [status, setStatus] = useState<RunStatus>('idle')
@@ -1072,6 +1229,7 @@ export function ValidationConsole() {
     setResult(null)
     setReceipt(null)
     setSelectedDrug('')
+    setLifestyleProductConfirmed(false)
     setRoutine({ ...EMPTY_ROUTINE })
     setClinicalReview(null)
     setError(null)
@@ -1081,6 +1239,9 @@ export function ValidationConsole() {
 
   const chooseMode = (nextMode: InputMode) => {
     setMode(nextMode)
+    setUploadedFile(null)
+    setInspection(null)
+    setNoCurrentMedicines(false)
     resetResult()
     if (nextMode === 'example') {
       setMedicines(example.suggestedMedications.join(', '))
@@ -1092,11 +1253,19 @@ export function ValidationConsole() {
   const chooseExample = (nextExample: OfficialPharmCATExample) => {
     setExampleId(nextExample.id)
     setMedicines(nextExample.suggestedMedications.join(', '))
+    setNoCurrentMedicines(false)
     resetResult()
   }
 
   const changeMedicines = (value: string) => {
     setMedicines(value)
+    if (value.trim()) setNoCurrentMedicines(false)
+    if (result || receipt) resetResult()
+  }
+
+  const confirmNoCurrentMedicines = (confirmed: boolean) => {
+    setNoCurrentMedicines(confirmed)
+    if (confirmed) setMedicines('')
     if (result || receipt) resetResult()
   }
 
@@ -1104,9 +1273,15 @@ export function ValidationConsole() {
     resetResult()
     setStatus('reading')
     try {
+      if (mode === 'genome') {
+        setUploadedFile({ file, contents: null })
+        setInspection(null)
+        setStatus('idle')
+        return
+      }
       const contents = await file.text()
       const checked = await inspectGenomeInput(file.name, contents)
-      setUploadedFile({ name: file.name, size: file.size, contents })
+      setUploadedFile({ file, contents })
       setInspection(checked)
       setStatus('idle')
     } catch (caught) {
@@ -1127,6 +1302,7 @@ export function ValidationConsole() {
       let sizeBytes: number
       const selectedAssay: AssayType = 'unknown'
       let source: RunReceipt['source']
+      let runManifest: PharmCATRunManifest | undefined
 
       if (mode === 'example') {
         const response = await fetch(example.reportUrl, { cache: 'no-store' })
@@ -1136,13 +1312,29 @@ export function ValidationConsole() {
         sizeBytes = new Blob([contents]).size
         source = 'official-example'
         checked = await inspectGenomeInput(fileName, contents)
-      } else {
+      } else if (mode === 'report') {
         if (!uploadedFile || !inspection) throw new Error('Choose a file first.')
-        fileName = uploadedFile.name
+        if (uploadedFile.contents === null) throw new Error('The report could not be read.')
+        fileName = uploadedFile.file.name
         contents = uploadedFile.contents
-        sizeBytes = uploadedFile.size
-        source = 'uploaded-file'
+        sizeBytes = uploadedFile.file.size
+        source = 'uploaded-report'
         checked = inspection
+      } else {
+        if (!uploadedFile || !isVcfFile(uploadedFile.file)) throw new Error('Choose a single-person VCF or VCF.GZ file first.')
+        const completed = await runGenome(uploadedFile.file, {
+          inputFormat: isVcfGzipFile(uploadedFile.file) ? 'vcf-gzip' : 'vcf',
+          genomeBuild: 'GRCh38',
+          onStatus: (event: PharmCATRunProgress) => {
+            setStatus(event.phase === 'uploading' ? 'uploading' : event.phase === 'analysing' ? 'analysing' : 'running')
+          },
+        })
+        fileName = uploadedFile.file.name
+        contents = JSON.stringify(completed.report)
+        sizeBytes = uploadedFile.file.size
+        source = 'pharmcat-run'
+        runManifest = completed.manifest
+        checked = await inspectGenomeInput(`${fileName}.pharmcat.report.json`, contents)
       }
 
       if (checked.status === 'blocked') {
@@ -1158,6 +1350,9 @@ export function ValidationConsole() {
       if (medicineCheck.unrecognised.length > 0) {
         throw new Error(`Medicine not recognised: ${medicineCheck.unrecognised.join(', ')}. Fix or remove it before checking the result.`)
       }
+      if (!currentMedicinesResolved(medicines, noCurrentMedicines)) {
+        throw new Error('Add current medicines and supplements, or confirm that you take none.')
+      }
       const currentMedications = medicineCheck.recognised
       const analysis = await runAnalysis({
         adapter,
@@ -1165,6 +1360,7 @@ export function ValidationConsole() {
           fileName,
           contents: checked.normalizedContents,
           assayType: selectedAssay,
+          ...(runManifest ? { verifiedRunManifest: runManifest } : {}),
         },
         input: {
           genomeFileName: fileName,
@@ -1172,21 +1368,30 @@ export function ValidationConsole() {
           currentMedications,
           pastTrials: [],
           careContext: BASE_CARE_CONTEXT,
+          confirmedLifestyle: {},
         },
       })
 
       setReceipt({
         ...checked,
+        ...(runManifest ? {
+          sha256: runManifest.input.sha256,
+          warnings: [],
+          transformations: [],
+          genomeBuild: runManifest.input.genomeBuild,
+        } : {}),
         source,
         fileName,
         sizeBytes,
         contents,
         assayType: selectedAssay,
+        runManifest,
         exampleId: mode === 'example' ? example.id : undefined,
         sourceUrl: mode === 'example' ? example.reportUrl : undefined,
       })
       setResult(analysis)
       setSelectedDrug('')
+      setLifestyleProductConfirmed(false)
       setRoutine({ ...EMPTY_ROUTINE })
       setClinicalReview(null)
       setStatus('complete')
@@ -1199,28 +1404,28 @@ export function ValidationConsole() {
 
   const openDailyLife = (drug: string) => {
     setSelectedDrug(drug)
+    setLifestyleProductConfirmed(false)
     setRoutine({ ...EMPTY_ROUTINE })
     setClinicalReview(null)
     setTab('daily')
   }
 
   const tabs: Array<{ id: TabId; label: string; disabled: boolean }> = [
-    { id: 'file', label: 'File', disabled: false },
-    { id: 'genes', label: 'Genes', disabled: !result },
+    { id: 'file', label: 'DNA', disabled: false },
+    { id: 'genes', label: 'Gene results', disabled: !result },
     { id: 'medicines', label: 'Medicines', disabled: !result },
     { id: 'daily', label: 'Daily life', disabled: !result },
     { id: 'ai', label: 'AI review', disabled: !result },
-    { id: 'evidence', label: 'Evidence', disabled: !result },
+    { id: 'evidence', label: 'Sources', disabled: !result },
   ]
 
   return (
     <main className="app-shell">
       <header className="app-header">
-        <div className="brand"><span className="brand-mark" aria-hidden="true">M</span><strong>Antidepressant PGx</strong></div>
-        <span className="build-boundary">Validation build · not for treatment decisions</span>
+        <div className="brand"><strong>Antidepressant PGx</strong></div>
       </header>
 
-      <nav className="tab-bar" role="tablist" aria-label="Validation steps">
+      <nav className="tab-bar" role="tablist" aria-label="Product steps">
         {tabs.map((item) => (
           <button
             type="button"
@@ -1237,14 +1442,6 @@ export function ValidationConsole() {
         ))}
       </nav>
 
-      {result && receipt && (
-        <div className="run-context">
-          <strong>{receipt.source === 'official-example' ? 'Official PharmCAT example' : 'Uploaded report · origin not verified'}</strong>
-          <span>PharmCAT {result.pharmcat.pharmcatVersion}</span>
-          <span>Medicines: {result.input.currentMedications.length ? result.input.currentMedications.map(capitalise).join(', ') : 'not provided'}</span>
-        </div>
-      )}
-
       <div id={`${tab}-panel`} role="tabpanel">
         {tab === 'file' && (
           <FilePanel
@@ -1254,6 +1451,8 @@ export function ValidationConsole() {
             onExample={chooseExample}
             medicines={medicines}
             onMedicines={changeMedicines}
+            noCurrentMedicines={noCurrentMedicines}
+            onNoCurrentMedicines={confirmNoCurrentMedicines}
             uploadedFile={uploadedFile}
             inspection={inspection}
             status={status}
@@ -1262,20 +1461,22 @@ export function ValidationConsole() {
             onRun={() => void run()}
           />
         )}
-        {tab === 'genes' && result && <GenesPanel result={result} onNext={() => setTab('medicines')} />}
+        {tab === 'genes' && result && receipt && <GenesPanel result={result} runManifest={receipt.runManifest} onNext={() => setTab('medicines')} />}
         {tab === 'medicines' && result && <MedicinesPanel result={result} onExplore={openDailyLife} />}
         {tab === 'daily' && result && (
           <DailyLifePanel
             result={result}
             selectedDrug={selectedDrug}
-            onSelectedDrug={(drug) => { setSelectedDrug(drug); setRoutine({ ...EMPTY_ROUTINE }); setClinicalReview(null) }}
+            onSelectedDrug={(drug) => { setSelectedDrug(drug); setLifestyleProductConfirmed(false); setRoutine({ ...EMPTY_ROUTINE }); setClinicalReview(null) }}
+            productConfirmed={lifestyleProductConfirmed}
+            onProductConfirmed={(confirmed) => { setLifestyleProductConfirmed(confirmed); setRoutine({ ...EMPTY_ROUTINE }); setClinicalReview(null) }}
             routine={routine}
             onRoutine={(nextRoutine) => { setRoutine(nextRoutine); setClinicalReview(null) }}
             onNext={() => setTab('ai')}
           />
         )}
-        {tab === 'ai' && result && receipt && <AiReviewPanel result={result} selectedDrug={selectedDrug} routine={routine} review={clinicalReview} trustedContext={receipt.source === 'official-example'} onReview={setClinicalReview} />}
-        {tab === 'evidence' && result && receipt && <EvidencePanel result={result} receipt={receipt} selectedDrug={selectedDrug} routine={routine} review={clinicalReview} />}
+        {tab === 'ai' && result && receipt && <AiReviewPanel result={result} selectedDrug={lifestyleProductConfirmed ? selectedDrug : ''} routine={routine} review={clinicalReview} attestedRunId={receipt.source === 'pharmcat-run' ? receipt.runManifest?.runId ?? null : null} onReview={setClinicalReview} />}
+        {tab === 'evidence' && result && receipt && <EvidencePanel result={result} receipt={receipt} selectedDrug={selectedDrug} productConfirmed={lifestyleProductConfirmed} routine={routine} review={clinicalReview} />}
       </div>
     </main>
   )

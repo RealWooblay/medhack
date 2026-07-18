@@ -1,20 +1,52 @@
 /**
- * Phenoconversion reference data — extension 1, the technical centrepiece.
+ * CYP modifier data used for conservative phenoconversion checks.
  *
- * Classifications are taken from the FDA healthcare-professional examples table. Absence
- * from that non-exhaustive table is kept distinct from evidence of no interaction.
- *
- * Two classifications here are worth reading twice, because they are the reason the demo
- * patient's result looks the way it does:
- *
- *  - The captured table classifies fluoxetine as a strong inhibitor of CYP2D6 and CYP2C19.
- *    This engine may show the CYP2D6 research-convention estimate with uncertainty. CYP2C19
- *    is flagged as unresolved; neither result replaces the imported PharmCAT guidance.
- *  - CYP2D6 has no clinically relevant inducers at all. The engine never shifts a CYP2D6
- *    phenotype upward on the basis of a co-medication, because there is nothing to shift it.
+ * The lists are generated from the complete CYP2D6/CYP2C19/CYP2B6 inhibitor and inducer
+ * columns of a dated FDA table snapshot. They are not hand-maintained drug lists. The FDA
+ * describes its own table as examples rather than an exhaustive interaction database, so a
+ * missing drug is always "no classification in this source", never "no interaction".
  */
 
+import source from './sources/fda-cyp-modifiers.json'
 import type { ModifierEffect } from '../engine/types'
+
+type SourceEffect = ModifierEffect | 'weak_inducer'
+
+interface SourceModifier {
+  drug: string
+  effects: Array<{ gene: string; effect: SourceEffect }>
+}
+
+interface ModifierSource {
+  schemaVersion: number
+  authority: string
+  title: string
+  sourceUrl: string
+  contentCurrentAsOf: string
+  scope: string[]
+  completeness: string
+  modifiers: SourceModifier[]
+  sourceDigestSha256: string
+}
+
+const snapshot = source as unknown as ModifierSource
+
+if (
+  snapshot.schemaVersion !== 1 ||
+  !/^\d{4}-\d{2}-\d{2}$/.test(snapshot.contentCurrentAsOf) ||
+  !/^[0-9a-f]{64}$/i.test(snapshot.sourceDigestSha256)
+) {
+  throw new Error('The FDA CYP modifier snapshot is not versioned or integrity-labelled.')
+}
+
+export const FDA_CYP_SOURCE = {
+  authority: snapshot.authority,
+  title: snapshot.title,
+  sourceUrl: snapshot.sourceUrl,
+  contentCurrentAsOf: snapshot.contentCurrentAsOf,
+  completeness: snapshot.completeness,
+  sourceDigestSha256: snapshot.sourceDigestSha256,
+} as const
 
 export interface EnzymeModifierTable {
   enzyme: string
@@ -23,93 +55,57 @@ export interface EnzymeModifierTable {
   weakInhibitors: string[]
   strongInducers: string[]
   moderateInducers: string[]
-  /** Rendered in the clinician view wherever this enzyme is discussed. */
-  note?: string
+  /** Retained for source completeness; no phenotype operation is applied. */
+  weakInducers: string[]
+  note: string
   citationIds: string[]
 }
 
+function names(gene: string, effect: SourceEffect): string[] {
+  return snapshot.modifiers
+    .filter((row) => row.effects.some((item) => item.gene === gene && item.effect === effect))
+    .map((row) => row.drug)
+    .sort((a, b) => a.localeCompare(b))
+}
+
+function table(gene: string, note: string): EnzymeModifierTable {
+  return {
+    enzyme: gene,
+    strongInhibitors: names(gene, 'strong_inhibitor'),
+    moderateInhibitors: names(gene, 'moderate_inhibitor'),
+    weakInhibitors: names(gene, 'weak_inhibitor'),
+    strongInducers: names(gene, 'strong_inducer'),
+    moderateInducers: names(gene, 'moderate_inducer'),
+    weakInducers: names(gene, 'weak_inducer'),
+    note,
+    citationIds: ['fda-interaction-table'],
+  }
+}
+
 export const ENZYME_MODIFIERS: EnzymeModifierTable[] = [
-  {
-    enzyme: 'CYP2D6',
-    strongInhibitors: ['bupropion', 'fluoxetine', 'paroxetine', 'quinidine', 'terbinafine'],
-    moderateInhibitors: ['abiraterone', 'cinacalcet', 'duloxetine', 'lorcaserin', 'mirabegron', 'rolapitant'],
-    weakInhibitors: ['amiodarone', 'celecoxib', 'cimetidine', 'escitalopram', 'sertraline'],
-    strongInducers: [],
-    moderateInducers: [],
-    note:
-      'CYP2D6 is not appreciably inducible — CPIC states that there does not appear to be any clinically ' +
-      'relevant induction of CYP2D6 activity by any medication, and the FDA table lists no CYP2D6 inducers ' +
-      'of any strength. Sertraline inhibits CYP2D6 weakly and dose-dependently; it is not in the FDA ' +
-      'moderate-inhibitor list, so this engine applies no adjustment for it.',
-    citationIds: ['fda-interaction-table', 'cpic-activity-score'],
-  },
-  {
-    enzyme: 'CYP2C19',
-    strongInhibitors: ['fluconazole', 'fluoxetine', 'fluvoxamine', 'ticlopidine'],
-    moderateInhibitors: ['cenobamate', 'felbamate', 'voriconazole'],
-    weakInhibitors: ['omeprazole'],
-    strongInducers: ['rifampin'],
-    moderateInducers: ['apalutamide', 'efavirenz', 'enzalutamide', 'phenytoin'],
-    note:
-      'The FDA table lists omeprazole as a weak CYP2C19 inhibitor. Esomeprazole is absent from the ' +
-      'captured table and is not inferred here.',
-    citationIds: ['fda-interaction-table'],
-  },
-  {
-    enzyme: 'CYP2B6',
-    strongInhibitors: [],
-    moderateInhibitors: [],
-    weakInhibitors: ['clopidogrel', 'ticlopidine'],
-    strongInducers: ['carbamazepine'],
-    moderateInducers: ['efavirenz', 'rifampin'],
-    note:
-      'The FDA table lists no strong or moderate CYP2B6 inhibitors. It lists clopidogrel and ticlopidine ' +
-      'as weak inhibitors, so this build records them without applying a phenotype estimate.',
-    citationIds: ['fda-interaction-table'],
-  },
-  {
-    /**
-     * Not a CPIC-actionable antidepressant gene, so it never drives a dosing recommendation
-     * here. It is carried because St John's Wort induction of CYP3A4 is a real, common and
-     * citable interaction that belongs in the lifestyle layer. FDA reports the combined
-     * CYP3A pathway rather than CYP3A4 and CYP3A5 separately.
-     */
-    enzyme: 'CYP3A',
-    strongInhibitors: ['clarithromycin', 'itraconazole', 'ketoconazole', 'nefazodone', 'ritonavir', 'voriconazole'],
-    moderateInhibitors: ['aprepitant', 'ciprofloxacin', 'diltiazem', 'erythromycin', 'fluconazole', 'verapamil'],
-    weakInhibitors: ['cimetidine'],
-    strongInducers: ['carbamazepine', 'phenytoin', 'rifampin', "St John's Wort"],
-    moderateInducers: ['efavirenz', 'phenobarbital'],
-    citationIds: ['fda-interaction-table'],
-  },
-  {
-    enzyme: 'CYP1A2',
-    strongInhibitors: ['fluvoxamine'],
-    moderateInhibitors: ['ciprofloxacin', 'oral contraceptive', 'mexiletine'],
-    weakInhibitors: [],
-    strongInducers: [],
-    moderateInducers: ['phenytoin', 'rifampin'],
-    note:
-      'Ciprofloxacin is classified as moderate in the FDA table, with a note that it can behave as a strong ' +
-      'inhibitor for highly sensitive substrates. Tobacco smoke is a clinically significant CYP1A2 inducer, but it is a behaviour rather than a ' +
-      'medication, so it is handled in the lifestyle layer instead of here.',
-    citationIds: ['fda-interaction-table'],
-  },
+  table(
+    'CYP2D6',
+    'The dated FDA source contains no CYP2D6 inducer examples. Weak inhibitors are recorded but do not produce a modeled phenotype.',
+  ),
+  table(
+    'CYP2C19',
+    'No numeric or categorical CYP2C19 phenoconversion rule is applied. Classified modifiers are shown as unresolved context only.',
+  ),
+  table(
+    'CYP2B6',
+    'No numeric or categorical CYP2B6 phenoconversion rule is applied. Classified modifiers are shown as unresolved context only.',
+  ),
 ]
 
 /**
- * Multiplier applied to a genetic activity score.
- *
- * Research convention described in the CPIC antidepressant supplement: a strong inhibitor
- * is modeled with CYP2D6 activity score 0 and a moderate inhibitor with score x 0.5. The
- * result is an uncertain estimate in this build, not a validated prescribing phenotype.
+ * Research-convention factors for CYP2D6 only. The result is an explicitly uncertain
+ * estimate and never replaces the imported PharmCAT phenotype or recommendation.
  */
 export const EFFECT_MULTIPLIERS: Record<ModifierEffect, number> = {
   strong_inhibitor: 0,
   moderate_inhibitor: 0.5,
   weak_inhibitor: 1,
   moderate_inducer: 1,
-  // No numeric inducer conversion is claimed; these values are never used as estimates.
   strong_inducer: 1,
 }
 
@@ -121,7 +117,6 @@ export const EFFECT_LABELS: Record<ModifierEffect, string> = {
   strong_inducer: 'strong inducer',
 }
 
-/** Ranked worst-to-best so the engine can pick a single dominant modifier. */
 const EFFECT_SEVERITY: ModifierEffect[] = [
   'strong_inhibitor',
   'strong_inducer',
@@ -135,26 +130,20 @@ export function severityRank(effect: ModifierEffect): number {
 }
 
 export function tableFor(enzyme: string): EnzymeModifierTable | undefined {
-  return ENZYME_MODIFIERS.find((t) => t.enzyme === enzyme)
+  return ENZYME_MODIFIERS.find((entry) => entry.enzyme === enzyme)
 }
 
-/** How does `drug` act on `enzyme`, if at all? */
+/** FDA classification for this drug/enzyme in the pinned snapshot, if represented. */
 export function effectOf(drug: string, enzyme: string): ModifierEffect | null {
-  const table = tableFor(enzyme)
-  if (!table) return null
-  const d = drug.toLowerCase()
-  const has = (list: string[]) => list.some((x) => x.toLowerCase() === d)
+  const entry = tableFor(enzyme)
+  if (!entry) return null
+  const value = drug.trim().toLowerCase()
+  const has = (list: string[]) => list.some((candidate) => candidate.toLowerCase() === value)
 
-  if (has(table.strongInhibitors)) return 'strong_inhibitor'
-  if (has(table.moderateInhibitors)) return 'moderate_inhibitor'
-  if (has(table.strongInducers)) return 'strong_inducer'
-  if (has(table.moderateInducers)) return 'moderate_inducer'
-  if (has(table.weakInhibitors)) return 'weak_inhibitor'
+  if (has(entry.strongInhibitors)) return 'strong_inhibitor'
+  if (has(entry.moderateInhibitors)) return 'moderate_inhibitor'
+  if (has(entry.strongInducers)) return 'strong_inducer'
+  if (has(entry.moderateInducers)) return 'moderate_inducer'
+  if (has(entry.weakInhibitors)) return 'weak_inhibitor'
   return null
-}
-
-/** Every enzyme this drug acts on, used for the interaction panel. */
-export function effectsOfDrug(drug: string): Array<{ enzyme: string; effect: ModifierEffect }> {
-  return ENZYME_MODIFIERS.map((t) => ({ enzyme: t.enzyme, effect: effectOf(drug, t.enzyme) }))
-    .filter((e): e is { enzyme: string; effect: ModifierEffect } => e.effect !== null)
 }

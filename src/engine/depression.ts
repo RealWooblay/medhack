@@ -35,16 +35,8 @@ export const PHQ_FREQUENCY_LABELS: Record<PhqFrequency, string> = {
 export const DEFAULT_CARE_CONTEXT: CareContext = {
   checkIn: null,
   goals: [],
-  lifestyle: {
-    sleep: 'settled',
-    mealRoutine: 'regular',
-    dailySchedule: 'regular',
-    alcohol: 'none',
-    drivingOrMachinery: false,
-    missedDoses: 'rarely',
-    eatingDisorderHistory: false,
-  },
-  needsImmediateSupport: false,
+  lifestyle: {},
+  needsImmediateSupport: null,
 }
 
 function severityFor(score: number): DepressionSeverity {
@@ -75,7 +67,7 @@ export function scoreDepressionCheckIn(care: CareContext): DepressionSummary {
   const checkIn = care.checkIn
   const score = checkIn.responses.reduce<number>((sum, response) => sum + response, 0)
   const severity = severityFor(score)
-  const safetyResponsePositive = (checkIn.responses[8] ?? 0) > 0 || care.needsImmediateSupport
+  const safetyResponsePositive = (checkIn.responses[8] ?? 0) > 0 || care.needsImmediateSupport === true
 
   return {
     instrument: 'PHQ-9',

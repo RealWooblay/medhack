@@ -11,6 +11,7 @@ import type {
   DailyFitFact,
   DailyFitVerdict,
   DrugLifestyleMatch,
+  LifestyleContext,
   LifestyleProtocol,
 } from './types'
 
@@ -33,31 +34,36 @@ function fact(
 function headlineFor(verdict: DailyFitVerdict): string {
   switch (verdict) {
     case 'supports_routine':
-      return 'One recorded routine factor may be easier to plan'
+      return 'No conflict in the checked facts'
     case 'needs_planning':
-      return 'Could work, with a practical plan'
+      return 'A routine change is needed'
     case 'clinician_review':
-      return 'Raises a daily-life issue to review first'
+      return 'Check this before use'
     default:
-      return 'Not enough specific lifestyle evidence to compare'
+      return 'No matching lifestyle fact'
   }
 }
 
 export function matchLifestyle(
   protocol: LifestyleProtocol,
   care: CareContext,
+  /** When supplied, only answers explicitly present here may produce a match fact. */
+  confirmedLifestyle?: Partial<LifestyleContext>,
 ): DrugLifestyleMatch {
   const facts: DailyFitFact[] = []
-  const unknowns = [
-    'This comparison does not predict whether the medicine will improve depression.',
-    'Weight, sexual effects and comparative efficacy are not ranked because the current data is not head-to-head evidence.',
-  ]
+  const unknowns: string[] = []
   const add = (value: DailyFitFact | null) => {
     if (value) facts.push(value)
   }
 
   const protocolItems = [...protocol.items, ...protocol.interactionItems]
   const byId = (ids: string[]) => ids.find((id) => protocolItems.some((item) => item.id === id))
+  const confirmed = (key: keyof LifestyleContext): boolean => Object.prototype.hasOwnProperty.call(
+    confirmedLifestyle ?? care.lifestyle,
+    key,
+  )
+  const value = <K extends keyof LifestyleContext>(key: K): LifestyleContext[K] | undefined =>
+    confirmedLifestyle === undefined ? care.lifestyle[key] : confirmedLifestyle[key]
 
   const strictFoodId = byId(['vilazodone-food', 'venlafaxine-food-time'])
   const flexibleFoodId = byId([
@@ -65,58 +71,60 @@ export function matchLifestyle(
     'desvenlafaxine-time', 'duloxetine-food', 'vortioxetine-food',
   ])
   const foodId = strictFoodId ?? flexibleFoodId
-  if (foodId) {
-    const needsMealPlan = Boolean(strictFoodId) && care.lifestyle.mealRoutine !== 'regular'
+  if (foodId && confirmed('mealRoutine')) {
+    const needsMealPlan = Boolean(strictFoodId) && value('mealRoutine') !== 'regular'
     add(fact(protocol, foodId, {
       dimension: 'meals',
       verdict: needsMealPlan ? 'needs_planning' : 'supports_routine',
-      title: needsMealPlan ? 'The food instruction needs a reliable meal plan' : 'The recorded meal pattern fits this captured food instruction',
+      title: needsMealPlan
+        ? 'Take this with food'
+        : strictFoodId
+          ? 'Your meal routine fits the food instruction'
+          : 'Food timing is flexible',
       detail: needsMealPlan
-        ? 'Meals were recorded as irregular or variable, while this draft label summary says the medicine is taken with food.'
-        : 'This match checks only the captured food instruction; it is not a medicine-safety finding.',
+        ? 'You recorded irregular or variable meals. The label says this medicine is taken with food.'
+        : strictFoodId
+          ? 'You recorded regular meals and the label says this medicine is taken with food.'
+          : 'The label allows this medicine with or without food.',
     }))
   }
 
   const timingItem = protocolItems.find((item) => item.category === 'timing')
-  if (timingItem) {
+  if (timingItem && confirmed('dailySchedule')) {
     const flexibleTiming = ['escitalopram-timing', 'citalopram-daily'].includes(timingItem.id)
-    const needsTimingPlan = care.lifestyle.dailySchedule !== 'regular' && !flexibleTiming
+    const needsTimingPlan = value('dailySchedule') !== 'regular' && !flexibleTiming
     add(fact(protocol, timingItem.id, {
       dimension: 'schedule',
       verdict: needsTimingPlan ? 'needs_planning' : 'supports_routine',
-      title: needsTimingPlan ? 'The timing instruction needs a routine plan' : 'The recorded schedule can be planned within this timing instruction',
+      title: needsTimingPlan ? 'Choose a reliable dose time' : 'The dose timing fits your schedule',
       detail: needsTimingPlan
-        ? 'A variable or shift-work schedule was recorded and this draft label summary has a specific time or consistency requirement.'
-        : 'A consistent plan still needs to be agreed with the prescriber.',
+        ? 'You recorded a variable or shift-work schedule. This label has a specific dose-time instruction.'
+        : flexibleTiming
+          ? 'The label allows a dose time that can fit your schedule.'
+          : 'You recorded a regular schedule for this dose-time instruction.',
     }))
   }
 
-  if (care.lifestyle.sleep === 'trouble_sleeping') {
-    unknowns.push(
-      'Trouble sleeping was recorded, but this evidence snapshot does not compare antidepressants by their effect on sleep.',
-    )
-  }
-
-  if (protocolItems.some((item) => item.id === 'mirtazapine-somnolence')) {
-    const excessiveSleep = care.lifestyle.sleep === 'sleeping_too_much'
+  if (protocolItems.some((item) => item.id === 'mirtazapine-somnolence') && confirmed('sleep')) {
+    const excessiveSleep = value('sleep') === 'sleeping_too_much'
     if (excessiveSleep) {
       add(fact(protocol, 'mirtazapine-somnolence', {
         dimension: 'sleep',
         verdict: 'clinician_review',
-        title: 'The somnolence warning matches the recorded sleep concern',
-        detail: 'Sleeping too much was recorded and the draft mirtazapine summary includes a somnolence warning.',
+        title: 'Sleepiness warning applies',
+        detail: 'You recorded sleeping too much. The mirtazapine label warns about somnolence.',
       }))
     } else {
-      unknowns.push('The mirtazapine somnolence warning cannot predict how the medicine would affect the recorded sleep pattern.')
+      unknowns.push('The label cannot predict how mirtazapine would affect your sleep.')
     }
   }
 
   const alcoholItem = protocolItems.find((item) => item.id.includes('alcohol'))
-  if (alcoholItem) {
-    const usesAlcohol = care.lifestyle.alcohol !== 'none'
+  if (alcoholItem && confirmed('alcohol')) {
+    const usesAlcohol = value('alcohol') !== 'none'
     const heavyOnly = alcoholItem.id === 'duloxetine-heavy-alcohol'
     if (heavyOnly && usesAlcohol) {
-      unknowns.push('The alcohol answer records frequency, not amount, so it cannot establish whether the duloxetine heavy-intake warning applies.')
+      unknowns.push('Alcohol frequency does not show whether the duloxetine heavy-use warning applies.')
     } else {
       const verdict: Exclude<DailyFitVerdict, 'unknown'> = !usesAlcohol
         ? 'supports_routine'
@@ -127,35 +135,37 @@ export function matchLifestyle(
         dimension: 'alcohol',
         verdict,
         title: !usesAlcohol
-          ? 'No alcohol use was recorded against this warning'
-          : 'The recorded alcohol use needs review against this warning',
-        detail: 'This is a match to one draft drug-specific warning, not a general safety assessment.',
+          ? 'No alcohol conflict recorded'
+          : 'Alcohol warning applies',
+        detail: !usesAlcohol
+          ? 'You recorded no alcohol use.'
+          : alcoholItem.id === 'bupropion-alcohol'
+            ? 'The bupropion label says to minimise or avoid alcohol and warns against abruptly stopping heavy use.'
+            : 'You recorded alcohol use and this medicine has a label warning about alcohol.',
       }))
     }
   }
 
   const drivingId = `${protocol.drug}-driving`
-  if (protocolItems.some((item) => item.id === drivingId)) {
+  if (protocolItems.some((item) => item.id === drivingId) && confirmed('drivingOrMachinery')) {
     add(fact(protocol, drivingId, {
       dimension: 'driving',
-      verdict: care.lifestyle.drivingOrMachinery ? 'needs_planning' : 'supports_routine',
-      title: care.lifestyle.drivingOrMachinery ? 'The driving precaution needs a plan' : 'No driving or machinery use was recorded against this precaution',
-      detail: 'This checks only the captured impairment precaution for this medicine.',
+      verdict: value('drivingOrMachinery') ? 'needs_planning' : 'supports_routine',
+      title: value('drivingOrMachinery') ? 'Driving precaution applies' : 'No driving conflict recorded',
+      detail: value('drivingOrMachinery')
+        ? 'You recorded driving or machinery use. The label warns about possible impairment.'
+        : 'You recorded no usual driving or machinery use.',
     }))
   }
 
-  if (care.lifestyle.missedDoses !== 'rarely') {
-    unknowns.push(
-      'Missed doses were recorded. This build does not score one medicine as more forgiving than another; ask for an adherence plan.',
-    )
-  }
-
-  if (protocolItems.some((item) => item.id === 'bupropion-eating-disorder')) {
+  if (protocolItems.some((item) => item.id === 'bupropion-eating-disorder') && confirmed('eatingDisorderHistory')) {
     add(fact(protocol, 'bupropion-eating-disorder', {
       dimension: 'medical_history',
-      verdict: care.lifestyle.eatingDisorderHistory ? 'clinician_review' : 'supports_routine',
-      title: care.lifestyle.eatingDisorderHistory ? 'The recorded history matches this contraindication' : 'This contraindication was not reported in the answer',
-      detail: 'This checks one captured history item only and does not establish that bupropion is suitable.',
+      verdict: value('eatingDisorderHistory') ? 'clinician_review' : 'supports_routine',
+      title: value('eatingDisorderHistory') ? 'Bupropion is contraindicated with this history' : 'No anorexia or bulimia history recorded',
+      detail: value('eatingDisorderHistory')
+        ? 'You reported current or past anorexia or bulimia, which the bupropion label lists as a contraindication.'
+        : 'You did not report current or past anorexia or bulimia.',
     }))
   }
 

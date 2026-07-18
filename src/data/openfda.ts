@@ -1,92 +1,114 @@
 /**
- * openFDA drug label excerpts.
+ * Versioned prescribing-information evidence.
  *
- * Captured from `api.fda.gov/drug/label.json` and stored under `sources/` rather than
- * fetched at runtime, for two reasons: a demo should not fail because a public API is rate
- * limiting, and a citation should point at the exact text that was read when the rule was
- * written, not at whatever the endpoint returns today.
- *
- * Every excerpt registers its own citation, section by section, so a rule can cite
- * "FDA label §2 Dosage and Administration" for sertraline specifically rather than
- * gesturing at a class.
+ * The runtime never queries openFDA and never cites a floating `generic_name&limit=1`
+ * result. Each record is pinned to one SPL set_id and version id. Only exact evidence
+ * phrases reviewed for a lifestyle rule enter the browser bundle. Refreshing the snapshot
+ * is an explicit operation performed by `scripts/sync-clinical-sources.mjs`; that script
+ * fails if a reviewed phrase is no longer present in its pinned source record.
  */
 
-import ssri from './sources/openfda-ssri.json'
-import snri from './sources/openfda-snri-atypical.json'
-import protocolDrugs from './sources/openfda-protocol-drugs.json'
+import source from './sources/fda-labels.json'
 import { registerLabelCitation } from './citations'
 
-export interface LabelExcerpts {
+export interface LabelEvidence {
+  sourceField: string
+  exactText: string[]
+}
+
+export interface LabelRecord {
   generic: string
-  brands: string[]
-  fetched: boolean
+  setId: string
+  versionId: string
+  effectiveTime: string | null
+  openFdaApiCurrentAsOf: string | null
+  manufacturer: string | null
+  productName: string | null
+  dosageForm: string
+  productNdc: string
+  route: string[]
+  productType: string | null
+  applicationNumber: string | null
   sourceUrl: string
-  dosage_and_administration?: string
-  drug_interactions?: string
-  warnings_and_cautions?: string
-  food_effect?: string
-  common_adverse_reactions?: string
-  boxed_warning?: string
+  apiUrl: string
+  ndcApiUrl: string
+  evidence: Record<string, LabelEvidence>
+  sourceDigestSha256: string
 }
 
-export type LabelSection = Exclude<keyof LabelExcerpts, 'generic' | 'brands' | 'fetched' | 'sourceUrl'>
-
-const SECTION_LABEL: Record<LabelSection, string> = {
-  dosage_and_administration: '§2 Dosage and Administration',
-  drug_interactions: '§7 Drug Interactions',
-  warnings_and_cautions: '§5 Warnings and Precautions',
-  food_effect: '§12.3 Clinical Pharmacology',
-  common_adverse_reactions: '§6 Adverse Reactions',
-  boxed_warning: 'Boxed Warning',
+interface LabelSource {
+  schemaVersion: number
+  authority: string
+  selectionPolicy: string
+  labels: LabelRecord[]
 }
 
-const ALL_SECTIONS = Object.keys(SECTION_LABEL) as LabelSection[]
+const snapshot = source as unknown as LabelSource
 
-const raw: LabelExcerpts[] = [
-  ...(ssri.drugs as LabelExcerpts[]),
-  ...(snri.drugs as LabelExcerpts[]),
-  ...(protocolDrugs.drugs as LabelExcerpts[]),
-]
+if (snapshot.schemaVersion !== 1) {
+  throw new Error(`Unsupported FDA label evidence schema: ${snapshot.schemaVersion}`)
+}
 
-export const LABELS: Record<string, LabelExcerpts> = {}
+export const LABELS: Record<string, LabelRecord> = Object.fromEntries(
+  snapshot.labels.map((label) => [label.generic.toLowerCase(), label]),
+)
 
-for (const label of raw) {
-  if (!label.fetched) continue
-  const key = label.generic.toLowerCase()
-  LABELS[key] = label
+export const FDA_LABEL_SOURCE = {
+  authority: snapshot.authority,
+  selectionPolicy: snapshot.selectionPolicy,
+  recordCount: snapshot.labels.length,
+} as const
 
-  for (const section of ALL_SECTIONS) {
-    const text = label[section]
-    if (!text) continue
+function humanDate(value: string | null): string {
+  if (!value || !/^\d{8}$/.test(value)) return 'revision date not reported'
+  return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`
+}
+
+for (const label of snapshot.labels) {
+  if (!/^[0-9a-f-]{36}$/i.test(label.setId) || !/^[0-9a-f-]{36}$/i.test(label.versionId)) {
+    throw new Error(`Unpinned FDA label evidence record: ${label.generic}`)
+  }
+  if (!/^[0-9a-f]{64}$/i.test(label.sourceDigestSha256)) {
+    throw new Error(`FDA label evidence record has no valid digest: ${label.generic}`)
+  }
+
+  for (const [evidenceId, evidence] of Object.entries(label.evidence)) {
+    if (!evidence.sourceField || !evidence.exactText.length || evidence.exactText.some((text) => !text.trim())) {
+      throw new Error(`Incomplete FDA label evidence: ${evidenceId}`)
+    }
     registerLabelCitation({
-      id: labelCitationId(label.generic, section),
-      label: `FDA label ${SECTION_LABEL[section]}`,
+      id: labelEvidenceCitationId(evidenceId),
+      label: `US label · ${humanDate(label.effectiveTime)}`,
       kind: 'fda-label',
-      title: `US prescribing information for ${label.generic} — ${SECTION_LABEL[section]}: "${text.trim()}"`,
+      title:
+        `${label.productName ?? label.generic} — ${label.dosageForm}; NDC ${label.productNdc}; ` +
+        `${label.manufacturer ?? 'manufacturer not reported'}; ` +
+        `SPL set ${label.setId}, version ${label.versionId}, field ${evidence.sourceField}. ` +
+        `Exact evidence: “${evidence.exactText.join(' … ')}”`,
       url: label.sourceUrl,
-      section: SECTION_LABEL[section],
+      section: evidence.sourceField,
+      year: label.effectiveTime?.slice(0, 4),
     })
   }
 }
 
-export function labelCitationId(generic: string, section: LabelSection): string {
-  return `fda-label-${generic.toLowerCase().replace(/\s+/g, '-')}-${section.replace(/_/g, '-')}`
+export function labelEvidenceCitationId(evidenceId: string): string {
+  return `fda-label-evidence-${evidenceId}`
 }
 
-export function labelFor(generic: string): LabelExcerpts | undefined {
+export function labelFor(generic: string): LabelRecord | undefined {
   return LABELS[generic.toLowerCase()]
 }
 
-/** True when we actually captured that section, so a rule can avoid citing a gap. */
-export function hasLabelSection(generic: string, section: LabelSection): boolean {
-  return Boolean(labelFor(generic)?.[section])
+export function evidenceFor(evidenceId: string): LabelEvidence | null {
+  for (const label of Object.values(LABELS)) {
+    const evidence = label.evidence[evidenceId]
+    if (evidence) return evidence
+  }
+  return null
 }
 
-/**
- * Cite a label section only if it was actually captured. Returns an empty array otherwise,
- * which causes the rule carrying it to fall back to its other sources rather than render a
- * badge that points at nothing.
- */
-export function citeLabel(generic: string, section: LabelSection): string[] {
-  return hasLabelSection(generic, section) ? [labelCitationId(generic, section)] : []
+/** A rule without a matching pinned evidence record is omitted from runtime output. */
+export function citeLabelEvidence(evidenceId: string): string[] {
+  return evidenceFor(evidenceId) ? [labelEvidenceCitationId(evidenceId)] : []
 }

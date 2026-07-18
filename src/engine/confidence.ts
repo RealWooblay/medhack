@@ -12,20 +12,13 @@
 
 import type { AssayType, Claim, ConfidenceLevel, GeneCall, GeneConfidence } from './types'
 
-const ASSAY_LABEL: Record<AssayType, string> = {
-  'consumer-array': 'consumer SNP array export',
-  wgs: 'whole genome sequencing',
-  'targeted-pgx': 'targeted pharmacogenomic panel',
-  unknown: 'test with no validated assay manifest',
-}
-
 const HEADLINE: Record<ConfidenceLevel, string> = {
   high: 'high confidence',
   moderate: 'moderate confidence',
   low: 'low confidence',
 }
 
-export function scoreGene(gene: GeneCall, assayType: AssayType): GeneConfidence {
+export function scoreGene(gene: GeneCall, _assayType: AssayType): GeneConfidence {
   const reasons: Claim[] = []
 
   // 1. Structural variation the assay cannot see. This dominates everything else.
@@ -72,11 +65,12 @@ export function scoreGene(gene: GeneCall, assayType: AssayType): GeneConfidence 
     })
   }
 
-  if (!reasons.length && gene.coverageScope === 'pharmcat-complete') {
+  if (!reasons.length && gene.coverageScope === 'pharmcat-measured') {
     reasons.push({
       text:
-        `All positions PharmCAT expects for ${gene.gene} were present, and ${gene.gene} has no clinically ` +
-        `significant structural variation to resolve. This diplotype calls reliably from a ${ASSAY_LABEL[assayType]}.`,
+        `All positions checked by the governed PharmCAT run for ${gene.gene} were present, and ${gene.gene} ` +
+        'has no clinically significant structural variation to resolve. This is a caller-data completeness ' +
+        'label, not a calibrated probability or laboratory-quality certification.',
       citationIds: ['pharmcat'],
     })
   }
