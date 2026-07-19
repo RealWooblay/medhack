@@ -697,7 +697,7 @@ function MedicinesPanel({ result, onExplore }: { result: AnalysisResult; onExplo
 
       <MedicineGroup title="Discuss a different medicine" drugs={alternatives} result={result} onExplore={onExplore} />
       <MedicineGroup title="Dose may need changing" drugs={doseReview} result={result} onExplore={onExplore} />
-      <MedicineGroup title="No gene-based dose change" drugs={usual} result={result} onExplore={onExplore} />
+      <MedicineGroup title="Usual starting dose" drugs={usual} result={result} onExplore={onExplore} />
 
       {noRule.length > 0 && (
         <details className="no-rule-group">
