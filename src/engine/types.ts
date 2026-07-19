@@ -150,6 +150,9 @@ export interface PharmCATReport {
   pharmcatDataVersion?: string | null
   /** Timestamp reported by PharmCAT, when present. */
   reportTimestamp?: string | null
+  /** All pharmacogene keys present in the source Reporter before product-scope filtering. */
+  sourceGeneNames?: string[]
+  sourceGeneCount?: number
   assayType: AssayType
   genes: GeneCall[]
   excludedGenes: ExcludedGeneCall[]

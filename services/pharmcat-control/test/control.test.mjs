@@ -21,6 +21,8 @@ const ENV = {
   PHARMCAT_WORKER_IMAGE_DIGEST: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   PGX_APP_ORIGIN: 'https://app.example',
 }
+const CYP2D6_WITHHELD_REASON = 'No validated structural/copy-number-aware CYP2D6 outside call was supplied for this run.'
+const OUTSIDE_ANTIDEPRESSANT_SCOPE_REASON = 'Outside this antidepressant pharmacogenomics analysis scope.'
 
 function inMemoryGoogle() {
   const objects = new Map()
@@ -143,14 +145,20 @@ function sealCompletedRun(google, runId) {
   state.workerExecution = 'executions/verified-worker'
   google.write(`${prefix}/state.json`, JSON.stringify(state), 'application/json')
 
-  const report = {
+  const originalReport = {
+    pharmcatVersion: '3.3.0',
+    dataVersion: null,
+    genes: { 'HLA-B': {}, CYP2D6: {}, CYP2C19: {}, CYP2B6: {} },
+    drugs: { 'CPIC Guideline Annotation': {} },
+  }
+  const restrictedReport = {
     pharmcatVersion: '3.3.0',
     dataVersion: null,
     genes: { CYP2C19: {}, CYP2B6: {} },
     drugs: { 'CPIC Guideline Annotation': {} },
   }
-  const originalBytes = new TextEncoder().encode(JSON.stringify(report))
-  const restrictedBytes = new TextEncoder().encode(JSON.stringify(report))
+  const originalBytes = new TextEncoder().encode(JSON.stringify(originalReport))
+  const restrictedBytes = new TextEncoder().encode(JSON.stringify(restrictedReport))
   const missingBytes = new TextEncoder().encode('##fileformat=VCFv4.2\n')
   const genes = {
     CYP2C19: { status: 'measured', positionsCalled: 2, positionsMissing: 1, missingPositionLabels: ['rs-missing'] },
@@ -198,10 +206,28 @@ function sealCompletedRun(google, runId) {
       missingPositionCount: 1,
     },
     coverage: genes,
-    exclusions: [{ gene: 'CYP2D6', reason: 'No validated outside call.' }],
+    geneScope: {
+      unrestrictedReporterGeneCount: 4,
+      unrestrictedReporterGenes: ['CYP2B6', 'CYP2C19', 'CYP2D6', 'HLA-B'],
+      antidepressantRelevantGenes: ['CYP2B6', 'CYP2C19', 'CYP2D6'],
+      retainedReporterGenes: ['CYP2B6', 'CYP2C19'],
+      withheldReporterGenes: [
+        { gene: 'CYP2D6', reason: CYP2D6_WITHHELD_REASON },
+        { gene: 'HLA-B', reason: OUTSIDE_ANTIDEPRESSANT_SCOPE_REASON },
+      ],
+    },
+    exclusions: [{ gene: 'CYP2D6', reason: CYP2D6_WITHHELD_REASON }],
   }
   google.write(`${prefix}/manifest.final.json`, JSON.stringify(manifest), 'application/json')
   return prefix
+}
+
+function mutateManifest(google, prefix, mutate) {
+  const name = `${prefix}/manifest.final.json`
+  const stored = google.objects.get(name)
+  const manifest = JSON.parse(new TextDecoder().decode(stored.bytes))
+  mutate(manifest)
+  google.write(name, JSON.stringify(manifest), 'application/json')
 }
 
 describe('PharmCAT control service', () => {
@@ -336,6 +362,8 @@ describe('PharmCAT control service', () => {
     const result = await response.json()
     assert.equal(result.status, 'complete')
     assert.equal(result.manifest.coverage.CYP2C19.positionsMissing, 1)
+    assert.equal(result.manifest.geneScope.unrestrictedReporterGeneCount, 4)
+    assert.deepEqual(result.manifest.geneScope.retainedReporterGenes, ['CYP2B6', 'CYP2C19'])
     assert.equal(result.report.pharmcatVersion, '3.3.0')
   })
 
@@ -364,5 +392,51 @@ describe('PharmCAT control service', () => {
     assert.equal(result.status, 'failed')
     assert.equal(result.error.code, 'output_integrity_failed')
     assert.equal(result.report, undefined)
+  })
+
+  it('rejects a self-partitioned gene scope that omits an unrestricted Reporter gene', async () => {
+    const { google, handle, runId } = await queuedRun()
+    const prefix = sealCompletedRun(google, runId)
+    mutateManifest(google, prefix, (manifest) => {
+      manifest.geneScope.unrestrictedReporterGeneCount = 3
+      manifest.geneScope.unrestrictedReporterGenes = ['CYP2B6', 'CYP2C19', 'CYP2D6']
+      manifest.geneScope.withheldReporterGenes = [
+        { gene: 'CYP2D6', reason: CYP2D6_WITHHELD_REASON },
+      ]
+    })
+
+    const response = await handle(request(`/v1/runs/${runId}`))
+    assert.equal(response.status, 502)
+    const result = await response.json()
+    assert.equal(result.error.code, 'output_integrity_failed')
+  })
+
+  it('rejects retained genes that differ from the sealed restricted Reporter', async () => {
+    const { google, handle, runId } = await queuedRun()
+    const prefix = sealCompletedRun(google, runId)
+    mutateManifest(google, prefix, (manifest) => {
+      manifest.geneScope.retainedReporterGenes = ['CYP2B6', 'CYP2C19', 'HLA-B']
+      manifest.geneScope.withheldReporterGenes = [
+        { gene: 'CYP2D6', reason: CYP2D6_WITHHELD_REASON },
+      ]
+    })
+
+    const response = await handle(request(`/v1/runs/${runId}`))
+    assert.equal(response.status, 502)
+    const result = await response.json()
+    assert.equal(result.error.code, 'output_integrity_failed')
+  })
+
+  it('rejects a CYP2D6 exclusion that disagrees with the derived withheld-gene reason', async () => {
+    const { google, handle, runId } = await queuedRun()
+    const prefix = sealCompletedRun(google, runId)
+    mutateManifest(google, prefix, (manifest) => {
+      manifest.exclusions[0].reason = 'Different reason.'
+    })
+
+    const response = await handle(request(`/v1/runs/${runId}`))
+    assert.equal(response.status, 502)
+    const result = await response.json()
+    assert.equal(result.error.code, 'output_integrity_failed')
   })
 })
