@@ -33,25 +33,25 @@ export const LIFESTYLE_RULES: LifestyleRule[] = [
   sourced({
     id: 'fluoxetine-morning', drugs: ['fluoxetine'], label: 'Morning', icon: '☀',
     category: 'timing', severity: 'info',
-    rule: 'Morning dosing.',
+    rule: 'Morning.',
     why: 'The pinned fluoxetine label specifies morning dosing for major depressive disorder.',
   }),
   sourced({
     id: 'fluoxetine-driving', drugs: ['fluoxetine'], label: 'Driving', icon: '🚗',
     category: 'watch', severity: 'caution',
-    rule: 'Avoid driving or hazardous machinery until you know how it affects you.',
+    rule: 'Wait until you know how it affects you before driving or using machinery.',
     why: 'Fluoxetine can impair judgement, thinking or motor skills.',
   }),
   sourced({
     id: 'paroxetine-morning', drugs: ['paroxetine'], label: 'Morning', icon: '☀',
     category: 'timing', severity: 'info',
-    rule: 'Morning dosing. Food is optional.',
+    rule: 'Morning. With or without food.',
     why: 'That schedule is stated in the pinned paroxetine tablet label.',
   }),
   sourced({
     id: 'sertraline-food', drugs: ['sertraline'], label: 'Food', icon: '🍽',
     category: 'food', severity: 'info',
-    rule: 'Food is optional.',
+    rule: 'With or without food.',
     why: 'The pinned sertraline tablet label allows use with or without food.',
   }),
   sourced({
@@ -63,19 +63,19 @@ export const LIFESTYLE_RULES: LifestyleRule[] = [
   sourced({
     id: 'escitalopram-timing', drugs: ['escitalopram'], label: 'Time and food', icon: '☀',
     category: 'timing', severity: 'info',
-    rule: 'Morning or evening. Food is optional.',
+    rule: 'Morning or evening. With or without food.',
     why: 'The pinned escitalopram oral-solution label allows either time and use with or without food.',
   }),
   sourced({
     id: 'escitalopram-driving', drugs: ['escitalopram'], label: 'Driving', icon: '🚗',
     category: 'watch', severity: 'caution',
-    rule: 'Avoid driving or hazardous machinery until you know how it affects you.',
+    rule: 'Wait until you know how it affects you before driving or using machinery.',
     why: 'This is the impairment precaution in the pinned escitalopram label.',
   }),
   sourced({
     id: 'citalopram-daily', drugs: ['citalopram'], label: 'Time and food', icon: '☀',
     category: 'timing', severity: 'info',
-    rule: 'Once daily. Food is optional.',
+    rule: 'Once daily. With or without food.',
     why: 'The pinned citalopram label does not choose morning or evening.',
   }),
   sourced({
@@ -87,7 +87,7 @@ export const LIFESTYLE_RULES: LifestyleRule[] = [
   sourced({
     id: 'venlafaxine-driving', drugs: ['venlafaxine'], label: 'Driving', icon: '🚗',
     category: 'watch', severity: 'caution',
-    rule: 'Avoid driving or hazardous machinery until you know how it affects you.',
+    rule: 'Wait until you know how it affects you before driving or using machinery.',
     why: 'This is the impairment precaution in the pinned venlafaxine tablet label.',
   }),
   sourced({
@@ -99,7 +99,7 @@ export const LIFESTYLE_RULES: LifestyleRule[] = [
   sourced({
     id: 'desvenlafaxine-time', drugs: ['desvenlafaxine'], label: 'Time and food', icon: '☀',
     category: 'timing', severity: 'info',
-    rule: 'Use the same time each day. Food is optional.',
+    rule: 'Same time each day. With or without food.',
     why: 'This schedule is stated in the pinned Pristiq extended-release label.',
   }),
   sourced({
@@ -111,7 +111,7 @@ export const LIFESTYLE_RULES: LifestyleRule[] = [
   sourced({
     id: 'duloxetine-food', drugs: ['duloxetine'], label: 'Food', icon: '🍽',
     category: 'food', severity: 'info',
-    rule: 'Food is optional.',
+    rule: 'With or without food.',
     why: 'The pinned duloxetine delayed-release capsule label allows use with or without meals.',
   }),
   sourced({
@@ -123,7 +123,7 @@ export const LIFESTYLE_RULES: LifestyleRule[] = [
   sourced({
     id: 'vortioxetine-food', drugs: ['vortioxetine'], label: 'Food', icon: '🍽',
     category: 'food', severity: 'info',
-    rule: 'Food is optional.',
+    rule: 'With or without food.',
     why: 'The pinned Trintellix label allows use without regard to meals.',
   }),
   sourced({

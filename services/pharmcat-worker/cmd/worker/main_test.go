@@ -104,6 +104,17 @@ func TestValidateVCFAcceptsVerifiedSingleSampleGRCh38(t *testing.T) {
 	}
 }
 
+func TestCommittedDemoVCFPassesTheRealWorkerValidation(t *testing.T) {
+	path := filepath.Join("..", "..", "..", "..", "public", "samples", "pharmcat-example.vcf")
+	records, samples, err := validateVCF(path)
+	if err != nil {
+		t.Fatalf("committed demo VCF is not accepted by the real worker: %v", err)
+	}
+	if records != 1226 || samples != 1 {
+		t.Fatalf("unexpected committed demo shape: records=%d samples=%d", records, samples)
+	}
+}
+
 func TestValidateVCFRejectsNonPositivePositions(t *testing.T) {
 	for _, position := range []string{"0", "-1"} {
 		t.Run(position, func(t *testing.T) {
@@ -559,6 +570,91 @@ func TestRestrictReporterRemovesCYP2D6CallsAndGuidance(t *testing.T) {
 	}
 	if _, exists := cpic["citalopram"]; !exists {
 		t.Fatal("CYP2C19 guidance was removed")
+	}
+}
+
+func TestDeriveReporterGeneScopePartitionsAndSortsReporterGenes(t *testing.T) {
+	original := map[string]any{"genes": map[string]any{
+		"HLA-B":   map[string]any{},
+		"CYP2D6":  map[string]any{},
+		"CYP2C19": map[string]any{},
+		"CYP2B6":  map[string]any{},
+		"SLCO1B1": map[string]any{},
+	}}
+	restricted := map[string]any{"genes": map[string]any{
+		"CYP2C19": map[string]any{},
+		"CYP2B6":  map[string]any{},
+	}}
+
+	scope, err := deriveReporterGeneScope(original, restricted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantUnrestricted := []string{"CYP2B6", "CYP2C19", "CYP2D6", "HLA-B", "SLCO1B1"}
+	if scope.UnrestrictedReporterGeneCount != len(wantUnrestricted) || !reflect.DeepEqual(scope.UnrestrictedReporterGenes, wantUnrestricted) {
+		t.Fatalf("unrestricted genes were not counted and sorted from the report: %#v", scope)
+	}
+	if want := []string{"CYP2B6", "CYP2C19", "CYP2D6"}; !reflect.DeepEqual(scope.AntidepressantRelevantGenes, want) {
+		t.Fatalf("unexpected antidepressant scope: %#v", scope.AntidepressantRelevantGenes)
+	}
+	if want := []string{"CYP2B6", "CYP2C19"}; !reflect.DeepEqual(scope.RetainedReporterGenes, want) {
+		t.Fatalf("retained genes were not sorted: %#v", scope.RetainedReporterGenes)
+	}
+	wantWithheld := []withheldReporterGene{
+		{Gene: "CYP2D6", Reason: cyp2d6WithheldReason},
+		{Gene: "HLA-B", Reason: outsideAntidepressantScope},
+		{Gene: "SLCO1B1", Reason: outsideAntidepressantScope},
+	}
+	if !reflect.DeepEqual(scope.WithheldReporterGenes, wantWithheld) {
+		t.Fatalf("unexpected withheld-gene audit: %#v", scope.WithheldReporterGenes)
+	}
+	if len(scope.RetainedReporterGenes)+len(scope.WithheldReporterGenes) != scope.UnrestrictedReporterGeneCount {
+		t.Fatalf("retained and withheld genes do not partition the unrestricted report: %#v", scope)
+	}
+}
+
+func TestDeriveReporterGeneScopeDoesNotInventAbsentCYP2D6(t *testing.T) {
+	original := map[string]any{"genes": map[string]any{
+		"CYP2C19": map[string]any{},
+		"CYP2B6":  map[string]any{},
+	}}
+	restricted := map[string]any{"genes": map[string]any{
+		"CYP2B6":  map[string]any{},
+		"CYP2C19": map[string]any{},
+	}}
+
+	scope, err := deriveReporterGeneScope(original, restricted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(scope.WithheldReporterGenes) != 0 {
+		t.Fatalf("an absent Reporter gene was described as withheld: %#v", scope.WithheldReporterGenes)
+	}
+}
+
+func TestDeriveReporterGeneScopeRejectsInvalidGeneMaps(t *testing.T) {
+	tests := []struct {
+		name       string
+		original   map[string]any
+		restricted map[string]any
+	}{
+		{
+			name:       "malformed unrestricted genes",
+			original:   map[string]any{"genes": []any{"CYP2C19"}},
+			restricted: map[string]any{"genes": map[string]any{"CYP2C19": map[string]any{}}},
+		},
+		{
+			name:       "restricted gene absent from original",
+			original:   map[string]any{"genes": map[string]any{"CYP2C19": map[string]any{}}},
+			restricted: map[string]any{"genes": map[string]any{"CYP2B6": map[string]any{}}},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := deriveReporterGeneScope(test.original, test.restricted); err == nil {
+				t.Fatal("expected invalid gene scope to fail")
+			}
+		})
 	}
 }
 

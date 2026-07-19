@@ -30,15 +30,17 @@ import (
 )
 
 const (
-	maxInputBytes         int64 = 512 * 1024 * 1024
-	maxUncompressedBytes  int64 = 2 * 1024 * 1024 * 1024
-	maxOutputBytes        int64 = 16 * 1024 * 1024
-	maxVCFRecords               = 10_000_000
-	maxVCFLineBytes             = 16 * 1024 * 1024
-	metadataTokenTimeout        = 30 * time.Second
-	controlRequestTimeout       = 2 * time.Minute
-	downloadIdleTimeout         = 90 * time.Second
-	maxDownloadAttempts         = 4
+	maxInputBytes              int64 = 512 * 1024 * 1024
+	maxUncompressedBytes       int64 = 2 * 1024 * 1024 * 1024
+	maxOutputBytes             int64 = 16 * 1024 * 1024
+	maxVCFRecords                    = 10_000_000
+	maxVCFLineBytes                  = 16 * 1024 * 1024
+	metadataTokenTimeout             = 30 * time.Second
+	controlRequestTimeout            = 2 * time.Minute
+	downloadIdleTimeout              = 90 * time.Second
+	maxDownloadAttempts              = 4
+	cyp2d6WithheldReason             = "No validated structural/copy-number-aware CYP2D6 outside call was supplied for this run."
+	outsideAntidepressantScope       = "Outside this antidepressant pharmacogenomics analysis scope."
 )
 
 var (
@@ -54,7 +56,10 @@ var (
 	crc32cTable   = crc32.MakeTable(crc32.Castagnoli)
 )
 
-var pharmCATArguments = []string{"input.vcf", "-o", "output", "-reporterJson", "-reporterCallsOnlyTsv"}
+var (
+	pharmCATArguments           = []string{"input.vcf", "-o", "output", "-reporterJson", "-reporterCallsOnlyTsv"}
+	antidepressantRelevantGenes = []string{"CYP2B6", "CYP2C19", "CYP2D6"}
+)
 
 type workerError struct {
 	code    string
@@ -130,6 +135,19 @@ type coverageDocument struct {
 	SchemaVersion string                  `json:"schemaVersion"`
 	RunID         string                  `json:"runId"`
 	Genes         map[string]geneCoverage `json:"genes"`
+}
+
+type withheldReporterGene struct {
+	Gene   string `json:"gene"`
+	Reason string `json:"reason"`
+}
+
+type reporterGeneScope struct {
+	UnrestrictedReporterGeneCount int                    `json:"unrestrictedReporterGeneCount"`
+	UnrestrictedReporterGenes     []string               `json:"unrestrictedReporterGenes"`
+	AntidepressantRelevantGenes   []string               `json:"antidepressantRelevantGenes"`
+	RetainedReporterGenes         []string               `json:"retainedReporterGenes"`
+	WithheldReporterGenes         []withheldReporterGene `json:"withheldReporterGenes"`
 }
 
 func requiredEnv(name string) (string, error) {
@@ -998,6 +1016,67 @@ func annotationUsesGene(annotation map[string]any, gene string) bool {
 	return false
 }
 
+func reporterGeneNames(report map[string]any) ([]string, error) {
+	genes, ok := report["genes"].(map[string]any)
+	if !ok {
+		return nil, errors.New("reporter genes are invalid")
+	}
+	names := make([]string, 0, len(genes))
+	for gene := range genes {
+		if strings.TrimSpace(gene) == "" {
+			return nil, errors.New("reporter contains an empty gene name")
+		}
+		names = append(names, gene)
+	}
+	sort.Strings(names)
+	return names, nil
+}
+
+func deriveReporterGeneScope(original, restricted map[string]any) (reporterGeneScope, error) {
+	unrestrictedGenes, err := reporterGeneNames(original)
+	if err != nil {
+		return reporterGeneScope{}, err
+	}
+	retainedGenes, err := reporterGeneNames(restricted)
+	if err != nil {
+		return reporterGeneScope{}, err
+	}
+
+	unrestrictedSet := make(map[string]struct{}, len(unrestrictedGenes))
+	for _, gene := range unrestrictedGenes {
+		unrestrictedSet[gene] = struct{}{}
+	}
+	retainedSet := make(map[string]struct{}, len(retainedGenes))
+	for _, gene := range retainedGenes {
+		if _, exists := unrestrictedSet[gene]; !exists {
+			return reporterGeneScope{}, fmt.Errorf("restricted reporter gene %s is absent from the unrestricted reporter", gene)
+		}
+		retainedSet[gene] = struct{}{}
+	}
+
+	withheldGenes := make([]withheldReporterGene, 0, len(unrestrictedGenes)-len(retainedGenes))
+	for _, gene := range unrestrictedGenes {
+		if _, retained := retainedSet[gene]; retained {
+			continue
+		}
+		reason := outsideAntidepressantScope
+		if gene == "CYP2D6" {
+			reason = cyp2d6WithheldReason
+		}
+		withheldGenes = append(withheldGenes, withheldReporterGene{Gene: gene, Reason: reason})
+	}
+	relevantGenes := append([]string(nil), antidepressantRelevantGenes...)
+	sort.Strings(relevantGenes)
+
+	return reporterGeneScope{
+		UnrestrictedReporterGeneCount: len(unrestrictedGenes),
+		UnrestrictedReporterGenes:     unrestrictedGenes,
+		AntidepressantRelevantGenes:   relevantGenes,
+		RetainedReporterGenes:         retainedGenes,
+		WithheldReporterGenes:         withheldGenes,
+	}, nil
+}
+
 func restrictReporter(original map[string]any) (map[string]any, error) {
 	restricted := make(map[string]any, len(original))
 	for key, value := range original {
@@ -1352,6 +1431,10 @@ func analyse(ctx context.Context, client *googleClient, cfg config) error {
 	if err != nil {
 		return &workerError{code: "pharmcat_output_invalid", message: "The PharmCAT result could not be restricted to supported calls.", cause: err}
 	}
+	geneScope, err := deriveReporterGeneScope(report, restricted)
+	if err != nil {
+		return &workerError{code: "pharmcat_output_invalid", message: "The PharmCAT result gene scope could not be recorded.", cause: err}
+	}
 	restrictedBytes, err := json.Marshal(restricted)
 	if err != nil {
 		return &workerError{code: "pharmcat_output_invalid", message: "The restricted PharmCAT result could not be encoded.", cause: err}
@@ -1420,10 +1503,11 @@ func analyse(ctx context.Context, client *googleClient, cfg config) error {
 			"coverageSha256":           sha256Hex(coverageBytes),
 			"missingPositionCount":     missingCount,
 		},
-		"coverage": coverage.Genes,
+		"coverage":  coverage.Genes,
+		"geneScope": geneScope,
 		"exclusions": []map[string]any{{
 			"gene":   "CYP2D6",
-			"reason": "No validated structural/copy-number-aware CYP2D6 outside call was supplied for this run.",
+			"reason": cyp2d6WithheldReason,
 		}},
 	}
 	manifestBytes, err := json.Marshal(manifest)

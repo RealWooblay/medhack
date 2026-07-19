@@ -55,6 +55,28 @@ The current daily-life release uses pinned US Structured Product Label records. 
 medicine list in this repository is scope data only; Australian PI/CMI, ARTG and PBS evidence must
 be reconciled before an Australian clinical release.
 
+## Exact demo uploads
+
+Use the two public PharmCAT example artefacts for different checks:
+
+Both are byte-for-byte pinned copies of [official PharmCAT Example 1](https://pharmcat.clinpgx.org/examples/).
+
+| File | Upload location | What it validates |
+| --- | --- | --- |
+| [`public/samples/pharmcat-example.vcf`](public/samples/pharmcat-example.vcf) | **DNA → Choose DNA file** | Official Example 1: one GRCh38 sample with all-reference PGx sites. Runs the real private PharmCAT path. CYP2D6 is correctly withheld because this upload has no validated structural/copy-number outside call. |
+| [`public/samples/pharmcat-example.report.json`](public/samples/pharmcat-example.report.json) | **DNA → Other ways to start → Import PharmCAT report** | Official published result containing a separate outside CYP2D6 call. Tests deterministic Reporter JSON parsing and the validation UI, but does not rerun PharmCAT or prove upstream coverage. |
+
+Both files are downloadable from the matching upload screen. After choosing a file, enter recognised
+current medicines or select **I take none**. The built-in **Use published example** path is a third,
+no-upload UI demo and is kept separate from a governed genome run.
+
+Pinned file digests:
+
+```text
+VCF     f45cc947fa0a38f47307ae5f2cc6e71bf5afffa6f1310b043b962c472db76438
+Report  affc3223bfaf9176b71e62b5d8926815079228b7f5abb7265bc41fb3e5adf898
+```
+
 ## Run the app
 
 ```bash

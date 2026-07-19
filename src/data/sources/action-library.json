@@ -1,0 +1,2545 @@
+{
+  "schemaVersion": 1,
+  "contentCurrentAsOf": "2026-07-19",
+  "actions": [
+    {
+      "id": "ssri-rem-suppression-vivid-dreams",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "fluvoxamine",
+        "venlafaxine",
+        "duloxetine",
+        "amitriptyline",
+        "nortriptyline"
+      ],
+      "phase": "first_weeks",
+      "goal": "Expect and manage vivid dreams",
+      "signals": [
+        "vivid_dreams"
+      ],
+      "substances": [
+        "alcohol",
+        "supplements"
+      ],
+      "bodyEffect": "Your dreams get louder and stranger. The drug pushes REM sleep out of its usual slots, so it comes back in longer, more vivid bursts.",
+      "mechanism": "Serotonin suppresses REM sleep and delays its onset, so REM gets compressed and then returns in denser, more emotionally charged blocks.",
+      "actions": [
+        "Expect it, and do not read the dreams as meaning anything. Vivid or unpleasant dreams in the first weeks are a pharmacology artefact, not your subconscious telling you something.",
+        "Take the dose at the same time every day. Erratic timing lets the level dip and makes the REM rebound sharper.",
+        "If a dream wakes you, get out of bed, keep the light low, do something dull for 15 minutes, then go back. Do not lie there replaying it.",
+        "If dreams are still disturbing past week 6, say so. Moving the dose earlier in the day sometimes helps."
+      ],
+      "foods": [],
+      "avoid": [
+        "Alcohol as a way to blunt the dreams. It suppresses REM early in the night and makes the rebound worse in the second half, which is the half already under pressure."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Strongest in the first 2-3 weeks, and again after any dose increase. Usually fades by week 4-6 for most people.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Polysomnography consistently shows REM suppression and increased REM latency with SSRIs, SNRIs and TCAs (Wilson & Argyropoulos, Drugs 2005). The step from measured REM suppression to subjectively intense dreams is mechanistic inference, not a measured endpoint. No per-drug percentage figures are given because the polysomnography literature is too heterogeneous to support them."
+    },
+    {
+      "id": "activating-drugs-morning-dosing",
+      "drugs": [
+        "fluoxetine",
+        "bupropion",
+        "venlafaxine",
+        "desvenlafaxine",
+        "sertraline"
+      ],
+      "phase": "first_weeks",
+      "goal": "Protect your sleep while the drug settles",
+      "signals": [
+        "nausea",
+        "insomnia",
+        "daytime_fatigue",
+        "low_libido",
+        "anxiety_jitter"
+      ],
+      "substances": [],
+      "bodyEffect": "These raise noradrenaline or dopamine as well as serotonin. That is a stimulant-like push: useful at 9am, ruinous at 11pm.",
+      "mechanism": "Noradrenergic and dopaminergic tone raises cortical arousal, which is the exact signal the brain uses to stay awake, so an evening dose is competing directly with sleep onset.",
+      "actions": [
+        "Take it in the morning, within about an hour of waking. Anchor it to breakfast so you do not have to remember it separately.",
+        "On a twice-daily form, get the second dose in by early afternoon.",
+        "Use the push rather than fighting it: put the walk, the shower, the hardest task of the day in the hours after the dose.",
+        "If it is keeping you awake past week 3, that is a dose-timing or dose-size conversation, not something to endure."
+      ],
+      "foods": [],
+      "avoid": [
+        "Moving the dose to bedtime to sleep through the nausea. You trade nausea for insomnia and usually lose.",
+        "Doubling up after a missed dose. Take the next one at the normal time."
+      ],
+      "contraindications": [],
+      "track": "hours slept and time to fall asleep",
+      "timeline": "Activation and early insomnia peak in weeks 1-2 and usually settle by week 4 for most people.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "Downgraded from 'label'. What the labels actually support: insomnia and nervousness are listed among common adverse effects for fluoxetine, venlafaxine and sertraline, and the bupropion SR label specifies dose separation and advises against bedtime dosing. The labels do not instruct morning dosing for SSRIs or SNRIs, and no trial has tested morning versus evening dosing for these drugs. The 'use the activation window' advice is practical inference."
+    },
+    {
+      "id": "bupropion-sleep-profile",
+      "drugs": [
+        "bupropion"
+      ],
+      "phase": "first_weeks",
+      "goal": "Expect and manage vivid dreams",
+      "signals": [
+        "insomnia",
+        "vivid_dreams",
+        "daytime_fatigue",
+        "low_libido",
+        "anxiety_jitter"
+      ],
+      "substances": [
+        "high_caffeine",
+        "supplements"
+      ],
+      "bodyEffect": "Bupropion is the odd one out. It does not flatten REM sleep the way serotonin drugs do. If anything it does the reverse.",
+      "mechanism": "It blocks noradrenaline and dopamine reuptake rather than serotonin, so the serotonergic brake on REM is never applied. Sleep studies show it lengthens REM latency and increases REM density rather than suppressing REM.",
+      "actions": [
+        "Morning dosing. On the twice-daily SR form leave at least 8 hours between doses and get the second one in before mid-afternoon.",
+        "If insomnia is the main complaint, ask whether the once-daily XL form taken in the morning would suit you better.",
+        "Watch caffeine hard in the first fortnight. Bupropion and caffeine stack on the same arousal axis and this is where jitteriness comes from.",
+        "If you get vivid dreams on bupropion, it is not a sign something is wrong. Bupropion increases REM measures rather than suppressing them, and dream intensity is reported on it."
+      ],
+      "foods": [],
+      "avoid": [],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Insomnia is most common in the first 1-2 weeks and often improves from there.",
+      "evidenceStrength": "clinical_studies",
+      "source": "CORRECTED. Ott et al., Psychopharmacology 2002;165:29-36 found bupropion-SR lengthened REM latency and increased REM activity and density, i.e. bupropion is a REM enhancer, not REM-neutral (see also Nofzinger et al. 1995, 'REM sleep enhancement by bupropion'). The previous version's advice that vivid dreams on bupropion mean 'something else is going on' was the opposite of what the evidence supports and has been removed. The claim that bupropion does not cause limb movements is from the PLMS meta-analysis below, whose authors explicitly say the absent effect for non-SSRI drugs needs confirmation."
+    },
+    {
+      "id": "mirtazapine-work-with-sedation",
+      "drugs": [
+        "mirtazapine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Work with the drug’s sedation, not against it",
+      "signals": [
+        "daytime_fatigue",
+        "appetite_gain"
+      ],
+      "substances": [
+        "alcohol",
+        "supplements"
+      ],
+      "bodyEffect": "The sedation is a strong antihistamine effect, closer to an old allergy tablet than a sleeping pill. It is heavy and it is front-loaded.",
+      "mechanism": "Mirtazapine strongly blocks histamine H1 receptors, and histamine is the brain's main wakefulness signal, so the sedation is deepest in the hours right after the dose.",
+      "actions": [
+        "Take it 1-2 hours before you actually intend to be asleep, not as you get into bed. You want the peak landing while you are already lying down.",
+        "Give yourself a 9-10 hour window in bed for the first fortnight. The morning hangover mostly comes from being woken mid-sedation.",
+        "If you are flattened all morning, try moving the dose earlier in the evening before asking to change the dose.",
+        "Do not drive in the morning until you have tested how clear you actually are, particularly in week 1."
+      ],
+      "foods": [],
+      "avoid": [
+        "Alcohol. The sedation is additive and genuinely dangerous, not just unpleasant.",
+        "Stacking an over-the-counter sedating antihistamine on top. You are hitting the same receptor twice."
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "daytime alertness",
+      "timeline": "Heaviest in weeks 1-2, then eases substantially for most people by week 3-4.",
+      "evidenceStrength": "label",
+      "source": "Somnolence is the most frequently reported adverse effect in the mirtazapine label, which also warns about impaired judgement and motor skills and about additive impairment with alcohol. H1 antagonism is the accepted mechanism. The widely repeated claim that lower doses (7.5-15mg) are MORE sedating than higher doses is receptor-pharmacology reasoning plus clinical convention, not trial evidence. It must never be surfaced as a standalone tip and must never be used to argue for a dose increase."
+    },
+    {
+      "id": "trazodone-honest-expectations",
+      "drugs": [
+        "trazodone"
+      ],
+      "phase": "ongoing",
+      "goal": "Expect and manage vivid dreams",
+      "signals": [
+        "insomnia",
+        "daytime_fatigue",
+        "appetite_gain"
+      ],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "At low doses trazodone sedates through histamine and alpha-1 blockade, and unlike most antidepressants it adds deep slow-wave sleep rather than reshaping REM.",
+      "mechanism": "Trazodone blocks 5-HT2A receptors alongside H1 and alpha-1 receptors; at 25-100mg the sedating receptor blockade dominates and serotonin reuptake inhibition is minimal, which is why it sedates without the REM suppression pattern of SSRIs.",
+      "actions": [
+        "Take it 30-60 minutes before bed. Expect deeper, heavier sleep rather than being knocked out.",
+        "Stand up slowly if you get up in the night. The alpha-1 blockade drops your blood pressure and the dizziness at 3am is real, not imagined.",
+        "Hold realistic expectations. In the trial the sleep-medicine guideline relied on, 50mg shortened time to fall asleep by about 10 minutes and added about 22 minutes of total sleep.",
+        "Men: an erection lasting over 4 hours is a medical emergency, not something to sleep off. It is rare, but go to the emergency department the same night."
+      ],
+      "foods": [],
+      "avoid": [
+        "Treating it as a powerful sleeping pill. The measured effect is modest and the specialist guideline is mildly against using it for insomnia, which does not mean your prescriber is wrong, but you should know the evidence you are working with."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Works from the first night. Unlike the antidepressant effect there is no build-up period to wait through.",
+      "evidenceStrength": "guideline",
+      "source": "AASM 2017 Clinical Practice Guideline (J Clin Sleep Med 13:307): weak recommendation AGAINST trazodone for sleep-onset or sleep-maintenance insomnia, based on a 50mg trial showing sleep latency reduced 10.2 min, total sleep time +21.8 min, WASO reduced 7.7 min, all below clinical significance thresholds. Verified. Slow-wave sleep increase: polysomnographic meta-analysis in insomnia disorder, 2022. CORRECTED: the previous claim that low-dose trazodone avoids 'the REM suppression seen at full antidepressant doses' implied a dose-dependent REM effect that I could not source, and has been removed."
+    },
+    {
+      "id": "caffeine-timing-general",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "venlafaxine",
+        "duloxetine",
+        "bupropion"
+      ],
+      "phase": "first_weeks",
+      "goal": "Protect your sleep while the drug settles",
+      "signals": [
+        "insomnia",
+        "low_libido",
+        "anxiety_jitter",
+        "headache"
+      ],
+      "substances": [
+        "high_caffeine",
+        "supplements"
+      ],
+      "bodyEffect": "Caffeine and an activating antidepressant press the same anxiety and insomnia buttons. In the early weeks you may be more sensitive than you used to be.",
+      "mechanism": "Caffeine blocks adenosine receptors, stripping away the sleep pressure that has been building all day, and raises arousal on the same axis the drug is already pushing.",
+      "actions": [
+        "Last caffeine by about 2pm. The half-life is roughly 5 hours, so a 4pm coffee still has around a third of its dose in you at midnight.",
+        "Halve your usual intake for the first 3-4 weeks, then rebuild slowly. Do not quit outright or you add a withdrawal headache to an already bad fortnight.",
+        "If your normal coffee now makes you jittery, shaky or racing, that is most likely this interaction rather than a new heart problem, but mention it at your next appointment."
+      ],
+      "foods": [],
+      "avoid": [],
+      "contraindications": [],
+      "track": "hours slept and time to fall asleep",
+      "timeline": "Heightened caffeine sensitivity, where it happens, tracks the activation phase, usually weeks 1-4.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "Caffeine's ~5 hour half-life (range 3-7h, wider in pregnancy and with oral contraceptives) and adenosine antagonism are established pharmacology. CORRECTED: the previous version said a 4pm coffee leaves 'around a quarter' at midnight; at a 5h half-life, 8 hours leaves about a third. DELETED: the 'delay your first coffee 90 minutes' tip, which is popular internet advice with no good supporting evidence and reads as wellness filler. The core claim, that antidepressant starters are more caffeine-sensitive, remains untested inference from shared arousal pathways."
+    },
+    {
+      "id": "fluvoxamine-caffeine-cyp1a2",
+      "drugs": [
+        "fluvoxamine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Reduce your caffeine load",
+      "signals": [
+        "loose_stools",
+        "insomnia",
+        "daytime_fatigue"
+      ],
+      "substances": [
+        "high_caffeine",
+        "smoking",
+        "supplements"
+      ],
+      "bodyEffect": "On fluvoxamine, caffeine stops leaving your body. One cup can behave like several and stay in your system all day and all night.",
+      "mechanism": "Fluvoxamine is a potent inhibitor of CYP1A2, the liver enzyme that clears caffeine, so caffeine accumulates instead of wearing off.",
+      "actions": [
+        "Cut caffeine hard. One small morning cup, or none. This is the single biggest sleep lever available to you on this drug, bigger than any bedtime routine.",
+        "Count the hidden sources: strong tea, green tea, cola, energy drinks, dark chocolate, some combination painkillers and cold remedies.",
+        "If you feel wired, sweaty, tremulous or your heart is pounding, caffeine accumulation is the most likely explanation, and cutting caffeine is the first thing to try.",
+        "Tell any new prescriber you are on fluvoxamine. The same enzyme handles several other drugs, so this is not only about coffee."
+      ],
+      "foods": [],
+      "avoid": [
+        "Energy drinks, entirely.",
+        "Treating the tiredness with more coffee. On fluvoxamine you accumulate rather than get a lift, and the payment comes at 2am.",
+        "Assuming it must be caffeine if you also have muscle twitching or jerks, fever, agitation or diarrhoea alongside the sweating and racing heart. That combination needs urgent medical assessment, not a smaller coffee."
+      ],
+      "contraindications": [],
+      "track": "cups of caffeine per day",
+      "timeline": "Present as soon as fluvoxamine reaches steady state, within about a week of starting, and lasts the entire time you take it. This one does not adapt away.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Jeppesen et al., Pharmacogenetics 1996 (n=8 crossover): during fluvoxamine, median caffeine clearance fell from 107 to 21 mL/min and half-life rose from 5 to 31 hours. VERIFIED against the primary abstract. Replicated by Culm-Merdek et al., Br J Clin Pharmacol 2005. The fluvoxamine label carries CYP1A2 interaction warnings (contraindications and warnings for CYP1A2 substrates including tizanidine, theophylline and clozapine); I softened the previous wording, which implied a caffeine-specific label warning. SAFETY ADDITION: the wired/sweaty/racing symptom list overlaps with serotonin syndrome, so the previous instruction to blame caffeine first has been given a red-flag caveat."
+    },
+    {
+      "id": "morning-light-anchor",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "fluvoxamine",
+        "venlafaxine",
+        "duloxetine",
+        "mirtazapine",
+        "bupropion",
+        "trazodone"
+      ],
+      "phase": "first_weeks",
+      "goal": "Consider evidence-backed adjuncts with your prescriber",
+      "signals": [
+        "daytime_fatigue"
+      ],
+      "substances": [],
+      "bodyEffect": "Antidepressants change when you feel sleepy but do not reset your body clock. Light is what moves the clock, and it works within days.",
+      "mechanism": "Morning light hits melanopsin cells in the retina that set the master clock in the suprachiasmatic nucleus, advancing that evening's melatonin release. That is a separate lever from the drug, so the two stack.",
+      "actions": [
+        "Get outside within 30-60 minutes of waking, for 10-20 minutes, no sunglasses. An overcast morning outdoors is still many times brighter than a well-lit room.",
+        "If you cannot get out, eat breakfast next to the brightest window in the house, or use a 10,000 lux light box for 30 minutes.",
+        "Dim the house from about two hours before bed. It is light intensity and timing that matter, not screens specifically.",
+        "Hold your wake time fixed, weekends included. A fixed wake time anchors the clock more strongly than a fixed bedtime."
+      ],
+      "foods": [],
+      "avoid": [],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Circadian shifts need 3-7 days of consistency before they show. Any mood benefit takes longer, on the order of 2-4 weeks.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Bright light therapy meta-analyses in non-seasonal depression show benefit at around 10,000 lux for 30-60 minutes daily (Golden et al., Am J Psychiatry 2005 and later reviews). Using light specifically to counteract antidepressant-related sleep disruption has not been trialled as an indication and is a mechanistic extension. If someone has bipolar disorder, light scheduling should be discussed with their prescriber, since bright light can destabilise mood."
+    },
+    {
+      "id": "exercise-timing-for-sleep",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "venlafaxine",
+        "duloxetine",
+        "mirtazapine",
+        "bupropion",
+        "trazodone"
+      ],
+      "phase": "ongoing",
+      "goal": "Expect and manage vivid dreams",
+      "signals": [
+        "insomnia",
+        "daytime_fatigue",
+        "anxiety_jitter"
+      ],
+      "substances": [],
+      "bodyEffect": "Exercise raises sleep pressure and deepens deep sleep. It is one of the few things that helps both the daytime flatness and the night.",
+      "mechanism": "Physical activity increases slow-wave (deep) sleep and lengthens REM latency, partly offsetting the sleep-architecture changes the drug is causing.",
+      "actions": [
+        "Aim for moderate activity most days. Morning or early afternoon pairs well with activating drugs; late afternoon works well if you are on something sedating.",
+        "You do not need to avoid evening exercise. The pooled evidence says it does not harm sleep and slightly improves it. The exception is vigorous exercise finishing less than an hour before bed.",
+        "On a sedating drug, use a short walk to break the afternoon dip instead of napping. It gets you through without spending tonight's sleep pressure.",
+        "Start absurdly small if you are depressed. Ten minutes of walking counts and beats an unmet intention to do forty-five."
+      ],
+      "foods": [],
+      "avoid": [],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Sleep-architecture effects show within days to a couple of weeks of consistent activity.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Stutz et al., Sports Medicine 2019, 23 studies: evening exercise increased REM latency by 7.7 min and slow-wave sleep by 1.3 percentage points, and reduced stage 1 sleep; impairment of sleep onset, total sleep time and efficiency appeared only with vigorous exercise ending 1 hour or less before bed. VERIFIED. Note the effect sizes are small, and all participants were healthy, so applying this to people on antidepressants is reasonable extension rather than direct evidence."
+    },
+    {
+      "id": "afternoon-crash-3pm",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "fluvoxamine",
+        "venlafaxine",
+        "duloxetine",
+        "mirtazapine",
+        "trazodone",
+        "amitriptyline"
+      ],
+      "phase": "first_weeks",
+      "goal": "Work with the drug’s sedation, not against it",
+      "signals": [
+        "daytime_fatigue",
+        "low_libido"
+      ],
+      "substances": [
+        "high_caffeine",
+        "supplements"
+      ],
+      "bodyEffect": "The 3pm wall is real. Fragmented night sleep, leftover sedation and your natural circadian dip all arrive at the same hour.",
+      "mechanism": "The body has a genuine circadian trough in early-to-mid afternoon; antidepressant sleep fragmentation and residual sedation turn a normal dip into a wall.",
+      "actions": [
+        "Treat it as a scheduling problem, not a willpower problem. Put low-cognitive work in the 2-4pm window and defend the morning for anything hard.",
+        "Get 10-20 minutes of outdoor daylight at the dip. It is the second most useful light exposure of the day and it does not cost you tonight's sleep the way coffee does.",
+        "Move for 5-10 minutes. A brisk walk raises arousal without borrowing against your sleep.",
+        "Eat a lunch that includes protein rather than being carbohydrate alone."
+      ],
+      "foods": [
+        "Protein at lunch, around 25-30g: eggs, fish, chicken, beans, Greek yoghurt. Large carbohydrate-heavy meals deepen post-lunch sleepiness more than mixed meals do"
+      ],
+      "avoid": [],
+      "contraindications": [],
+      "track": "daytime alertness",
+      "timeline": "Worst in weeks 1-3, usually much better by week 4-6 once night sleep consolidates.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "The post-lunch circadian dip is established sleep physiology. The meal-composition effect on post-prandial sleepiness is real but small and inconsistent in the literature, and none of it was measured in people starting antidepressants. DELETED: the 'drink water, mild dehydration reads as fatigue' item. It was generic wellness filler, and telling people on SSRIs and SNRIs to drink more water is the wrong default given hyponatraemia risk (see ssri-hyponatraemia-fluid-safety)."
+    },
+    {
+      "id": "ssri-hyponatraemia-fluid-safety",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "fluvoxamine",
+        "venlafaxine",
+        "duloxetine",
+        "mirtazapine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Watch for low-sodium warning signs",
+      "signals": [
+        "nausea",
+        "daytime_fatigue",
+        "headache",
+        "dizzy_confused"
+      ],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "These drugs can make your body hold on to water, which dilutes your blood sodium. It feels like tiredness, headache, unsteadiness and fuzzy thinking, which is exactly what you would otherwise blame on the depression.",
+      "mechanism": "Serotonergic antidepressants can trigger inappropriate release of antidiuretic hormone (SIADH), so the kidneys reabsorb water the body does not need and sodium concentration falls.",
+      "actions": [
+        "Drink to thirst. Do not force large volumes of plain water to 'flush out' side effects or fix fatigue. On these drugs that advice can push sodium down rather than help.",
+        "Know the red flags: worsening headache, confusion, unsteadiness on your feet, new nausea, or muscle cramps and weakness in the first weeks. Get a same-week blood test, and same-day assessment if you are confused or unsteady.",
+        "If you are over 65, low body weight, or taking a diuretic, ask whether a sodium check before starting and again at around two weeks is worth doing. That combination is where most cases occur.",
+        "If you are exercising hard or in hot weather, replace salt as well as fluid rather than water alone."
+      ],
+      "foods": [],
+      "avoid": [
+        "Stopping the drug on your own if you suspect this. It needs a blood test and a prescriber decision, and abrupt stopping adds discontinuation symptoms on top."
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "headache, confusion, unsteadiness",
+      "timeline": "Usually within the first few weeks of starting or of a dose increase. Risk falls after that but does not disappear.",
+      "evidenceStrength": "label",
+      "source": "ADDED by this review, because the set previously contained generic 'drink water' advice with no counterweight. Hyponatraemia and SIADH appear in the Warnings and Precautions section of SSRI and SNRI labels, which name elderly patients and those on diuretics or volume-depleted as higher risk and list headache, difficulty concentrating, memory impairment, confusion, weakness and unsteadiness as symptoms. Onset within weeks of initiation is consistent with the case and cohort literature. Frequency figures are not given here because published incidence estimates vary too widely by population and sodium threshold to quote a single number."
+    },
+    {
+      "id": "cannot-sleep-tonight",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "fluvoxamine",
+        "venlafaxine",
+        "duloxetine",
+        "bupropion"
+      ],
+      "phase": "first_weeks",
+      "goal": "Protect your sleep while the drug settles",
+      "signals": [
+        "insomnia",
+        "daytime_fatigue",
+        "appetite_gain",
+        "low_libido",
+        "anxiety_jitter"
+      ],
+      "substances": [
+        "alcohol"
+      ],
+      "bodyEffect": "Early insomnia on an antidepressant is arousal, not a shortage of tiredness. Lying there trying harder teaches your brain that bed means awake.",
+      "mechanism": "Raised noradrenergic tone keeps cortical arousal high even when sleep pressure is genuinely there, and staying in bed awake conditions the brain to associate the bed with wakefulness.",
+      "actions": [
+        "If you have been awake 20-25 minutes, get up. Different room, dim light, something dull and paper-based. Go back only when sleepy. Repeat as many times as the night requires.",
+        "Keep your wake time fixed even after a terrible night. Sleeping in to compensate is what turns two bad nights into three bad weeks.",
+        "Turn the clock away from you. Watching the time converts tiredness into anxiety within minutes.",
+        "Give it 10-14 days before you conclude the drug does not suit you. Most early insomnia genuinely resolves, and day four is the worst possible moment to judge."
+      ],
+      "foods": [],
+      "avoid": [
+        "Alcohol. It shortens sleep onset then fragments the second half of the night, which is already the vulnerable half on these drugs.",
+        "Nightly over-the-counter sedating antihistamines. Tolerance builds quickly and it does nothing about the cause.",
+        "Extending time in bed to catch up. It dilutes sleep pressure across more hours and makes tomorrow night worse."
+      ],
+      "contraindications": [],
+      "track": "hours slept and time to fall asleep",
+      "timeline": "Usually worst in weeks 1-2 and resolved for most people by week 4. Past week 4-6 it becomes a prescriber conversation rather than something to wait out.",
+      "evidenceStrength": "guideline",
+      "source": "Stimulus control and sleep restriction are core CBT-I components; the AASM guideline recommends CBT-I as first-line for chronic insomnia ahead of medication. Applying them during antidepressant initiation is standard clinical practice, not a separately trialled protocol. CHANGED: 'tolerance builds within about a week' for antihistamines softened to 'quickly', because the specific one-week figure is commonly repeated but I could not source it."
+    },
+    {
+      "id": "napping-rules",
+      "drugs": [
+        "mirtazapine",
+        "trazodone",
+        "amitriptyline",
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "venlafaxine",
+        "duloxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Support yourself through this medicine",
+      "signals": [
+        "insomnia",
+        "daytime_fatigue"
+      ],
+      "substances": [],
+      "bodyEffect": "Napping is not forbidden, but a long or late nap spends the sleep pressure you need at 11pm. The rules are about length and timing.",
+      "mechanism": "Adenosine accumulates through the waking day and is what eventually makes you fall asleep; a long nap clears a chunk of it, so a 90-minute nap at 5pm can cost you most of the night.",
+      "actions": [
+        "If you nap: 10-25 minutes, before 3pm, alarm set, and ideally not in your bed.",
+        "If you are also fighting insomnia at night, do not nap at all. In that specific situation the nap is the problem, not the relief.",
+        "On a heavily sedating drug in week one, a short nap is a sensible coping tool. Phase it out as the sedation eases rather than letting it become the routine.",
+        "If you cannot get through the day without a long nap past week 4, raise it. It may be a dose or timing issue."
+      ],
+      "foods": [],
+      "avoid": [],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Most people can return to their normal napping habits once night sleep settles, around week 4-6.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "The two-process model (homeostatic adenosine pressure plus circadian timing) is established, and the short-nap length and timing rules come from shift-work and aviation research in people not taking antidepressants. Applying them to the initiation period is inference."
+    },
+    {
+      "id": "how-long-sleep-disruption-lasts",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "fluvoxamine",
+        "venlafaxine",
+        "duloxetine",
+        "mirtazapine",
+        "bupropion",
+        "trazodone"
+      ],
+      "phase": "first_weeks",
+      "goal": "Support yourself through this medicine",
+      "signals": [],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "Most antidepressant sleep disruption is a starting effect, not a permanent one. Knowing the shape of the curve is what gets you past day four.",
+      "mechanism": "Receptor systems adapt over weeks; the early disruption reflects an abrupt change in serotonergic and noradrenergic tone that the brain then adjusts to.",
+      "actions": [
+        "Put day 14 and day 28 in your calendar now. Judge the drug at those points rather than on the worst night.",
+        "Write one line a night: hours slept, how you feel out of ten. Depression biases memory towards the bad nights, so you will underestimate your own improvement without a record.",
+        "Expect any dose increase to restart a smaller version of the same curve. Knowing that in advance stops it feeling like relapse.",
+        "If nothing has moved at all by week 4-6, that is real information for your prescriber, not a personal failure."
+      ],
+      "foods": [],
+      "avoid": [],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Typical shape, not a guarantee: insomnia and activation peak weeks 1-2 and are mostly gone by week 4; sedation peaks weeks 1-2 and eases by week 3-4; vivid dreams weeks 1-3, fading by week 4-6. Sexual side effects often do not follow this curve at all.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Sleep-related adverse events in SSRI and SNRI trials cluster in the first weeks and decline thereafter, while polysomnographic REM suppression persists throughout treatment (Wilson & Argyropoulos, Drugs 2005). The week-by-week ranges are a synthesised clinical pattern across drugs and studies, not an output of any single trial. The UI must render them as 'usually' and never as a promise."
+    },
+    {
+      "id": "restless-legs-and-jaw-clenching",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "fluvoxamine",
+        "venlafaxine"
+      ],
+      "phase": "ongoing",
+      "goal": "Support yourself through this medicine",
+      "signals": [
+        "anxiety_jitter"
+      ],
+      "substances": [],
+      "bodyEffect": "Twitchy legs at night and a sore jaw in the morning are recognised drug effects, not stress.",
+      "mechanism": "Increased serotonergic tone dampens dopaminergic pathways that normally suppress motor activity during sleep, so limb movements and jaw clenching increase.",
+      "actions": [
+        "Name it to your prescriber rather than living with it. It is recognised and therefore actionable.",
+        "If legs are the problem, ask for a ferritin test. Low iron stores make restless legs substantially worse and are common, cheap to check and correctable.",
+        "If you are clenching, ask your dentist about a night guard before you crack a tooth. It costs far less than the repair.",
+        "If a switch is already on the table for other reasons, it is worth asking whether a non-serotonergic option would be less likely to do this."
+      ],
+      "foods": [],
+      "avoid": [],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Can begin within days of starting and, unlike most sleep effects, does not reliably fade with time.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Ferri et al., Neuroscience & Biobehavioral Reviews 2023, meta-analysis of periodic leg movements during sleep with antidepressants (12 studies): large effect for SSRIs and venlafaxine, much smaller or absent for others, with the authors explicitly noting the negative finding for other classes needs better-controlled confirmation. CHANGES: duloxetine removed from the drug list, as it was not among the drugs with the demonstrated effect. The bupropion exception is softened from a flat claim to 'less likely', per the authors' own caveat. Bruxism (jaw clenching) is supported by case series and pharmacovigilance signal, not by this meta-analysis, which measured leg movements only. The ferritin link comes from the general restless legs literature, not from antidepressant-specific trials."
+    },
+    {
+      "id": "sexual-dysfunction-mechanism",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "fluvoxamine",
+        "venlafaxine",
+        "duloxetine"
+      ],
+      "phase": "ongoing",
+      "goal": "Address sexual side effects with your prescriber",
+      "signals": [
+        "low_libido"
+      ],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "Delayed or absent orgasm, lower desire, blunted genital sensation. This is a drug effect on the sexual reflex, not a sign you have stopped caring.",
+      "mechanism": "Serotonin acting at 5-HT2A receptors applies a brake to the orgasm reflex and suppresses dopamine, which drives desire; some SSRIs, paroxetine in particular, also reduce nitric oxide signalling, which is what produces genital blood flow.",
+      "actions": [
+        "Tell your prescriber. This is the most common silent reason people stop their medication, and stopping silently is how relapse happens. There are four or five distinct things to try.",
+        "Separate depression from drug. Depression itself flattens libido. If desire is coming back but orgasm has become difficult, delayed or muted, that pattern points at the drug.",
+        "Note roughly when it started relative to starting or increasing the dose. It makes the prescriber conversation faster and more specific.",
+        "Allow more time and more direct stimulation than you needed before. The threshold has genuinely moved, and treating it as the same body creates a second problem on top of the first."
+      ],
+      "foods": [],
+      "avoid": [],
+      "contraindications": [],
+      "track": "whether it is affecting you and how much it matters to you",
+      "timeline": "Usually appears within the first 1-2 weeks. Unlike nausea or insomnia, it often does NOT resolve on its own. Waiting it out is a weaker strategy here than anywhere else.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Serretti & Chiesa, J Clin Psychopharmacol 2009;29:259-266: treatment-emergent sexual dysfunction 25.8% to 80.3% across antidepressants, highest with sertraline and venlafaxine, and not significantly different from placebo for bupropion, mirtazapine, agomelatine, amineptine, moclobemide and nefazodone. VERIFIED against the abstract. The spread reflects how studies asked; spontaneous reporting gives far lower rates than direct questioning. Never surface a single headline percentage. The nitric oxide component is mechanistic, strongest for paroxetine, and is not a class-wide measured effect, so the wording was narrowed from 'several SSRIs'."
+    },
+    {
+      "id": "sexual-dysfunction-exercise",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "venlafaxine",
+        "duloxetine"
+      ],
+      "phase": "ongoing",
+      "goal": "Protect your sleep while the drug settles",
+      "signals": [
+        "insomnia",
+        "low_libido",
+        "anxiety_jitter"
+      ],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "Two behavioural things have trial evidence here: putting sex on the calendar, and exercising shortly before it. They help different parts of the problem.",
+      "mechanism": "Acute exercise raises sympathetic nervous system activity, which is a required input for genital arousal, the same activation serotonergic drugs have damped down. Scheduling addresses a different problem: less frequent sex is itself associated with worse function.",
+      "actions": [
+        "Schedule sexual activity rather than waiting for spontaneous desire. In the trial, scheduling regular sexual activity was what improved orgasm function; exercise added nothing further to that.",
+        "Where it fits your life, exercise shortly before sexual activity. That was the arm that improved desire, and global sexual function in the women who had dysfunction at baseline.",
+        "Three sessions a week of moderate-to-vigorous exercise, sustained at least three weeks before you judge it. Strength training counts.",
+        "Do this alongside the prescriber conversation, not instead of it. Set expectations honestly: satisfaction scores did not move in the trial."
+      ],
+      "foods": [],
+      "avoid": [],
+      "contraindications": [],
+      "track": "hours slept and time to fall asleep",
+      "timeline": "The trial used three-week arms. Give it at least that long before drawing conclusions.",
+      "evidenceStrength": "clinical_studies",
+      "source": "MATERIALLY CORRECTED. Lorenz & Meston, Depress Anxiety 2014;31:188-95, randomized crossover, n=52 women. Actual findings: exercise immediately before sexual activity significantly improved desire, and global sexual function in those with baseline dysfunction; scheduling regular sexual activity improved orgasm function and exercise did NOT add to that; neither scheduling nor exercise significantly changed sexual satisfaction. The previous version attributed the orgasm benefit to exercise and claimed a satisfaction benefit that the trial explicitly did not find. Women only; extending the pre-sex timing finding to men is mechanistic inference."
+    },
+    {
+      "id": "sexual-dysfunction-prescriber-options",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "fluvoxamine",
+        "venlafaxine",
+        "duloxetine"
+      ],
+      "phase": "switching",
+      "goal": "Address sexual side effects with your prescriber",
+      "signals": [
+        "low_libido"
+      ],
+      "substances": [],
+      "bodyEffect": "There is a real menu here: lower the dose, switch drug, add something, or treat downstream. Most people are never told the menu exists.",
+      "mechanism": "Because the effect is driven by serotonergic tone, the options work by lowering that tone, adding back dopaminergic and noradrenergic drive, or restoring nitric oxide-mediated blood flow further down the chain.",
+      "actions": [
+        "Ask about switching to bupropion or mirtazapine, which showed rates no different from placebo in the largest comparative meta-analysis. Vortioxetine is also often raised as lower-risk, on a smaller evidence base.",
+        "Ask about adding bupropion alongside what you already take. This has randomised trial support for improving desire and arousal without stopping your current drug.",
+        "For erectile difficulty specifically, ask about sildenafil or tadalafil. This has the strongest evidence of any option here, with separate trial evidence in women.",
+        "Ask whether a dose reduction is safe for you. Some people recover function at a lower dose that still treats the depression, but the evidence for this is weak and it is a prescriber decision, never a solo experiment."
+      ],
+      "foods": [],
+      "avoid": [
+        "Drug holidays, deliberately skipping doses at weekends. It risks discontinuation symptoms and relapse, and it does not work at all for long half-life drugs like fluoxetine.",
+        "Stopping abruptly on your own. You get discontinuation symptoms plus relapse risk, and you close off every option above."
+      ],
+      "contraindications": [],
+      "track": "whether it is affecting you and how much it matters to you",
+      "timeline": "Switching takes weeks and carries a relapse risk. Add-on strategies usually show within 2-4 weeks. PDE5 inhibitors work the same day.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Nurnberg et al., JAMA 2003;289:56-64: 55% of sildenafil-treated men rated much or very much improved versus 4% on placebo, n=90, SSRI-treated men with depression in remission. VERIFIED. Nurnberg et al., JAMA 2008 showed benefit in women. Bupropion augmentation supported by RCTs including Clayton et al. 2004. Serretti & Chiesa 2009 for comparative rates. CHANGES: the bupropion augmentation dose range '150-300mg' was removed, as dosing belongs to the prescriber and I could not tie a single range to a specific trial; 'improving desire, arousal and orgasm' narrowed to desire and arousal, which is where the augmentation evidence is strongest; the dose-reduction case series numbers (23 of 30) were removed as I could not verify the figures against a primary source, and the direction is stated without them; vortioxetine separated out because its comparative evidence is thinner than bupropion's or mirtazapine's."
+    },
+    {
+      "id": "switching-tapering-sleep-rebound",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "venlafaxine",
+        "duloxetine",
+        "fluvoxamine",
+        "fluoxetine"
+      ],
+      "phase": "switching",
+      "goal": "Expect and manage vivid dreams",
+      "signals": [
+        "vivid_dreams"
+      ],
+      "substances": [],
+      "bodyEffect": "Coming off or switching brings a sleep flare: intense dreams, broken nights, sometimes brief electric-shock sensations as you drift off.",
+      "mechanism": "REM sleep that has been suppressed for months rebounds once the serotonergic brake is removed, returning longer and denser for several nights.",
+      "actions": [
+        "Taper slowly and in agreement with your prescriber. The size of the rebound tracks how fast the drug level falls.",
+        "Expect the flare and schedule around it. Do not begin a taper the week before something that matters to you.",
+        "Hold wake time and morning light exposure constant through the taper. During a period when nothing else is stable, they are the only anchor you control.",
+        "If the dreams are frightening rather than merely vivid, report it. That is a reason to slow the taper, not something to endure quietly."
+      ],
+      "foods": [],
+      "avoid": [
+        "Skipping doses as an informal taper. It produces sharp peaks and troughs and a worse rebound than a planned reduction.",
+        "Stopping abruptly, particularly on paroxetine or venlafaxine. Short half-life drugs produce the sharpest discontinuation symptoms.",
+        "Assuming vivid dreams after a missed dose mean the drug is dangerous. It means the level dropped. Take the next dose on schedule and tell your prescriber if it keeps happening."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Begins within days of a reduction or a missed dose and typically peaks over the following 1-2 weeks per step down. Long half-life drugs like fluoxetine produce a delayed and much blunted version of this.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "REM rebound after withdrawal of REM-suppressing drugs is established sleep physiology. The week-by-week course during antidepressant tapering is described clinically and in the discontinuation-symptom literature rather than quantified in controlled polysomnography, so the direction is stated confidently and the timings loosely. The half-life-dependent severity of discontinuation symptoms (worst for paroxetine and venlafaxine, mildest for fluoxetine) is well established and was added to avoidThis."
+    },
+    {
+      "id": "gut-serotonin-first-two-weeks",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine",
+        "venlafaxine",
+        "desvenlafaxine",
+        "duloxetine",
+        "vortioxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Get through the first-weeks gut effects",
+      "signals": [
+        "nausea",
+        "dizzy_confused"
+      ],
+      "substances": [
+        "alcohol",
+        "supplements"
+      ],
+      "bodyEffect": "Most of your body's serotonin lives in your gut, not your brain. These drugs raise it there first, which is why week one feels like a stomach bug.",
+      "mechanism": "The large majority of the body's serotonin sits in the GI tract; blocking reuptake leaves more of it around enterochromaffin cells and vagal nerve endings, where 5-HT3 receptors trigger nausea and 5-HT4 receptors speed the gut up.",
+      "actions": [
+        "Eat something small 20-30 minutes before your dose, even with zero appetite",
+        "Take the dose at the same time daily so you can tell drug effect from random bad days",
+        "Score your nausea 0-10 once a day at the same hour, so you can see the slope instead of guessing"
+      ],
+      "foods": [
+        "Plain starch (rice, potato, crackers, toast) which empties fast from a slowed stomach",
+        "Cold or room-temperature food, since food aroma is a strong nausea trigger",
+        "Broth or salted soup, which replaces fluid and sodium if stools are loose"
+      ],
+      "avoid": [
+        "Judging the drug on day 4, which is usually the worst point rather than the new normal",
+        "Alcohol in the first fortnight, which adds gastric irritation and loosens stools on top of the drug effect"
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "nausea 0-10 each morning",
+      "timeline": "Starts within the first days and is concentrated in the first two weeks. In pooled vortioxetine trial data, nausea had a median duration of 9-16 days, and only about 2% of patients reported nausea as a NEW symptom during week 3. Brand new nausea appearing after week 2 is uncommon and worth mentioning to your prescriber.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Timeline figures (median duration 9-16 days; ~2% new-onset nausea in week 3) are from the pooled analysis of vortioxetine placebo-controlled RCTs and open-label extensions, PMC4794082, verified directly. The 5-HT3/5-HT4 gut mechanism is established pharmacology. IMPORTANT: the specific tactics here (eating before the dose, fixed dose timing, 0-10 scoring) are general nausea practice and a practical self-tracking method, NOT trial-tested in people starting antidepressants."
+    },
+    {
+      "id": "dose-not-food-drives-nausea",
+      "drugs": [
+        "duloxetine",
+        "venlafaxine",
+        "desvenlafaxine",
+        "vortioxetine",
+        "sertraline",
+        "fluvoxamine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluoxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Get through the first-weeks gut effects",
+      "signals": [
+        "nausea"
+      ],
+      "substances": [],
+      "bodyEffect": "The nausea tracks how fast your dose climbs, not whether there is food in your stomach. Starting lower is the lever that actually works.",
+      "mechanism": "Nausea scales with the size of the serotonin jump at the gut wall, so a smaller starting dose produces a smaller 5-HT3 signal; food alters absorption slightly but does not reduce the serotonergic drive itself.",
+      "actions": [
+        "Ask your prescriber whether you can start at half the target dose for the first week or two, then step up",
+        "If nausea spiked right after a dose increase, ask about dropping back one step and climbing more slowly",
+        "Keep taking it with food if that feels better to you, it is harmless, just do not expect it to be the fix"
+      ],
+      "foods": [],
+      "avoid": [
+        "Assuming food will solve it, then concluding the drug is intolerable when food does not work",
+        "Pushing the dose up faster than planned to get the adjustment over with",
+        "Splitting or crushing extended-release SNRI capsules to lower the dose without asking, which dumps the whole dose at once"
+      ],
+      "contraindications": [],
+      "track": "nausea 0-10 each morning",
+      "timeline": "Dose-related nausea appears within days of each increase and settles over roughly a week once the dose holds steady.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Randomised 4-arm trial of duloxetine initiation, n=249 (30 mg vs 60 mg, each with vs without food), PMC3521117, verified directly: dose effect on nausea severity p=0.003; food effect p=0.555 (not significant); ~80% on 30 mg had no or mild nausea in week 1 vs ~55% on 60 mg. THREE LIMITS the app should not hide: (1) the trial was OPEN-LABEL, which the authors flag as a source of expectation bias; (2) it was conducted in Korean patients and the authors explicitly raise diet and ethnicity as reasons their food result may differ from Western populations; (3) all arms escalated to 60 mg at week 1, so this tests the STARTING dose, not maintenance. Extending the dose-over-food finding from duloxetine to the other drugs listed is mechanistic inference, not tested."
+    },
+    {
+      "id": "with-food-when-it-actually-helps",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine",
+        "venlafaxine",
+        "desvenlafaxine",
+        "duloxetine",
+        "vortioxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Get through the first-weeks gut effects",
+      "signals": [
+        "nausea"
+      ],
+      "substances": [],
+      "bodyEffect": "Food helps a raw, burning stomach. It does much less for the deep queasy wave, which is nerve signalling rather than stomach contents.",
+      "mechanism": "Food buffers direct contact irritation between the tablet and the stomach lining, but 5-HT3-mediated nausea is generated by vagal nerve signalling from the gut wall and is largely independent of whether the stomach is full.",
+      "actions": [
+        "Sort your symptom first: burning, sour or reflux-like means food and staying upright 30 minutes will genuinely help",
+        "Deep queasy waves with no burning means food is optional, so choose dose timing by sleep instead",
+        "If the queasiness peaks a few hours after dosing, try taking it at bedtime so you sleep through the peak",
+        "If it wakes you or wrecks your sleep, move it to morning with breakfast instead"
+      ],
+      "foods": [
+        "A small starch-plus-protein pairing such as toast with egg, or crackers with yogurt"
+      ],
+      "avoid": [
+        "Force-feeding yourself a large meal to soak up the tablet, which slows gastric emptying and usually worsens queasiness"
+      ],
+      "contraindications": [],
+      "track": "nausea 0-10 each morning",
+      "timeline": "You will know within 3-4 days whether food is doing anything for you. If it is not, stop treating it as the solution and address dose timing instead.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "The null food effect is trial-based (duloxetine RCT, PMC3521117, food p=0.555, verified). Sorting nausea by subtype and matching food to gastric irritation specifically is mechanistic reasoning, NOT a tested strategy. Supporting PK point, verified against the FDA Zoloft label: for the sertraline TABLET, food raised Cmax by 25% and shortened Tmax from 8 to 5.5 hours, so food does not lower systemic exposure. Note this is formulation-specific: for the ORAL CONCENTRATE the label reports Tmax lengthening from 5.9 to 7.0 hours with food, the opposite direction. Do not present the tablet figure as applying to all sertraline forms, or to other drugs."
+    },
+    {
+      "id": "ginger-for-startup-nausea",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine",
+        "venlafaxine",
+        "desvenlafaxine",
+        "duloxetine",
+        "vortioxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Get through the first-weeks gut effects",
+      "signals": [
+        "nausea",
+        "appetite_gain",
+        "bruising_bleeding"
+      ],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "Ginger's active compounds act on the same 5-HT3 receptors your drug is over-stimulating. Worth trying, modest at best, and never tested for this exact use.",
+      "mechanism": "Gingerols and shogaols have inhibitory activity at 5-HT3, muscarinic and histaminergic receptors and modestly accelerate gastric emptying, which overlaps the pathway 5-HT3 anti-sickness drugs work on.",
+      "actions": [
+        "Aim for around 1000 mg of ginger daily, which is the dose most trials used",
+        "Start it on day 1 of the antidepressant rather than waiting until you already feel awful",
+        "Use capsules, fresh root steeped in hot water, or crystallised ginger, not ginger ale or ginger biscuits, which contain little real ginger",
+        "Expect help with queasiness rather than with actual vomiting, which is where the evidence is null"
+      ],
+      "foods": [
+        "Ginger capsules",
+        "Fresh ginger steeped in hot water, which also covers fluid intake",
+        "Crystallised ginger for a portable option between meals"
+      ],
+      "avoid": [
+        "Going above about 1500 mg a day, since subgroup analysis favoured lower daily doses and higher intake adds side effects rather than benefit",
+        "Ginger supplements without checking first if you take warfarin or another anticoagulant, or have surgery coming up, because concentrated ginger at high doses can raise bleeding risk"
+      ],
+      "contraindications": [],
+      "track": "nausea 0-10 each morning",
+      "timeline": "Trials generally dosed it daily for around 4 days and measured over days, not hours. Worth using consistently through the first 2-3 weeks, then stopping to see if you still need it.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "DOWNGRADED from clinical_studies. Real RCTs exist but NONE in antidepressant-induced nausea, so the recommendation itself rests on shared-receptor extrapolation. Verified directly (Nutrition Journal 2014 meta-analysis, PMC3995184, 12 RCTs / 1,278 pregnant women): ginger significantly reduced nausea severity vs placebo (MD 1.20, 95% CI 0.56-1.84, p=0.0002, I-squared 0%) but did NOT significantly reduce vomiting episodes (MD 0.72, 95% CI -0.03 to 1.46, p=0.06). Most trials used 1000 mg/day for 4 days; subgroup analysis favoured <1500 mg/day. Chemotherapy-nausea evidence is weaker and largely null. REMOVED from the previous draft: the '250 mg four times daily' split (no trial used that schedule) and the '30-60 minute onset' claim (not in any source checked)."
+    },
+    {
+      "id": "loose-stools-5ht4-motility",
+      "drugs": [
+        "fluvoxamine",
+        "sertraline",
+        "citalopram",
+        "escitalopram",
+        "fluoxetine",
+        "paroxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Get through the first-weeks gut effects",
+      "signals": [
+        "nausea",
+        "loose_stools",
+        "insomnia",
+        "anxiety_jitter"
+      ],
+      "substances": [
+        "high_caffeine",
+        "alcohol",
+        "supplements"
+      ],
+      "bodyEffect": "Extra gut serotonin hits 5-HT4 receptors, which speed the colon up. Stool moves too fast for water to be reabsorbed, so it comes out loose.",
+      "mechanism": "Blocking the serotonin transporter raises local gut serotonin, which activates 5-HT4 receptors on enteric neurons, increases acetylcholine release and drives colonic propulsion, cutting the time available for water absorption.",
+      "actions": [
+        "Start psyllium husk, 1 teaspoon in a full large glass of water once daily, and build up gradually over a week",
+        "Cut caffeine right down in the first fortnight, since caffeine independently stimulates colonic contractions and stacks with the drug effect",
+        "Replace fluid with something containing salt (broth, oral rehydration sachets, salted soup) rather than plain water alone if stools are frequent",
+        "If it is severe, ask your prescriber about switching, since this differs a lot between drugs in the same class"
+      ],
+      "foods": [
+        "Psyllium husk, which forms a gel that traps excess water and firms stool",
+        "Oats and ripe banana as soluble-fibre foods",
+        "White rice and potato, which are low-residue and slow transit"
+      ],
+      "avoid": [
+        "Wheat bran or generic advice to add more roughage, because coarse insoluble fibre mechanically stimulates mucosal secretion and can make loose stools worse",
+        "Taking psyllium with too little water, which is the usual reason people find it unpleasant and quit",
+        "Sugar alcohols (sorbitol, xylitol in sugar-free gum and sweets) and a big lactose load while this is settling"
+      ],
+      "contraindications": [],
+      "track": "nausea 0-10 each morning",
+      "timeline": "Often lags the nausea. Can appear in the first weeks. Note the source meta-analysis measured outcomes at around 8 weeks and does NOT report how these symptoms evolve over time, so any specific 'settles by week X' figure for diarrhoea would be invented.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Network and dose-response meta-analysis of antidepressant GI effects (Transl Psychiatry 2025, PMC12811249), verified directly. Diarrhoea ORs vs placebo, all significant: vilazodone 3.88 (2.69-5.64), fluvoxamine 3.15 (1.30-7.59), sertraline 2.90 (2.23-3.74), citalopram 2.60 (1.53-4.47), agomelatine 2.17 (1.09-4.47), fluoxetine 1.95 (1.56-2.44), escitalopram 1.87 (1.36-2.66), paroxetine 1.62 (1.34-1.97). DRUG LIST CORRECTED: venlafaxine and desvenlafaxine were REMOVED because they are NOT among the 8 drugs with significantly increased diarrhoea odds; paroxetine was ADDED because it is (weakest signal, and note paroxetine also raises constipation risk, so it can go either way in different people). The 5-HT4 mechanism is established pharmacology. The psyllium-versus-wheat-bran claim is presented as direction only; the specific trial citation in the previous draft was not verified in this pass and has been removed."
+    },
+    {
+      "id": "constipation-does-not-settle",
+      "drugs": [
+        "fluvoxamine",
+        "venlafaxine",
+        "paroxetine",
+        "desvenlafaxine",
+        "duloxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Get through the first-weeks gut effects",
+      "signals": [
+        "nausea",
+        "loose_stools"
+      ],
+      "substances": [],
+      "bodyEffect": "Paroxetine blocks acetylcholine; SNRIs add noradrenaline. Both slow the gut. Unlike nausea, there is no known mechanism that rescues you from this one with time.",
+      "mechanism": "Muscarinic receptor blockade by paroxetine inhibits smooth muscle contraction and prolongs transit, and noradrenergic tone from SNRIs slows gastric emptying. Neither pathway has the receptor desensitisation that turns down 5-HT3 nausea. Fluvoxamine carries the highest constipation odds of the drugs here despite not being strongly anticholinergic, which is not well explained.",
+      "actions": [
+        "Treat it from week 1 rather than waiting it out",
+        "Soluble fibre plus genuinely increased fluid, since fibre without fluid makes constipation worse",
+        "Ask about polyethylene glycol (macrogol) as the first-line agent rather than stimulant laxatives for ongoing use",
+        "Walk after meals, which uses the gastrocolic reflex while it is active",
+        "If it is persistent and intolerable, ask about switching: vortioxetine, fluoxetine, sertraline, citalopram and escitalopram were the only drugs in the meta-analysis with no significant constipation increase"
+      ],
+      "foods": [
+        "Psyllium husk with a large glass of water, which softens hard stool as well as firming loose stool",
+        "Kiwi fruit, prunes or pears as sources of both fibre and sorbitol"
+      ],
+      "avoid": [
+        "Assuming the 'give it two weeks and it settles' advice transfers from nausea to constipation, since nothing in the evidence base supports that transfer",
+        "Long-term daily stimulant laxatives without discussing it with a clinician"
+      ],
+      "contraindications": [],
+      "track": "nausea 0-10 each morning",
+      "timeline": "Builds over the first weeks. Whether it persists for the duration of treatment is NOT established: the meta-analysis measured constipation at around 8 weeks and does not report symptom trajectory at all.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "DOWNGRADED from clinical_studies. The drug attributions ARE trial-derived, but the protocol's headline claim (that constipation does not settle) has NO trial support: PMC12811249 was checked directly and reports no data on duration, tolerance or trajectory. The absence-of-desensitisation argument is inference from contrast with 5-HT3 nausea. Verified constipation ORs vs placebo: fluvoxamine 4.00 (1.37-12.5), venlafaxine 3.19 (2.41-4.30), paroxetine 2.38 (1.92-2.99), desvenlafaxine 2.35 (1.36-4.25), duloxetine 2.33 (1.71-3.17); higher still for amitriptyline 4.47, clomipramine 4.33, reboxetine 4.02, levomilnacipran 3.77. Verbatim: 'With the exception of vortioxetine, fluoxetine, sertraline, citalopram and escitalopram, all drugs demonstrated a greater incidence of constipation in comparison to the placebo.' DRUG LIST CORRECTED: fluvoxamine was ADDED (it was missing, despite having the highest constipation OR of any in-scope drug, though with a wide credible interval). The unverified secondary review cited in the previous draft has been removed."
+    },
+    {
+      "id": "meal-shape-and-hydration",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine",
+        "venlafaxine",
+        "desvenlafaxine",
+        "duloxetine",
+        "vortioxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Get through the first-weeks gut effects",
+      "signals": [
+        "nausea",
+        "loose_stools",
+        "dizzy_confused"
+      ],
+      "substances": [
+        "alcohol",
+        "supplements"
+      ],
+      "bodyEffect": "A nauseated stomach empties slowly. Large meals sit and make it worse; small frequent ones hold blood sugar without overloading it.",
+      "mechanism": "Nausea and raised serotonin both slow gastric emptying, so a large volume stays in the stomach longer and distends it, which is itself a nausea trigger via the same vagal afferents.",
+      "actions": [
+        "Eat 5-6 small meals rather than 3 normal ones for the first fortnight",
+        "Get 25-30 g of protein at breakfast (2 eggs plus Greek yogurt, or a scoop of whey in oats) to protect muscle while intake is down",
+        "Drink to thirst in modest amounts rather than large glasses at once, since a full stomach distends and triggers nausea. Keep your total daily fluid roughly normal, not elevated",
+        "If you are drinking more than usual because of loose stools or vomiting, make some of it salt-containing (broth, oral rehydration sachet) rather than all plain water",
+        "Switch to liquid calories (smoothie, milk, soup) on days solid food is unbearable, rather than eating nothing"
+      ],
+      "foods": [
+        "Greek yogurt, eggs, oats, crackers with nut butter as small protein-containing units",
+        "Cold or room-temperature food, which gives off far less aroma",
+        "Broth and salted soup, covering fluid and sodium together"
+      ],
+      "avoid": [
+        "Skipping meals all day then eating one large evening meal, which is the worst possible pattern for a slow stomach",
+        "Hot, strongly aromatic food, because smell drives nausea more than taste does",
+        "Deliberately pushing large volumes of plain water to 'flush out' the nausea. On these drugs that is not neutral: it can worsen dilutional low sodium. See the low-sodium protocol",
+        "Alcohol, which irritates the stomach lining and loosens stools independently"
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "nausea 0-10 each morning",
+      "timeline": "Use this pattern for the first 2-3 weeks, then return to normal meals as nausea recedes.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "Standard nausea-management practice plus established physiology of delayed gastric emptying, applied to antidepressant start-up. Not trial-tested in this population. The 25-30 g protein target reflects general protein-distribution guidance for preserving lean mass during reduced intake, not an antidepressant-specific study. SAFETY CORRECTION: the previous draft instructed '150-200 ml of fluid every 30-60 minutes', which at the upper bound is roughly 5-6 litres a day across waking hours. That was an invented number and it points in exactly the wrong direction for a drug class that causes SIADH and dilutional hyponatraemia. Replaced with drink-to-thirst plus salt-containing replacement, and cross-referenced to the low-sodium protocol."
+    },
+    {
+      "id": "early-appetite-loss-and-weight",
+      "drugs": [
+        "fluoxetine",
+        "duloxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Get through the first-weeks gut effects",
+      "signals": [
+        "nausea",
+        "appetite_loss"
+      ],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "Early appetite loss is drug-driven, not just low mood. It is best documented for fluoxetine and duloxetine.",
+      "mechanism": "Serotonin acting at 5-HT2C receptors reduces food intake, and nausea suppresses appetite on top of that. Both effects are strongest in the first weeks, before receptor adaptation.",
+      "actions": [
+        "Eat by the clock, not by hunger, because the hunger signal itself is being suppressed",
+        "Prioritise 25-30 g protein at breakfast so the weight you lose is not muscle",
+        "Use liquid calories when solid food repels you, since a smoothie is far easier than a plate",
+        "Weigh yourself weekly under the same conditions rather than daily, so you see trend not noise"
+      ],
+      "foods": [
+        "Whole milk, nut butters and olive oil as easy calorie density without volume",
+        "Whey or milk-based smoothies, which deliver protein without needing appetite",
+        "Greek yogurt and eggs as small high-protein units"
+      ],
+      "avoid": [
+        "Treating it as a welcome side effect and eating less on purpose, because the appetite suppression reverses and low protein intake means you lose lean mass rather than fat",
+        "Ignoring loss above roughly 5% of body weight in a month, which should be flagged to your prescriber"
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "nausea 0-10 each morning",
+      "timeline": "Appetite suppression is strongest in the first weeks. In the 1-year fluoxetine trial, mean weight change over the first 4 weeks was -0.4 kg, then reversed.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Michelson et al., Changes in Weight During a 1-Year Trial of Fluoxetine, Am J Psychiatry 1999;156(8):1170, verified: mean absolute decrease of 0.4 kg over the first 4 weeks of therapy, reversing thereafter. Decreased appetite is listed as a common adverse reaction in duloxetine labelling. DRUG LIST CORRECTED: the previous draft applied this to all ten drugs and specifically included PAROXETINE, which is the SSRI most associated with weight GAIN, i.e. the opposite direction. Scoped back to the two drugs with actual supporting evidence. The specific '>5% and at least twice placebo rate' label figure for duloxetine could not be confirmed in this pass and has been removed. The 5% body weight in a month escalation threshold is a general clinical malnutrition-screening convention, not an antidepressant-specific finding. Protein and liquid-calorie tactics are extrapolated nutrition practice."
+    },
+    {
+      "id": "appetite-return-and-later-weight",
+      "drugs": [
+        "fluoxetine",
+        "sertraline",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine",
+        "venlafaxine",
+        "desvenlafaxine",
+        "duloxetine",
+        "vortioxetine"
+      ],
+      "phase": "ongoing",
+      "goal": "Support yourself through this medicine",
+      "signals": [
+        "appetite_gain"
+      ],
+      "substances": [],
+      "bodyEffect": "Appetite returns over the following months, sometimes sharply. Partly recovery from depression, partly receptors adapting.",
+      "mechanism": "Sustained 5-HT2C stimulation is thought to desensitise and downregulate those receptors, releasing the early appetite brake, while recovering mood independently restores normal eating and interest in food.",
+      "actions": [
+        "Expect regain back toward your baseline and do not read it as the drug failing or as relapse",
+        "Keep the protein-forward breakfast you built in the first month, since it blunts later-day appetite swings",
+        "Build a walking or activity habit during month 2, before appetite fully returns, so it is already established",
+        "If weight gain is steady and unwanted past month 6, raise it as a medication-choice question rather than a willpower question"
+      ],
+      "foods": [],
+      "avoid": [
+        "Sharp calorie restriction the moment appetite returns, which tends to backfire while mood is still stabilising"
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "how you feel day to day",
+      "timeline": "In the 1-year fluoxetine trial, early loss reversed after about 4 weeks, and patients completing 50 weeks gained a mean of roughly 3 kg during continuation, with no significant difference between fluoxetine and placebo.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Michelson et al., Am J Psychiatry 1999;156(8):1170, verified: continuation-phase weight gain (~3 kg over 50 weeks) matched placebo and was attributed to recovery from depression rather than to the drug. The 5-HT2C desensitisation account is the standard mechanistic explanation but was NOT measured in these patients; it is inference. This pattern is documented for FLUOXETINE; do not present it as class-wide. Paroxetine in particular is more associated with longer-term gain, so the reassuring 'same as placebo' framing should not be shown to paroxetine users without that caveat."
+    },
+    {
+      "id": "vortioxetine-nausea-dose-related",
+      "drugs": [
+        "vortioxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Get through the first-weeks gut effects",
+      "signals": [
+        "nausea"
+      ],
+      "substances": [],
+      "bodyEffect": "Vortioxetine causes nausea in roughly one in four people, despite blocking 5-HT3 receptors. Rates are higher at higher doses.",
+      "mechanism": "Vortioxetine blocks 5-HT3 receptors, which was expected to spare people nausea, but its serotonin reuptake inhibition raises gut serotonin enough that meaningful nausea rates remain.",
+      "actions": [
+        "If you started at 10 mg and are struggling, ask about 5 mg for the first two weeks before stepping up",
+        "Front-load your nausea support (ginger, small frequent meals) in the first fortnight, which is when almost all of it happens",
+        "If nausea is still bad after several weeks, raise it with your prescriber rather than continuing to endure it"
+      ],
+      "foods": [],
+      "avoid": [
+        "Assuming that because you tolerated a lower dose, a higher one will be equally easy: nausea rates and nausea-related discontinuation are both higher at 15-20 mg than at 5-10 mg"
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "nausea 0-10 each morning",
+      "timeline": "Onset is early and most nausea falls in the first two weeks, with a median duration of 9-16 days. By week 3, only about 2% of patients report nausea as a new symptom.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Pooled analysis of vortioxetine randomised placebo-controlled trials and open-label extensions (PMC4794082), verified directly. Nausea by dose: placebo 8.1%, 5 mg 20.9%, 10 mg 23.3%, 15 mg 31.2%, 20 mg 27.8%. Discontinuation due to nausea: placebo 0.3%, 5 mg 1.2%, 10 mg 1.5%, 15 mg 3.8%, 20 mg 3.6%. Short-term weight change -0.1 to +0.1 kg with no dose-related trend; 0.7-0.8 kg gain over 52 weeks. THREE CORRECTIONS: (1) the previous draft called the dose-response 'clear' and said rates rise with dose, but the data are NOT monotonic (15 mg 31.2% exceeds 20 mg 27.8%, and the same inversion appears in discontinuation) so this is now stated as higher-band vs lower-band; (2) the claim that 'up to 20% report nausea within 2 days' was checked against the source and is NOT there, removed; (3) the claim that 'roughly 10% on 10-20 mg still have nausea at 6-8 weeks' is NOT in the source either (the paper reports whole-period incidence and does not disaggregate by endpoint) so it was removed along with the 'you are in the persistent subgroup at week 6' advice built on it. The comparison 'nausea rates end up similar to duloxetine' was also unsourced and removed."
+    },
+    {
+      "id": "settling-versus-not-settling",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine",
+        "venlafaxine",
+        "desvenlafaxine",
+        "duloxetine",
+        "vortioxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Get through the first-weeks gut effects",
+      "signals": [
+        "nausea"
+      ],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "Settling means fewer bad hours per day, even if the bad hours are still bad. Not settling means the weekly average is flat or rising.",
+      "mechanism": "5-HT3 receptors desensitise under continuous stimulation, turning down the emetic signal over 1-2 weeks. Where that desensitisation is going to happen, it tends to show as a downward slope well before symptoms fully stop.",
+      "actions": [
+        "Score nausea 0-10 once daily at a fixed time and compare week-on-week averages, not day-to-day",
+        "By day 10-14, look for a downward slope; the absolute number matters less than the direction",
+        "Contact your prescriber if the average is flat or rising at day 14, rather than waiting to hit a month",
+        "If GI symptoms are unchanged at 3-4 weeks despite a dose adjustment, treat that as a conversation about changing something rather than a reason to keep waiting"
+      ],
+      "foods": [],
+      "avoid": [
+        "Judging on single bad days, which is how most people abandon a drug that was actually working",
+        "Stopping abruptly, especially paroxetine and venlafaxine, whose short half-lives produce discontinuation symptoms that include their own nausea and can be mistaken for the original side effect. Any stopping or switching decision goes through your prescriber",
+        "Assuming constipation follows the same settling curve as nausea"
+      ],
+      "contraindications": [],
+      "track": "nausea 0-10 each morning",
+      "timeline": "Nausea is concentrated in the first two weeks (median duration 9-16 days in pooled vortioxetine data, ~2% new onset by week 3). The 3-4 week point is a reasonable review threshold rather than a guideline-mandated one.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "DOWNGRADED from guideline. The previous draft marked this 'guideline' but the underlying citation was a secondary educational review, not a named clinical guideline from a body such as NICE or APA, and that review was not verified in this pass. The nausea time course IS trial-based (PMC4794082, verified). The 3-4 week decision threshold and the 0-10 daily scoring method are practical framing, not a validated instrument and not a sourced guideline recommendation. The 5-HT3 desensitisation account is established pharmacology but the inference that a visible downward slope predicts eventual resolution is reasoning, not a measured predictor."
+    },
+    {
+      "id": "low-sodium-mimicking-startup-nausea",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine",
+        "venlafaxine",
+        "desvenlafaxine",
+        "duloxetine",
+        "vortioxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Get through the first-weeks gut effects",
+      "signals": [
+        "nausea",
+        "daytime_fatigue",
+        "appetite_loss",
+        "headache",
+        "dizzy_confused"
+      ],
+      "substances": [],
+      "bodyEffect": "A few people develop low blood sodium, which feels like start-up nausea with headache and fog added. It is uncommon, but it does not only happen in the first fortnight.",
+      "mechanism": "These drugs can trigger inappropriate antidiuretic hormone release, so the kidneys retain water and dilute blood sodium. Low sodium itself causes nausea, appetite loss, headache and confusion.",
+      "actions": [
+        "If your nausea comes with headache, confusion, unsteadiness, muscle cramps or unusual drowsiness, ask for a sodium blood test rather than assuming it is normal start-up",
+        "Be more alert to this if you are over 65, female, of low body weight, or taking a diuretic, which are the consistently reported risk factors",
+        "Mention any diuretic you take when starting, since older adults on an SSRI plus a diuretic are the highest-risk group by a wide margin",
+        "Keep this on your list even months in, not just during the first fortnight"
+      ],
+      "foods": [],
+      "avoid": [
+        "Drinking very large volumes of plain water to flush the nausea if these features are present, since that can worsen dilutional low sodium",
+        "Dismissing new confusion or unsteadiness in an older person as depression or as the drug settling in",
+        "Assuming you are past the risk window once the start-up nausea has gone"
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "nausea 0-10 each morning",
+      "timeline": "Reported median onset is around 13-14 days, but the documented range runs from 1 day to over 250 days, and about 29% of cases are diagnosed more than 3 months after starting. The early cluster overlaps the normal start-up nausea window, which is why it gets missed there, but a late presentation is not rare.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Observational case-control and case-series literature on antidepressant-associated hyponatraemia and SIADH (including PMC1874265, checked directly). Reported relative risks: SSRIs ~3.9-fold vs other antidepressants; paroxetine ~5.1-fold; age 65+ ~6.3-fold; elderly patients on an SSRI plus a diuretic ~13.5-fold. These are observational, not trial, estimates. TIMING CORRECTED: the previous draft stated 'median onset around 9 days, typically within the first 1-14 days'. That figure was not supported by the sources checked, which put the median nearer 13-14 days, and more importantly the '1-14 days' framing implies an all-clear at two weeks that the data contradict, since roughly one in three cases present after 3 months. This mattered because the protocol's whole purpose is helping someone notice a symptom they would otherwise dismiss. Frame as a discrimination check, not an expected event."
+    },
+    {
+      "id": "nsaids-and-stomach-bleeding-risk",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine",
+        "venlafaxine",
+        "desvenlafaxine",
+        "duloxetine",
+        "vortioxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Watch the bleeding interaction",
+      "signals": [
+        "nausea",
+        "headache",
+        "bruising_bleeding"
+      ],
+      "substances": [
+        "high_caffeine",
+        "alcohol",
+        "nsaids",
+        "supplements"
+      ],
+      "bodyEffect": "Serotonin is what platelets use to clot. These drugs deplete it, so bleeding risk rises, especially alongside ibuprofen.",
+      "mechanism": "Platelets cannot make their own serotonin and take it up through the same transporter these drugs block, so platelet serotonin falls and clotting is impaired. NSAIDs simultaneously strip the stomach's protective prostaglandin layer.",
+      "actions": [
+        "Use paracetamol or acetaminophen for the start-up headache rather than ibuprofen, naproxen or aspirin",
+        "If you need regular NSAIDs for a pain condition, ask about a stomach-protecting drug such as a proton pump inhibitor",
+        "Tell your prescriber about aspirin, anticoagulants or regular anti-inflammatories before you start"
+      ],
+      "foods": [],
+      "avoid": [
+        "Reaching for ibuprofen by default for the headache that often accompanies the first fortnight",
+        "Combining NSAIDs with alcohol while on these drugs",
+        "Ignoring black tarry stool or vomit that looks like coffee grounds, which need urgent medical attention rather than a wait-and-see"
+      ],
+      "contraindications": [],
+      "track": "unusual bruising or bleeding",
+      "timeline": "Risk is present from the start and continues throughout treatment. It does not settle the way nausea does.",
+      "evidenceStrength": "label",
+      "source": "SSRI and SNRI product labelling carries a bleeding-risk warning covering concomitant NSAIDs, aspirin, warfarin and other anticoagulants; this is standard labelled content across the class (FDA Zoloft label, accessdata.fda.gov). The platelet serotonin depletion mechanism is well-established pharmacology. Note: in this pass I verified the Zoloft label's pharmacokinetics section directly but did not independently re-fetch the warnings section, so if the app displays label text verbatim it should be pulled from the current label rather than paraphrased from here. No risk magnitude is quoted because I did not source one; direction only."
+    },
+    {
+      "id": "ssri-platelet-bleeding",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine",
+        "venlafaxine",
+        "desvenlafaxine",
+        "duloxetine",
+        "clomipramine"
+      ],
+      "phase": "ongoing",
+      "goal": "Watch the bleeding interaction",
+      "signals": [
+        "nausea",
+        "bruising_bleeding"
+      ],
+      "substances": [
+        "high_caffeine",
+        "nsaids",
+        "supplements"
+      ],
+      "bodyEffect": "Your platelets can't restock their serotonin, so clots form a little slower. Bruises spread further and small cuts ooze for longer.",
+      "mechanism": "Platelets cannot manufacture serotonin — they load it from the blood using the same transporter your medication blocks, so platelet serotonin content falls substantially (studies report reductions in the range of 65-90% versus controls after some weeks), and the burst of serotonin that normally clamps down the vessel and recruits more platelets at an injury site is much weaker.",
+      "actions": [
+        "Expect more bruising and slower-stopping nosebleeds and gum bleeds. On its own this is a nuisance, not a danger — in a low-risk population the number needed to harm for one extra upper-GI bleed was around 3,200 people treated, so roughly one in three thousand.",
+        "Reach for paracetamol/acetaminophen instead of ibuprofen, naproxen or aspirin for everyday aches. It does nothing to platelets or stomach lining.",
+        "If you need an anti-inflammatory for a joint or muscle, ask about a topical NSAID gel — far less of it reaches the bloodstream than with tablets.",
+        "Tell your dentist and any surgeon which antidepressant you take. Nobody usually stops it, but they plan differently."
+      ],
+      "foods": [],
+      "avoid": [
+        "Regular ibuprofen, naproxen, diclofenac or daily aspirin alongside your antidepressant without discussing it — this specific pairing is where the risk actually lives, not in the antidepressant by itself.",
+        "Ignoring black tarry stools, vomit that looks like coffee grounds, or blood in vomit or stool. These are emergency signs, not wait-and-see signs.",
+        "Assuming this is permanent if you come off — platelet serotonin is expected to refill as platelets turn over, over roughly two weeks after stopping."
+      ],
+      "contraindications": [],
+      "track": "unusual bruising or bleeding",
+      "timeline": "Platelet serotonin falls over the first weeks of treatment and stays low the whole time you take the drug; it is expected to refill over roughly 2 weeks after stopping, in line with platelet turnover",
+      "evidenceStrength": "clinical_studies",
+      "source": "Mechanism and platelet serotonin depletion range (65-90% versus controls after weeks of treatment): Bixby, VandenBerg & Bostwick, 'Clinical Management of Bleeding Risk With Antidepressants', Ann Pharmacother 2019, and the operative-bleeding review literature. Risk figures: Anglin et al., Am J Gastroenterol 2014;109(6):811-819 — SSRI alone OR 1.66 (95% CI 1.44-1.92) in case-control studies; NNH 3,177 (95% CI 2,279-4,765) in a low-risk Dutch population, 881 (95% CI 632-1,321) in a higher-risk US cohort. The absolute-risk framing is derived from that NNH, not from a guideline. The 2-week refill after stopping is inferred from platelet lifespan, not measured in a dedicated trial."
+    },
+    {
+      "id": "ssri-nsaid-stacking",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine",
+        "venlafaxine",
+        "duloxetine"
+      ],
+      "phase": "ongoing",
+      "goal": "Expect and manage vivid dreams",
+      "signals": [
+        "nausea",
+        "headache",
+        "bruising_bleeding"
+      ],
+      "substances": [
+        "alcohol",
+        "nsaids",
+        "supplements"
+      ],
+      "bodyEffect": "Ibuprofen strips the stomach's protective lining while your antidepressant slows clotting. Two separate injuries landing on the same spot.",
+      "mechanism": "NSAIDs block prostaglandins that maintain the gastric mucus barrier, creating small erosions; your antidepressant separately removes the platelet serotonin needed to seal them. The observed risk for the combination is well above what either does alone, which is consistent with the two injuries compounding rather than simply adding.",
+      "actions": [
+        "Default to paracetamol/acetaminophen for headaches, period pain and general aches. For most everyday pain it is genuinely adequate.",
+        "Check cold and flu combination sachets and back-pain tablets — many quietly contain ibuprofen or aspirin. Read the active ingredients, not the brand name.",
+        "If you have a condition that genuinely needs regular NSAIDs (arthritis, ankylosing spondylitis), ask your prescriber about adding a proton pump inhibitor. Gastroprotection is standard for higher-risk NSAID users and this combination is a reasonable candidate for it.",
+        "If you also take an anticoagulant such as warfarin, apixaban or rivaroxaban, flag the antidepressant explicitly. Risk was highest in the first 30 days of the two being taken together."
+      ],
+      "foods": [],
+      "avoid": [
+        "Low-dose daily aspirin taken 'for the heart' without a doctor having actually recommended it — the bleeding arithmetic changes once you are on a serotonergic antidepressant.",
+        "Treating a hangover with ibuprofen. Alcohol thins the mucus layer too, so that is three hits at once."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Risk is present from the first co-administered dose; it does not build up or wear off with time on the antidepressant",
+      "evidenceStrength": "clinical_studies",
+      "source": "Anglin et al., Am J Gastroenterol 2014;109(6):811-819: upper-GI bleeding with concurrent SSRI + NSAID OR 4.25 (95% CI 2.82-6.42). Other meta-analyses report substantially higher point estimates (Bixby et al. 2019 cite an across-study OR range of roughly 3.2-10.9), so the direction is consistent but the magnitude is not well pinned down and no single number should be presented as the answer. Anticoagulants: Rahman et al., JAMA Netw Open 2024 — nested case-control in UK atrial fibrillation patients, ~33% increased major bleeding when an SSRI was added to an oral anticoagulant, strongest in the first 30 days and substantially attenuated after 6 months. PPI gastroprotection is a general NSAID-risk guideline position extended to this pairing by inference, not a trial result in SSRI users."
+    },
+    {
+      "id": "ssri-hyponatraemia-siadh",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine",
+        "venlafaxine",
+        "duloxetine",
+        "mirtazapine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Watch for low-sodium warning signs",
+      "signals": [
+        "nausea",
+        "daytime_fatigue",
+        "headache",
+        "dizzy_confused"
+      ],
+      "substances": [],
+      "bodyEffect": "Your kidneys hold on to too much water, diluting the salt in your blood. This is water excess, not salt loss — and that difference changes the fix.",
+      "mechanism": "Serotonin signalling increases release of antidiuretic hormone, so the kidney keeps reabsorbing free water it should be passing; the total sodium in your body is roughly normal, it is just spread through too much fluid.",
+      "actions": [
+        "Drink to thirst, normally. That is the whole instruction. Water is the thing being retained, so more of it makes the number worse, not better.",
+        "Salt your food as you normally would. Do not go low-salt unnecessarily during the first month.",
+        "Know the early signs, because they are cruelly easy to mistake for ordinary start-up side effects: headache, nausea, feeling unsteady or off-balance, unusual tiredness, muscle cramps, confusion or trouble concentrating. The discriminator is direction: start-up effects improve into week three, this gets worse. Worsening is the signal to get a blood test.",
+        "If you are over 65, on a thiazide or loop diuretic, low body weight, female, or have had low sodium before, ask for a sodium check in the first few weeks. Most cases show up in that window."
+      ],
+      "foods": [
+        "Normal salted food, soups and broths — not as treatment, just don't restrict salt while your body is already diluting it"
+      ],
+      "avoid": [
+        "Drinking large amounts of water to 'flush out' the nausea or to be healthy. This is the single most common way people make hyponatraemia worse, and the instinct is completely understandable.",
+        "Taking salt tablets or electrolyte sachets to self-correct without a blood test — you cannot tell from symptoms whether you are low, and correcting sodium too fast has its own serious risks.",
+        "Restricting your fluid on your own initiative. Fluid restriction is the standard treatment, but it is a decision that needs an actual sodium result behind it, not a guess.",
+        "Endurance exercise in hot weather with heavy plain-water intake during the first month.",
+        "MDMA, which causes both water retention and heavy water drinking, and has caused severe hyponatraemia in people on SSRIs."
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "headache, confusion, unsteadiness",
+      "timeline": "Usually shows up in the first 2-4 weeks, most often within the first 2; risk drops after the first month; sodium typically normalises 2-20 days after stopping the drug",
+      "evidenceStrength": "label",
+      "source": "Hyponatraemia/SIADH is a labelled warning for SSRIs, SNRIs and mirtazapine. Onset typically within the first 2 weeks, and normalisation 2-20 days after discontinuation, come from the review literature (e.g. De Picker et al., Psychosomatics 2014, class-by-class review) — observational, not trial-derived. Risk factors (older age, female sex, diuretic co-prescription, low body weight, low baseline sodium) come from observational cohorts and case-control studies, so ranking is associational. The frequently quoted diuretic figure (OR 13.5) has a 95% CI of 1.8-101 and is far too imprecise to quote as a number to patients — it is reported here only as 'diuretics raise the risk'. Mirtazapine: Ramos et al., systematic review 2022 (pooled incidence ~3.3%, mean onset ~34 days). The 'drink to thirst, do not water-load' advice follows from SIADH being water excess and from fluid restriction being first-line treatment — standard practice, stated as mechanism, not as a trial result."
+    },
+    {
+      "id": "ssri-bone-density",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine"
+      ],
+      "phase": "ongoing",
+      "goal": "Support yourself through this medicine",
+      "signals": [
+        "daytime_fatigue",
+        "dizzy_confused"
+      ],
+      "substances": [
+        "smoking",
+        "alcohol",
+        "supplements"
+      ],
+      "bodyEffect": "Bone-building and bone-clearing cells both carry serotonin transporters, so bone turnover may shift slightly across years of treatment. How much this matters in a real skeleton is genuinely unresolved.",
+      "mechanism": "Osteoblasts and osteoclasts express the same serotonin transporter your medication blocks, and in human cell culture SSRIs inhibited the formation and function of both. The concentrations used were micromolar, above typical plasma levels — though SSRIs are known to concentrate in bone marrow above blood levels, so the gap between dish and skeleton is not as clean as it first looks in either direction.",
+      "actions": [
+        "Do something weight-bearing and something resistance-based. Loading the skeleton is the intervention with the best evidence here — resistance training combined with impact (jumping, hopping, stair climbing, brisk walking) is what actually moves bone density in trials.",
+        "Get calcium from food rather than a pill where you can. Guideline intakes sit around 1000-1200mg per day for adults at risk.",
+        "Keep vitamin D adequate if you are deficient — typically 800-1000 IU per day. This is for bone and muscle, not for mood.",
+        "If you are postmenopausal, over 65, on long-term steroids, or have a fracture history, ask whether a DEXA scan is warranted. The SSRI is one input into that decision, not the whole decision."
+      ],
+      "foods": [
+        "Tinned sardines or salmon eaten with the soft bones — one of the densest calcium sources there is, and it brings omega-3 with it",
+        "Kale, pak choi and broccoli — calcium from these is absorbed well because they are low in oxalate, unlike spinach where oxalate binds the calcium up",
+        "Milk or fortified soya/oat milk, roughly 240mg calcium per 200ml glass",
+        "Protein at each meal — bone matrix is largely collagen, and low protein intake tracks with lower bone density"
+      ],
+      "avoid": [
+        "Treating a calcium supplement as a substitute for loading the skeleton. A 2026 BMJ meta-analysis of 69 randomised trials in 153,902 adults found calcium and/or vitamin D supplements gave no clinically meaningful fracture or fall reduction in community-dwelling older adults. Correcting a real dietary or vitamin D deficiency is a different question from supplementing on top of adequacy — but the mechanical loading is the part doing the work.",
+        "Smoking and heavy alcohol, both of which suppress osteoblast activity directly and stack on top of this.",
+        "Panicking about it. Some share of the observed fracture excess in SSRI users is likely falls — from dizziness, sedation and low sodium — rather than fragile bone, and depression itself independently tracks with lower bone density."
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "how you feel day to day",
+      "timeline": "This is a years-long association, not a weeks-long one; nothing measurable changes in your skeleton in the first months of treatment",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "This is the weakest-evidence item in this set and is labelled accordingly. Receptor biology: 'Selective Serotonin Reuptake Inhibitors Inhibit Human Osteoclast and Osteoblast Formation and Function', Biological Psychiatry 2012 — human cell culture, micromolar concentrations; the same paper notes SSRIs sequester in bone marrow at higher concentrations than blood or brain. I have removed a previously stated claim that citalopram was the exception, as I could not verify it in the source. Clinical association: Diem et al. and related prospective cohorts reporting faster annual hip bone loss in SSRI users than non-users — observational and heavily confounded by depression itself, inactivity, smoking and falls; I have removed the previously quoted '1.6-fold' multiplier as I could not confirm the exact figure. No trial shows that any intervention prevents SSRI-associated bone loss specifically. The exercise and calcium/vitamin D advice is borrowed from general bone-health evidence (resistance-plus-impact training meta-analyses; Massé et al., BMJ 2026 supplement meta-analysis) and applied here by inference."
+    },
+    {
+      "id": "exercise-as-adjunct",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine",
+        "venlafaxine",
+        "duloxetine",
+        "mirtazapine",
+        "bupropion",
+        "vortioxetine",
+        "trazodone"
+      ],
+      "phase": "ongoing",
+      "goal": "Use exercise as active support",
+      "signals": [],
+      "substances": [],
+      "bodyEffect": "Exercise reaches depression through routes your tablet doesn't. In trials, arms that combined exercise with an SSRI showed a moderate benefit against control.",
+      "mechanism": "Exercise raises BDNF and hippocampal neuroplasticity, damps down inflammatory cytokine signalling, and restores circadian and sleep architecture — pathways only partly overlapping with monoamine reuptake inhibition. That partial non-overlap is the plausible reason it adds something on top, though this mechanistic account is inference, not something the trials measured.",
+      "actions": [
+        "Pick strength training or yoga if the problem is that you cannot make yourself keep going. These two had the lowest dropout of any modality in the largest network meta-analysis — not because they work better, but because people actually stay in them.",
+        "Pick walking or jogging if you want the largest measured effect. Walking or jogging showed the biggest reduction in depression scores versus active control (Hedges' g -0.62, 95% CrI -0.80 to -0.45), with yoga -0.55 and strength training -0.49 close behind.",
+        "Start at a size that feels almost embarrassing — ten minutes, once. You are not failing by doing a small amount, and the difference between modalities is smaller than the difference between doing something and doing nothing.",
+        "Work harder over time if and when you can. Effects in that analysis were broadly proportional to intensity, so more vigorous exercise tended to do more — but lighter activity still showed benefit. There is no threshold you have to clear to get something."
+      ],
+      "foods": [],
+      "avoid": [
+        "Waiting to feel motivated. In depression the motivation reliably arrives after the movement, not before it — anhedonia blunts anticipatory reward but leaves consummatory reward more intact, so the wanting comes back once you have started.",
+        "Treating this as a replacement for medication. The evidence here is for exercise added to treatment or compared against control, and it was studied that way."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Trials mostly ran 8-12 weeks; expect a shift over weeks, not days",
+      "evidenceStrength": "clinical_studies",
+      "source": "Noetel et al., 'Effect of exercise for depression: systematic review and network meta-analysis of randomised controlled trials', BMJ 2024;384:e075847 — 218 studies, 495 arms, 14,170 participants. Versus active control: walking/jogging g -0.62 (95% CrI -0.80 to -0.45), yoga -0.55, strength training -0.49, mixed aerobic -0.43, tai chi/qigong -0.42; exercise combined with SSRIs g -0.55; strength training and yoga had the lowest dropout. I have REMOVED the previously quoted intensity figures (vigorous g -0.74, light g -0.58) and the '10-week versus 30-week' duration claim, as I could not verify either in the source; the paper's verifiable statement is that effects were proportional to intensity, so that is all that is claimed now. CAVEAT the app should surface next to any number: the authors rated confidence in the evidence as low for walking/jogging and very low for most other comparisons under CINeMA, because exercise trials cannot be blinded and small-trial effects are likely. Direction well supported; magnitudes indicative only. The motivation-follows-action point is behavioural activation theory, i.e. mechanistic inference, not a finding of this paper."
+    },
+    {
+      "id": "omega3-epa-adjunct",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "venlafaxine",
+        "duloxetine",
+        "mirtazapine",
+        "bupropion"
+      ],
+      "phase": "ongoing",
+      "goal": "Consider evidence-backed adjuncts with your prescriber",
+      "signals": [
+        "bruising_bleeding"
+      ],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "EPA is built into cell membranes and quiets inflammatory signalling. Low-grade inflammation is one of the routes into depression, though not everyone's route.",
+      "mechanism": "EPA competes with arachidonic acid as a substrate, shifting eicosanoid production toward less inflammatory species and lowering cytokines like IL-6 and TNF-alpha — which matters because a subgroup of depression runs with raised inflammatory markers. Whether that is why it helps the people it helps is unproven.",
+      "actions": [
+        "If you try this, get the composition right, because it is where most people go wrong: you want EPA-predominant, meaning EPA is at least 60% of the total omega-3.",
+        "Aim for 1-2g of net EPA per day, as guideline consensus suggests. Read the back of the bottle, not the front — a capsule advertised as '1000mg fish oil' often contains only a couple of hundred mg of EPA, so you would need several. A concentrated EPA product gets you there in one or two.",
+        "Give it at least 8 weeks before judging. Benefits in trials emerged over 8-12 weeks.",
+        "Treat it as an add-on to your medication, not instead of it. The adjunct evidence is considerably stronger than the monotherapy evidence."
+      ],
+      "foods": [
+        "Salmon, mackerel, sardines, herring, anchovies — two portions a week moves you meaningfully toward supplement-range intakes, and the fish also brings vitamin D and, if you eat the bones, calcium",
+        "Note that flaxseed, chia and walnuts give ALA, which humans convert to EPA very inefficiently — they are good food, but not a route to a 1g EPA dose"
+      ],
+      "avoid": [
+        "DHA-predominant or 'balanced' fish oil products if depression is the target. In meta-regression, formulations that were pure EPA or EPA-major outperformed; DHA-predominant ones did not show the same benefit.",
+        "Assuming fish oil is definitely dangerous with an SSRI because both touch platelets. A 2024 JAHA meta-analysis of 15 randomised trials (120,643 patients) found no overall increase in bleeding with omega-3 supplements, and no signal that background antiplatelet therapy changed that. Two honest limits: those trials were cardiovascular trials that did not specifically study SSRI users, so this is reassuring rather than definitive for that pairing; and the same paper concluded that high-dose purified EPA (prescription icosapent ethyl, not a supplement) may carry a modest additional bleeding risk."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "8 weeks minimum before assessing; 8-12 weeks is where trial benefits appeared",
+      "evidenceStrength": "clinical_studies",
+      "source": "Dosing: Guu et al., ISNPR practice guidelines, Psychother Psychosom 2019 — net EPA 1-2 g/day, EPA-pure or EPA-major, minimum 8 weeks, as adjunct. Formulation effect: Mocking et al., Transl Psychiatry 2016 meta-analysis and meta-regression — benefit concentrated in EPA-major (>=60% EPA) formulations and in patients concurrently taking antidepressants. Bleeding safety: Javaid et al., 'Bleeding Risk in Patients Receiving Omega-3 Polyunsaturated Fatty Acids', J Am Heart Assoc 2024 — 15 RCTs, 120,643 patients. I have corrected the previous version, which said this covered people on anticoagulants (the paper's analysis was of background antiplatelet therapy) and which omitted the paper's own high-dose purified EPA caveat. CAVEAT: this literature has high heterogeneity and probable publication bias, and effect sizes shrink in higher-quality trials — the recommendation reflects guideline consensus on how to dose it if you dose it, not certainty that it works."
+    },
+    {
+      "id": "vitamin-d-honest-position",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "venlafaxine",
+        "duloxetine",
+        "mirtazapine",
+        "bupropion"
+      ],
+      "phase": "ongoing",
+      "goal": "Consider evidence-backed adjuncts with your prescriber",
+      "signals": [],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "Vitamin D matters for bone, muscle strength and falls. What it does not reliably do is lift mood — the largest trial was flatly negative.",
+      "mechanism": "Vitamin D receptors are present in brain regions involved in mood regulation, which is why the hypothesis was attractive — but the low vitamin D seen in depressed people is at least partly a consequence of being indoors and inactive rather than a cause of the depression.",
+      "actions": [
+        "Get tested before supplementing rather than guessing. Treating a real deficiency is worth doing; treating a normal level is not.",
+        "If you are deficient, correct it — for bone, muscle and fall prevention, which matters more than usual given the bone-density question with SSRIs and the dizziness some people get.",
+        "Typical maintenance dosing is 800-1000 IU per day. Higher is not better here.",
+        "Keep expectations calibrated: think of this as protecting your skeleton, not as treating your depression."
+      ],
+      "foods": [
+        "Oily fish and egg yolks — modest amounts, but they overlap usefully with the omega-3 advice",
+        "Fortified milk, plant milks and breakfast cereals, which in many countries are the main dietary source",
+        "Sunlight on skin remains the dominant input for most people; food alone rarely covers it at higher latitudes in winter"
+      ],
+      "avoid": [
+        "Large intermittent bolus doses (the 50,000+ IU monthly or annual megadose approach) — trials of high intermittent dosing have found increased falls and fractures rather than fewer.",
+        "Believing marketing that presents vitamin D as an antidepressant. VITAL-DEP randomised 18,353 adults to 2000 IU/day of vitamin D3 or placebo over a median 5.3 years and found no effect on depression incidence and no effect on mood scores. That is about as clean a negative as this field produces."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Blood levels respond over 8-12 weeks of daily dosing; do not expect any mood change on any timescale",
+      "evidenceStrength": "clinical_studies",
+      "source": "Okereke et al., 'Effect of Long-term Vitamin D3 Supplementation vs Placebo on Risk of Depression or Clinically Relevant Depressive Symptoms and on Change in Mood Scores' (VITAL-DEP), JAMA 2020;324(5):471-480 — 18,353 participants, 2000 IU/day D3, median 5.3 years, null for both incidence and mood scores. Supporting meta-analyses of vitamin D for depressive symptoms report high heterogeneity and publication bias and do not overturn this. The bone/muscle/falls rationale and the 800-1000 IU maintenance figure come from general bone-health guidelines, not from depression evidence — and note the tension with Massé et al., BMJ 2026, which found supplementation gave no clinically meaningful fracture benefit in community-dwelling adults; the case here is for correcting deficiency, not routine supplementation. The bolus-dosing harm signal comes from trials of high intermittent dosing (e.g. Sanders et al., JAMA 2010, annual 500,000 IU) and is a separate literature."
+    },
+    {
+      "id": "l-methylfolate-honest-position",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "venlafaxine",
+        "duloxetine"
+      ],
+      "phase": "ongoing",
+      "goal": "Consider evidence-backed adjuncts with your prescriber",
+      "signals": [],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "Folate feeds the reaction that manufactures serotonin, dopamine and noradrenaline. Some people run that pathway less efficiently than others.",
+      "mechanism": "L-methylfolate is the form of folate that crosses into the brain and donates a methyl group to regenerate tetrahydrobiopterin, the cofactor required by the enzymes that make all three monoamines — so if folate status is poor, the raw machinery your antidepressant depends on is under-supplied.",
+      "actions": [
+        "If you and your prescriber try it, use 15mg per day as an add-on to your existing antidepressant, for at least 8 weeks. That is the dose and design that produced the positive result; the 7.5mg arm did not separate from placebo.",
+        "Check B12 status first. Folate supplementation can correct the anaemia of B12 deficiency while the neurological damage continues underneath — this is established pharmacology, not a theoretical worry.",
+        "Get folate from food regardless, since it is cheap and the downside is nil.",
+        "Understand what you are buying. This is a plausible, modestly supported add-on for people who have not responded to an SSRI — not a first move, and not a correction of a genetic defect."
+      ],
+      "foods": [
+        "Lentils, chickpeas and black beans — among the densest natural folate sources per serving",
+        "Dark leafy greens, especially raw or lightly cooked, since folate degrades with prolonged heat",
+        "Asparagus, avocado, and fortified breakfast cereals in countries that fortify"
+      ],
+      "avoid": [
+        "Using an MTHFR genotype result to decide whether to take it. In post-hoc analysis of the pivotal trials, MTHFR genotype did not significantly predict who responded — there was a non-significant trend toward greater benefit in C677T variant carriers, in a sample far too small to settle it. Either way there is currently no validated pharmacogenomic indication here, and MTHFR-guided methylfolate prescribing is not supported by the evidence that exists.",
+        "Using it as a standalone antidepressant. L-methylfolate has not been tested as monotherapy in a placebo-controlled trial, so nobody knows if it works alone."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "The positive trial ran 60 days at 15mg/day; allow at least 8 weeks before judging",
+      "evidenceStrength": "clinical_studies",
+      "source": "Papakostas et al., 'L-methylfolate as adjunctive therapy for SSRI-resistant major depression: results of two randomized, double-blind, parallel-sequential trials', Am J Psychiatry 2012;169(12):1267-74. HONEST READING: two sequential-parallel-comparison trials; the first (7.5mg) did not separate from placebo on its primary outcome, the second (15mg/day) did on both primary measures, with NNT for response approximately 6. One positive trial of modest size, industry-sponsored, not independently replicated at scale, never tested as monotherapy. The MTHFR analysis is exploratory and post-hoc in a small sample, showing no significant genotype prediction with a non-significant trend favouring variant carriers — this is absence of evidence rather than evidence of absence, but it is the only genotype evidence there is and it does not support genotype-guided prescribing. The B12-masking caution is long-standing established pharmacology."
+    },
+    {
+      "id": "serotonergic-supplements-to-avoid",
+      "drugs": [
+        "sertraline",
+        "fluoxetine",
+        "paroxetine",
+        "citalopram",
+        "escitalopram",
+        "fluvoxamine",
+        "venlafaxine",
+        "desvenlafaxine",
+        "duloxetine",
+        "mirtazapine",
+        "vortioxetine",
+        "trazodone",
+        "clomipramine",
+        "amitriptyline",
+        "phenelzine",
+        "tranylcypromine"
+      ],
+      "phase": "ongoing",
+      "goal": "Support yourself through this medicine",
+      "signals": [
+        "loose_stools",
+        "anxiety_jitter",
+        "bruising_bleeding",
+        "dizzy_confused"
+      ],
+      "substances": [
+        "grapefruit",
+        "supplements"
+      ],
+      "bodyEffect": "These raise serotonin by the same route as your medication or an adjacent one. Stacked on top, the total can tip over into serotonin syndrome.",
+      "mechanism": "Your antidepressant blocks serotonin from being cleared out of the synapse; these supplements either add more reuptake blockade or pour in more raw material for making serotonin — and because the clearance route is already blocked, what would be a harmless amount on its own has nowhere to go.",
+      "actions": [
+        "Treat these four as prescription drugs, because pharmacologically they are: St John's Wort, 5-HTP, L-tryptophan, and SAMe. Tell your prescriber before starting any of them.",
+        "If you are on an MAOI (phenelzine, tranylcypromine), treat this as a different order of risk entirely, not a stronger version of the same one. With an MAOI the serotonin has no way out at all, and these combinations are contraindicated rather than cautioned.",
+        "Learn the picture of serotonin syndrome, because it comes on within hours of adding something, not days: agitation and restlessness, sweating, shivering, diarrhoea, fast heart rate, tremor, muscle twitching or jerking especially in the legs, overactive reflexes, fever, confusion. Twitchy plus sweaty plus agitated plus racing heart within hours of a new supplement means stop it and get seen the same day.",
+        "Check cough medicine. Dextromethorphan — the 'DM' in most over-the-counter cough syrups — is serotonergic and is the one almost nobody thinks of as a drug.",
+        "Read multi-ingredient 'mood support', 'calm' and 'sleep' blends ingredient by ingredient. 5-HTP and St John's Wort hide in these constantly."
+      ],
+      "foods": [],
+      "avoid": [
+        "St John's Wort — a double problem. It inhibits serotonin, noradrenaline and dopamine reuptake itself, giving genuine additive serotonergic risk with documented serotonin syndrome case reports alongside sertraline and paroxetine. Separately, its hyperforin content is a potent inducer of CYP3A4 and CYP2C19 and of P-glycoprotein, which drops the blood levels of many other drugs — including hormonal contraceptives, where it has caused breakthrough bleeding and unintended pregnancy, and warfarin, ciclosporin and several antivirals.",
+        "5-HTP and L-tryptophan, which bypass the rate-limiting step in serotonin synthesis and deliver substrate straight into a system whose exit is already blocked. Tryptophan combined with serotonergic antidepressants is a classic serotonin syndrome setup.",
+        "SAMe, which has antidepressant-like activity of its own, has case reports of serotonin syndrome alongside SSRIs, and can precipitate mania in people with bipolar disorder.",
+        "Stopping St John's Wort abruptly without telling your prescriber if you have been on it. Removing the enzyme induction lets levels of your other medications climb, so the risk runs in both directions.",
+        "Recreational MDMA, and be aware that tramadol, linezolid and triptans are prescription items that also add serotonergic load — mention your antidepressant whenever any of these come up."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Serotonin syndrome typically begins within hours of adding the offending agent, usually inside 24 hours; St John's Wort enzyme induction takes roughly 1-2 weeks to build and a similar time to wear off",
+      "evidenceStrength": "label",
+      "source": "Serotonin syndrome interactions with St John's Wort, tryptophan, 5-HTP and SAMe appear as contraindications or warnings on serotonergic antidepressant labels; the MAOI combinations are contraindications. St John's Wort CYP3A4/CYP2C19 and P-gp induction via hyperforin, dose-dependent on hyperforin content: Borrelli & Izzo, 'St John's wort (Hypericum perforatum): drug interactions and clinical outcomes', and the European Psychiatry 2025 review of SJW-SSRI interactions documenting serotonin syndrome cases predominantly with sertraline and paroxetine. I have dropped CYP2C9 from the induction list — the evidence for it is weaker than for 3A4 and 2C19 — and added P-gp, which is well established. Contraceptive failure with SJW is a well-documented pharmacokinetic interaction. NOTE ON HONESTY: the triptan-SSRI serotonin syndrome warning derives from an FDA advisory based on sparse case reports and has been challenged by subsequent cohort data — it is deliberately included as 'mention it' rather than 'avoid it'. SAMe evidence is case reports only, which is weaker than the others listed here. The St John's Wort induction onset/offset timing is pharmacological convention rather than a precisely measured figure."
+    },
+    {
+      "id": "mirtazapine-evening-carb-craving",
+      "drugs": [
+        "mirtazapine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Expect and manage vivid dreams",
+      "signals": [
+        "nausea",
+        "daytime_fatigue",
+        "appetite_gain"
+      ],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "Mirtazapine blocks the histamine and serotonin receptors that tell your brain you have eaten enough. Hunger returns after dinner, often aimed at carbs.",
+      "mechanism": "Mirtazapine is a potent H1 histamine antagonist and 5-HT2C antagonist, and both receptors sit in the hypothalamic circuits that generate satiety, so the drug removes the 'stop eating' signal rather than adding a 'start eating' one.",
+      "actions": [
+        "Plan for it rather than resisting it. Make dinner your largest and most protein-heavy meal so the evening craving lands on a full stomach instead of an empty one.",
+        "Pre-portion an evening snack before you take the dose: something in the 200-300 kcal range with protein in it (Greek yoghurt, cottage cheese, a boiled egg). Decide while you are alert, not while you are sedated and hungry.",
+        "Take the dose 1-2 hours after your evening meal, so peak sedation and peak appetite do not arrive while you are standing in front of an open fridge.",
+        "Weigh weekly from day one, same day and time. Appetite change on this drug shows up early, and you want a trend line rather than a memory."
+      ],
+      "foods": [
+        "A substantial protein portion at dinner (chicken thigh, salmon fillet, 200g Greek yoghurt, tofu with lentils). Larger single-meal protein doses blunt later appetite more reliably than small ones.",
+        "Slow carbohydrate rather than none: oats, barley, beans, wholegrain toast. Giving the craving something to land on beats pretending it is not there.",
+        "High-volume, low-calorie bulk at the evening meal: vegetable soup, big salad, air-popped popcorn. H1 blockade blunts chemical fullness signalling, so physical stomach stretch is one of the few satiety signals still getting through."
+      ],
+      "avoid": [
+        "Do not keep the craving foods within arm's reach of the bed or sofa. H1 blockade causes strong sedation as well as hunger, and choices made half-asleep are not really choices.",
+        "Do not cut carbohydrate to zero in the evening. The craving is a real receptor-level signal, and total restriction usually ends in a larger, less controlled binge.",
+        "Do not ask for a dose reduction on the assumption that lower doses cause less weight gain. The inverse dose-response for sedation is well described; the equivalent claim for weight is clinical lore rather than evidence, and undertreating your depression is the worse trade."
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "how you feel day to day",
+      "timeline": "Appetite change often starts within the first week. Weight gain on this drug is front-loaded into the early months of treatment.",
+      "evidenceStrength": "label",
+      "source": "VERIFIED against mirtazapine US prescribing information (Remeron/DailyMed): increased appetite 17% vs 2% placebo; weight gain of 7% or more of body weight in 7.5% vs 0% placebo; 8% discontinued for weight gain in pooled premarketing US studies. The 8-week PEDIATRIC trial figure (49% gained 7% or more vs 5.7% placebo; mean +4 kg vs +1 kg) is also on the label but must be presented as pediatric — mirtazapine is not approved for pediatric use and these figures should NOT be shown to an adult as their expected outcome. Receptor pharmacology (high-affinity H1 and 5-HT2C antagonism) is well characterised. MECHANISTIC INFERENCE, stated plainly: that the craving is carbohydrate-selective and evening-weighted comes from 5-HT2C biology plus consistent patient report, not a controlled feeding trial. NONE of the doThis or eatThis items are label-derived; they are practical inference from the receptor mechanism."
+    },
+    {
+      "id": "early-weight-trend-is-the-signal",
+      "drugs": [
+        "mirtazapine",
+        "paroxetine",
+        "olanzapine",
+        "quetiapine",
+        "clozapine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Structure meals and activity against appetite and weight gain",
+      "signals": [
+        "appetite_gain"
+      ],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "How much you gain in the first weeks predicts where you land later. This is the window where acting is cheapest.",
+      "mechanism": "Drug-induced weight gain is front-loaded because appetite and satiety signalling shift almost immediately, and the eating pattern that follows becomes habit before it becomes fat mass, so the trajectory is set well before the weight shows up.",
+      "actions": [
+        "Record a baseline weight before or on day one, then weigh weekly under the same conditions. Do not weigh daily: normal fluctuation is 1-2 kg and daily numbers will only distress you.",
+        "Set a tripwire in advance. A 5% rise from your starting weight in the first month (about 3.5 kg if you started at 70 kg) is the trigger to raise it with your prescriber, not a reason to wait and see.",
+        "Start countermeasures in week one rather than waiting for something to correct. Structured non-drug intervention does produce measurable benefit in this setting, and starting early costs you nothing.",
+        "Separate the two causes honestly: if depression had suppressed your appetite, some early regain is recovery and is a good sign. Drug-driven gain is the part that continues past your old baseline."
+      ],
+      "foods": [],
+      "avoid": [
+        "Do not wait until your mood improves or your dose stabilises before paying attention to weight. By the time you feel well enough to care, most of the front-loaded window has already passed."
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "weekly weight and evening cravings",
+      "timeline": "Baseline on day one. The checkpoints that matter are weeks 4, 8 and 12. In a mixed psychotropic cohort, more than 5% weight gain at one month was the best early predictor of 15% or more gain by three months.",
+      "evidenceStrength": "clinical_studies",
+      "source": "CORRECTED ATTRIBUTION. The 5%-at-1-month figure is Vandenberghe et al., J Clin Psychiatry 2015;76(11):e1417-e1423 — 351 psychiatric patients followed 1 year at Lausanne. More than 5% gain at 1 month predicted 15% or more gain at 3 months (sensitivity 67%, specificity 88%) and 20% or more at 12 months (sensitivity 47%, specificity 89%). The previous version attributed this to 'antipsychotic literature' and caveated that it did not apply to antidepressants; that is wrong in BOTH directions — the PsyMetab-type cohort covers weight-inducing psychotropics including antipsychotics, mood stabilisers AND antidepressants such as mirtazapine. It is still not SSRI-specific. Supporting: Predicting antipsychotic-induced weight gain in first-episode psychosis, European Psychiatry 2023 (27 studies, 4426 participants) found trend of early BMI increase within 12 weeks to be the most clinically significant prognostic factor for long-term ANTIPSYCHOTIC-INDUCED WEIGHT GAIN prognosis specifically — not for long-term outcome generally, as previously worded. Intervention figure: BJPsych Bulletin, 'Evaluation of components of non-pharmacological interventions for weight management in early antipsychotic therapy', found -1.93 kg and -1.12 kg/m2 at 6 months. REMOVED: the claim that 'prevention consistently outperforms reversal'. That was a naive cross-study juxtaposition of the 1.93 kg prevention figure against the 1.5 kg reversal figure in different populations and designs; no head-to-head comparison exists."
+    },
+    {
+      "id": "ssri-weight-is-drug-specific-not-class-wide",
+      "drugs": [
+        "paroxetine",
+        "sertraline",
+        "fluoxetine",
+        "escitalopram",
+        "citalopram"
+      ],
+      "phase": "ongoing",
+      "goal": "Consider evidence-backed adjuncts with your prescriber",
+      "signals": [],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "SSRIs are not one thing for weight. Paroxetine is the outlier; sertraline and fluoxetine sit nearer neutral. Same class, different drugs.",
+      "mechanism": "Paroxetine carries meaningful anticholinergic (muscarinic) activity that its SSRI siblings largely lack, which is the most plausible reason it separates from them on weight despite sharing the serotonin-reuptake mechanism.",
+      "actions": [
+        "If weight matters to you, name it as a selection criterion before you start rather than after. It genuinely changes which drug is a sensible first pick.",
+        "If you are gaining on paroxetine, treat that as a possible drug-specific effect. Switching within the same class is a real option, and assuming 'all SSRIs will do this to me' is not supported.",
+        "Ask your prescriber to look at the individual drug data rather than class-level generalisations, and bring the specific comparison you care about."
+      ],
+      "foods": [],
+      "avoid": [
+        "Do not stop or switch paroxetine on your own. It has one of the shortest half-lives in the class and abrupt discontinuation produces a genuinely rough withdrawal syndrome."
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "how you feel day to day",
+      "timeline": "The divergence between paroxetine and the rest emerges over months, not weeks. The trial that separated them ran 26-32 weeks.",
+      "evidenceStrength": "clinical_studies",
+      "source": "NUMBERS CORRECTED. Fava et al., J Clin Psychiatry 2000;61:863-867: 284 patients randomised to fluoxetine, sertraline or paroxetine; 139 completed 26-32 weeks (fluoxetine 44, sertraline 48, paroxetine 47). VERIFIED from the abstract: paroxetine produced a significant weight increase, fluoxetine a modest NONsignificant decrease, sertraline a modest NONsignificant increase; significantly more paroxetine patients gained more than 7% of body weight (widely reported as 25.5% paroxetine vs 6.8% fluoxetine vs 4.2% sertraline). DELETED: the previously quoted mean changes of '-0.2% fluoxetine, +1.0% sertraline, +3.6% paroxetine'. Those figures do not appear in the source; secondary summaries of the same paper report -1.3%, +0.1% and +1.7%, and the +3.6% paroxetine figure is roughly double any sourced value. Directions are reported here without invented magnitudes, and note the ≥7% proportions are completer-only on ~45 patients per arm. VERIFIED: Petimar et al., Annals of Internal Medicine 2024 (target trial emulation, 183,118 adults, 8 US health systems), 6-month mean weight change vs sertraline: escitalopram +0.41 kg, paroxetine +0.37 kg, duloxetine +0.34 kg, venlafaxine +0.17 kg, citalopram +0.12 kg, fluoxetine -0.07 kg, bupropion -0.22 kg. HONEST NOTE TO PRESERVE IN UI: these two studies disagree on magnitude. The modern EHR study finds far smaller average differences than the older randomised data, and averages hide individual variation in both directions."
+    },
+    {
+      "id": "ssri-slow-multi-year-drift",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "fluoxetine",
+        "paroxetine",
+        "venlafaxine",
+        "duloxetine"
+      ],
+      "phase": "ongoing",
+      "goal": "Support yourself through this medicine",
+      "signals": [],
+      "substances": [],
+      "bodyEffect": "Average weight change on most antidepressants is small. The risk is not a sudden gain, it is a slow drift that keeps going for years.",
+      "mechanism": "Serotonergic drugs appear to tilt the body's defended weight slightly upward, and the effect behaves like a small persistent bias rather than a discrete event, which is why it only becomes visible over years.",
+      "actions": [
+        "Once past the first 12 weeks, switch from weekly to monthly weighing and keep doing it. A drift of 0.5 kg a month is invisible day to day and is 6 kg a year.",
+        "Treat years 2 and 3 as the window needing active attention. That is where the population risk signal peaks and it is exactly when most people have stopped paying attention.",
+        "Re-baseline once a year: compare against your weight at initiation, not against last month, because monthly comparisons will never show you the trend."
+      ],
+      "foods": [],
+      "avoid": [],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "how you feel day to day",
+      "timeline": "Risk of gaining 5% or more of body weight is elevated across long-term treatment and peaks around years 2 and 3 rather than at the start.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Gafoor, Booth & Gulliford, BMJ 2018;361:k1951. UK Clinical Practice Research Datalink, 294,719 participants (136,762 men, 157,957 women), 2004-2014. VERIFIED: adjusted rate ratio for 5% or greater weight gain 1.21 in antidepressant users versus non-users, with risk remaining elevated over long-term follow-up rather than being confined to the first months. The year-2 (1.46), year-3 (1.48), NNH 59 and mirtazapine (1.50) figures are commonly cited from this paper's tables but I could not re-verify them against the full text in this pass, so they are stated here directionally rather than as precise ratios — do not print the decimals in the UI without a full-text check. The mirtazapine-specific ratio has in any case been removed from this protocol, whose drug list does not include mirtazapine. LIMITATION: observational. Confounding by indication, and by appetite recovery as depression remits, cannot be fully excluded, so some of this signal is recovery rather than drug effect."
+    },
+    {
+      "id": "resistance-training-beats-cardio-here",
+      "drugs": [
+        "mirtazapine",
+        "paroxetine",
+        "olanzapine",
+        "quetiapine",
+        "clozapine"
+      ],
+      "phase": "ongoing",
+      "goal": "Structure meals and activity against appetite and weight gain",
+      "signals": [
+        "daytime_fatigue",
+        "appetite_gain"
+      ],
+      "substances": [],
+      "bodyEffect": "Drug weight gain is fat gain, and dieting against it costs you muscle too. Lifting is what protects the muscle; cardio alone does not.",
+      "mechanism": "Under an energy deficit the body breaks down muscle alongside fat unless muscle is given a mechanical reason to stay, and resistance training supplies that stimulus in a way steady-state cardio does not.",
+      "actions": [
+        "Two full-body resistance sessions per week is the effective minimum; three is better. For this specific problem, adding lifting is the higher-value addition.",
+        "Four to six compound movements per session: a squat or leg press, a hinge, a push, a pull, a carry. Two to three sets each, stopping one or two reps short of failure.",
+        "Start smaller than feels serious if you are depressed and unfit. Fifteen minutes of bodyweight work twice a week, sustained for six months, beats week-one intensity you abandon by week three.",
+        "Keep cardio, but for mood and cardiometabolic health rather than as your weight tool. Both matter and they do different jobs."
+      ],
+      "foods": [],
+      "avoid": [
+        "Do not diet hard without resistance training, especially on a sedating drug. The scale will move, a meaningful share of what you lose will be muscle, and lower lean mass means lower resting energy expenditure and easier regain."
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "weekly weight and evening cravings",
+      "timeline": "Strength improves in roughly the first month, mostly neural adaptation. Visible body-composition change takes months. Expect the scale to lag or stall early while muscle is added as fat comes off.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "DOWNGRADED from clinical_studies to mechanistic_inference. The underlying principle — that resistance training during energy restriction preserves fat-free mass better than caloric restriction alone or aerobic training alone — is consistently supported across body-composition meta-analyses in general overweight and obese populations. But I could not verify the specific 2022 systematic review previously cited here by its stated description, so no single trial or effect size is quoted. CRITICAL POPULATION GAP: no trial has tested resistance training specifically against mirtazapine-, olanzapine- or clozapine-induced weight gain. The muscle-preservation physiology is not drug-specific, so the extrapolation is reasonable, but this is inference applied to this population, not a demonstrated result in it. The specific set, rep and session prescriptions are conventional programming practice, not trial-derived doses. FIXED: previous version said 'six to eight compound movements' then listed five."
+    },
+    {
+      "id": "protein-target-and-timing",
+      "drugs": [
+        "mirtazapine",
+        "paroxetine",
+        "escitalopram",
+        "citalopram",
+        "sertraline",
+        "olanzapine",
+        "quetiapine"
+      ],
+      "phase": "ongoing",
+      "goal": "Support yourself through this medicine",
+      "signals": [],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "Protein is the macronutrient that most reliably blunts appetite and protects muscle. On an appetite-raising drug, both of those matter more.",
+      "mechanism": "Protein produces a strong and long-lasting satiety response per calorie, carries the highest thermic cost to digest, and supplies the amino acid signal that keeps muscle protein synthesis running while calories are restricted.",
+      "actions": [
+        "Target roughly 1.2-1.6g of protein per kg of body weight per day. At 70kg that is about 85-110g. Use the upper end if you are actively dieting and lifting.",
+        "Spread it across the day: a decent portion at each of three meals beats 15g, 15g and 70g at dinner, because both the appetite and the muscle-synthesis effects are per-meal rather than per-day.",
+        "Aim for a substantial protein breakfast, in the 25-35g range, if you are someone who skips breakfast. That is the meal most often missed and the one where added protein has been tested most directly.",
+        "Anchor to real amounts so you can hit the number without tracking: 3 eggs is about 18g, 200g Greek yoghurt about 20g, a chicken breast about 35g, 150g tofu about 17g, a whey scoop about 25g, 100g cooked lentils about 9g."
+      ],
+      "foods": [
+        "Eggs, Greek yoghurt, cottage cheese, skyr. High protein per calorie and require essentially no cooking, which matters enormously when you are depressed.",
+        "Whey or soy protein powder if solid food is unappealing in the early weeks. It is food, not a supplement gimmick, and it is often the difference between hitting the target and not.",
+        "Tinned fish, tinned beans, frozen edamame, supermarket rotisserie chicken. Protein you can eat during a week when cooking is not going to happen."
+      ],
+      "avoid": [],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "how you feel day to day",
+      "timeline": "You may feel the appetite effect at the very next meal. Effects on body composition take weeks to months and depend on total intake and training.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "DOWNGRADED from clinical_studies — the trials are real but none were done in people taking these drugs. VERIFIED: Leidy et al., Am J Clin Nutr 2013 — randomised crossover, n=20 overweight/obese 'breakfast-skipping' late-adolescent girls; 350-kcal high-protein (35g, egg- and beef-rich) breakfast, but not a 350-kcal normal-protein (13g) breakfast, improved satiety and reduced evening snacking versus breakfast skipping, with corresponding changes in food-cue fMRI reward signal. That is one small pilot in a narrow population. SOFTENED: the previous claim that 'protein's appetite effect is most consistent at 30g or more' was stated as an established threshold. It is an extrapolation from a handful of small dose-comparison studies including this n=20 one; there is no validated 30g cut-off, so the copy now says 'larger single-meal doses' and gives a range. The 1.2-1.6 g/kg intake target and the higher 1.6-2.4 g/kg figure for energy restriction come from resistance-training and sports-nutrition literature in non-psychiatric populations. HONEST LIMIT TO KEEP IN UI: the NewStart randomised trial found no effect of high- versus low-protein breakfast on body composition in young women with overweight. Protein reliably helps hunger and muscle retention; on its own it is not a weight-loss intervention."
+    },
+    {
+      "id": "front-load-calories-for-evening-hunger",
+      "drugs": [
+        "mirtazapine",
+        "olanzapine",
+        "quetiapine"
+      ],
+      "phase": "ongoing",
+      "goal": "Structure meals and activity against appetite and weight gain",
+      "signals": [
+        "appetite_gain"
+      ],
+      "substances": [],
+      "bodyEffect": "If your hunger arrives at night, moving calories earlier means the evening craving meets a body that has already been fed.",
+      "mechanism": "Drugs that drive evening appetite create a predictable daily shape, and matching intake to that shape means the craving arrives against existing fullness rather than a genuine accumulated deficit.",
+      "actions": [
+        "Do not skip breakfast on an evening-craving drug. Skipping breakfast to 'save' calories for the evening is the most reliable way to make the evening worse.",
+        "Try shifting more of your intake to breakfast and lunch for two weeks, and judge it on your own hunger rather than on the scale.",
+        "Keep a planned evening snack inside the budget rather than trying to eliminate it. Removing it entirely tends to backfire on a drug that is pharmacologically generating that hunger."
+      ],
+      "foods": [],
+      "avoid": [],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "weekly weight and evening cravings",
+      "timeline": "You can judge the effect on your hunger pattern within about two weeks. Any effect on weight, if it exists, takes months.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "VERIFIED: Jakubowicz et al., Obesity 2013;21:2504-2512 — 93 overweight/obese women with metabolic syndrome, isocaloric ~1400 kcal/day for 12 weeks; big-breakfast group (700/500/200 kcal) lost about 8.1 kg versus about 3.3 kg in the big-dinner group (200/500/700 kcal), with greater reductions in fasting glucose, insulin and HOMA-IR. THERMIC-EFFECT FIGURES CORRECTED: Romon et al. 1993 reported TEF of 15.9% at 0900, 13.5% at 1700 and 10.9% at 0100 — the previous version said '16% vs 14% vs 11%', rounding 13.5 the wrong way. FURTHER CAVEAT ADDED: later work (J Clin Endocrinol Metab 2022) argues that circadian variation in resting metabolic rate largely accounts for the apparent daily rhythm in TEF, so even this small mechanism is contested. BE HONEST WITH USERS: this is one 93-person trial with an unusually large effect that has not replicated consistently, and the meal-timing literature is mixed, with several trials finding no advantage once total calories are matched. Present front-loading as a sensible way to manage a drug-driven hunger pattern, not as a proven weight-loss method. REMOVED: the specific '40/35/25' split, which was invented and is not the ratio used in any cited trial."
+    },
+    {
+      "id": "bupropion-appetite-suppression",
+      "drugs": [
+        "bupropion"
+      ],
+      "phase": "first_weeks",
+      "goal": "Come off or switch safely, slowly",
+      "signals": [
+        "appetite_loss"
+      ],
+      "substances": [],
+      "bodyEffect": "Bupropion raises dopamine and noradrenaline signalling in appetite circuits. Food stops being interesting rather than making you feel full.",
+      "mechanism": "Bupropion stimulates POMC neurons in the hypothalamic arcuate nucleus, increasing melanocortin satiety signalling, while raised dopaminergic tone lowers the reward value of food, so appetite drops from two directions at once.",
+      "actions": [
+        "Eat on a schedule rather than on appetite. If hunger is not arriving, hunger cannot be your cue, so set three fixed meal times and keep them regardless.",
+        "Make the calories you do eat count: protein-dense and fat-dense rather than large volumes of low-calorie food you will not finish.",
+        "Weigh weekly. Unintended loss is easy to miss when you also feel more energetic and clearer-headed, and those improvements can mask a deficit."
+      ],
+      "foods": [
+        "Calorie-dense and low-effort: nut butters, full-fat yoghurt, olive oil added to everything, cheese, avocado.",
+        "Smoothies with oats, whole milk or soy milk, nut butter and protein powder. Liquid calories go down far more easily than solid food when appetite is genuinely absent."
+      ],
+      "avoid": [
+        "Do not use bupropion's appetite suppression as a deliberate weight-loss tool without telling your prescriber that is what you are doing. It changes the risk calculation, particularly seizure risk at higher doses and in anyone restricting intake."
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "how you feel day to day",
+      "timeline": "Appetite suppression usually appears within the first weeks and often persists rather than fading the way early nausea does.",
+      "evidenceStrength": "clinical_studies",
+      "source": "VERIFIED: Petimar et al., Annals of Internal Medicine 2024 — bupropion -0.22 kg at 6 months versus sertraline and roughly 15% reduced risk of gaining 5% or more of baseline weight, the most favourable weight profile of the 8 first-line antidepressants studied. Gafoor et al., BMJ 2018 is consistent in direction. The POMC/melanocortin and dopaminergic-reward mechanism is established translational pharmacology and underpins bupropion's use in the naltrexone-bupropion obesity combination. MECHANISTIC INFERENCE: attributing any individual patient's appetite loss to that specific pathway is inference, not measurement. The '1-2 weeks' onset previously stated was not sourced and has been softened to 'within the first weeks'."
+    },
+    {
+      "id": "fluoxetine-early-loss-is-temporary",
+      "drugs": [
+        "fluoxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Expect and manage vivid dreams",
+      "signals": [
+        "appetite_gain",
+        "appetite_loss"
+      ],
+      "substances": [],
+      "bodyEffect": "Fluoxetine often causes modest early weight loss that does not last. Over a year it comes out roughly weight-neutral.",
+      "mechanism": "Fluoxetine acutely reduces energy intake, but the effect attenuates with continued treatment, and weight then tends to recover as depression remits and appetite returns.",
+      "actions": [
+        "Do not build your eating habits around the early suppression. It is borrowed, not permanent, and the pattern you set in week three will meet a returning appetite months later.",
+        "If you are losing weight you did not intend to lose, add calories deliberately now rather than waiting to see whether it continues.",
+        "Expect the later months to feel like weight gain when much of it is the early loss reversing and depression lifting. Knowing that in advance stops it reading as personal failure and stops it triggering a stop-the-drug decision."
+      ],
+      "foods": [],
+      "avoid": [],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "how you feel day to day",
+      "timeline": "Loss is an early-weeks effect and is small. By a year of treatment fluoxetine is roughly weight-neutral.",
+      "evidenceStrength": "clinical_studies",
+      "source": "NUMBERS CORRECTED AND STRENGTHENED. VERIFIED: Michelson et al., Am J Psychiatry 1999;156:1170 — 839 patients in a 12-week acute phase, 395 randomised to fluoxetine 20mg or placebo for up to 50 further weeks. Mean absolute weight DECREASE of 0.4 kg during the first 4 weeks across all patients; among 50-week completers, weight gain was similar on fluoxetine (about 3 kg) and placebo (about 3.2 kg), with the authors attributing the later gain to recovery from depression rather than to the drug. That placebo comparison is the strongest single fact in this protocol and was missing from the previous version. VERIFIED: Petimar et al., Annals 2024 — fluoxetine -0.07 kg (95% CI -0.19 to 0.04) versus sertraline at 6 months, statistically indistinguishable. DELETED: the '-0.2% on fluoxetine' figure previously attributed to Fava 2000; that number does not appear in the source, which reports only a modest nonsignificant decrease without a stated magnitude in the abstract. IMPORTANT: larger weight-loss figures circulating for fluoxetine (for example around 4.7 kg at 6 months) come from trials at 60 mg/day in overweight and obese populations, above typical antidepressant dosing, and must not be quoted to a patient on 20 mg for depression."
+    },
+    {
+      "id": "antipsychotic-metabolic-risk-is-drug-specific",
+      "drugs": [
+        "olanzapine",
+        "clozapine",
+        "quetiapine",
+        "risperidone",
+        "paliperidone",
+        "aripiprazole",
+        "brexpiprazole",
+        "cariprazine",
+        "lurasidone",
+        "ziprasidone"
+      ],
+      "phase": "ongoing",
+      "goal": "Structure meals and activity against appetite and weight gain",
+      "signals": [
+        "appetite_gain"
+      ],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "Metabolic risk is drug-specific, not class-wide. Olanzapine and clozapine sit in a different category from aripiprazole or lurasidone.",
+      "mechanism": "H1 and 5-HT2C blockade drives the appetite increase, but muscarinic M3 blockade separately impairs insulin secretion, which is why olanzapine and clozapine can damage glucose handling through a route that does not require weight gain to happen first.",
+      "actions": [
+        "Get fasting glucose or HbA1c plus a lipid panel at baseline, at 12 weeks, then at least annually. Watching the scale alone will not catch the glucose problem, because it can move independently.",
+        "Find out where your specific drug sits. Olanzapine and clozapine have the worst metabolic profiles; aripiprazole, brexpiprazole, cariprazine, lurasidone and ziprasidone the most benign. 'It is an antipsychotic' tells you almost nothing on its own.",
+        "If you are starting olanzapine or clozapine, ask about co-starting metformin at the same time rather than waiting. The 2025 Schizophrenia Bulletin guideline recommends co-commencement for high-risk agents, and metformin is the only drug shown to prevent this weight gain.",
+        "Note that the metformin guideline's own trigger is a 3% rise in body weight in the first 12 months — a lower bar than the 5%-at-one-month tripwire used elsewhere in this app. Take whichever fires first as your prompt to act.",
+        "Apply the resistance-training and protein protocols here with more urgency than for antidepressants. The magnitude of gain is larger and the cardiometabolic stakes are higher."
+      ],
+      "foods": [],
+      "avoid": [
+        "Do not reduce or stop an antipsychotic yourself over weight. Relapse risk dominates the calculation and any switch has to be planned and covered.",
+        "Do not assume a normal weight means normal metabolism on olanzapine or clozapine specifically. Insulin resistance has been demonstrated in non-obese patients on these two drugs."
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "weekly weight and evening cravings",
+      "timeline": "Weight gain is fastest in the first 12 weeks. Glucose and lipid changes can appear early, and can appear before or without meaningful weight change.",
+      "evidenceStrength": "guideline",
+      "source": "VERIFIED AND STRENGTHENED. Pillinger et al., Lancet Psychiatry 2020, network meta-analysis of 18 antipsychotics: olanzapine and clozapine worst across weight, BMI, glucose and lipids; aripiprazole, brexpiprazole, cariprazine, lurasidone and ziprasidone most benign; risperidone and paliperidone produced weight gain without substantial fasting glucose increase, which is the cleanest single demonstration that these parameters dissociate. Huhn et al., Lancet 2019 (402 RCTs, 53,463 participants) ranks clozapine and olanzapine among the highest for clinically significant weight gain. VERIFIED: Carolan et al., 'Metformin for the Prevention of Antipsychotic-Induced Weight Gain: Guideline Development and Consensus Validation', Schizophrenia Bulletin 2025;51(5):1193 — AGREE II-developed guideline; metformin is the only pharmacological agent with demonstrated efficacy for preventing antipsychotic-induced weight gain, reducing gain by about 4.03 kg versus control when co-commenced; recommends co-commencement with olanzapine or clozapine, and with medium-risk agents (quetiapine, paliperidone, risperidone) where cardiometabolic risk factors, age 10-25, or BMI 25-30 are present. The previous version cited this guideline but omitted its actual recommendations and effect size."
+    },
+    {
+      "id": "when-appetite-loss-becomes-a-problem",
+      "drugs": [
+        "bupropion",
+        "fluoxetine",
+        "venlafaxine",
+        "duloxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Expect and manage vivid dreams",
+      "signals": [
+        "appetite_loss"
+      ],
+      "substances": [],
+      "bodyEffect": "Losing weight can feel like a bonus. It stops being one when you are undereating protein, losing muscle, or feeding an eating disorder.",
+      "mechanism": "Appetite suppression removes the signal that normally drives intake, so intake falls below need without any discomfort to warn you, and the resulting deficit comes disproportionately out of lean mass when protein is low and resistance training is absent.",
+      "actions": [
+        "Set a floor rather than a target: a weight below which you contact your prescriber. Decide the number now, while you feel neutral about it, not later when you may not want to.",
+        "Protect protein first. If total intake is falling, protein should be the last thing cut, not the first thing crowded out.",
+        "If you have any history of anorexia, bulimia or binge-eating disorder, say so explicitly before starting bupropion. It is contraindicated in current or prior bulimia and anorexia nervosa because of elevated seizure risk. This is the one hard rule on this page.",
+        "Watch the quiet signals rather than the scale: hair shedding, feeling cold all the time, losing strength you previously had, periods becoming irregular or stopping."
+      ],
+      "foods": [
+        "Fixed anchor meals that require no appetite and no decision: overnight oats with protein powder, a smoothie, cheese and crackers, nut butter on toast."
+      ],
+      "avoid": [
+        "Do not let appetite suppression become the real reason you want to stay on a drug. If it is working for your mood, good. If the weight effect is the main appeal, that is worth saying out loud to your clinician rather than managing privately."
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "how you feel day to day",
+      "timeline": "Watch the first three months most closely. That is when suppression is strongest and when unintended loss accumulates without being noticed.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "DOWNGRADED from 'label' because the label content covers only ONE of the four listed drugs. VERIFIED label fact: bupropion US prescribing information contraindicates use in patients with a current or prior diagnosis of bulimia or anorexia nervosa, due to a higher observed incidence of seizures in such patients. There is no equivalent label statement for fluoxetine, venlafaxine or duloxetine, and the previous evidenceStrength of 'label' implied there was. IMPORTANT ADDITION: fluoxetine is the opposite case — it is FDA-approved for bulimia nervosa (60 mg/day), so it must not be presented alongside the bupropion eating-disorder contraindication in a way that implies a shared warning. MECHANISTIC INFERENCE: the lean-mass, thermoregulatory and menstrual consequences of sustained undereating described here are general nutrition physiology, not antidepressant-specific trial findings, and the listed warning signs are clinical judgement rather than validated thresholds. The personal weight floor is a practical safeguard, not an evidence-based cut-off."
+    },
+    {
+      "id": "switching-partial-reversal-expectations",
+      "drugs": [
+        "mirtazapine",
+        "paroxetine",
+        "olanzapine",
+        "quetiapine",
+        "sertraline",
+        "bupropion"
+      ],
+      "phase": "switching",
+      "goal": "Expect and manage vivid dreams",
+      "signals": [
+        "appetite_loss"
+      ],
+      "substances": [],
+      "bodyEffect": "Switching off a weight-gaining drug does not automatically return you to your old weight. Some comes off; a lot often stays.",
+      "mechanism": "Stopping the drug removes the appetite driver, but the accumulated fat mass and the eating patterns learned around months of altered hunger persist independently, so you reverse the cause without reversing the effect.",
+      "actions": [
+        "Expect partial reversal and plan for it. In antipsychotic trials, dose reduction, discontinuation, or switching specifically to a partial agonist produced about 1.5 kg of loss versus staying put: real, but small next to what people typically gained.",
+        "Use the switch window deliberately. Appetite drops once the pharmacological driver is removed, and that is the easiest opportunity you will get to rebuild eating patterns. Do it then rather than 'once things settle'.",
+        "Keep resistance training running through the switch, so that what you lose is fat rather than the muscle you built.",
+        "If weight is your main reason for switching, ask specifically about moving to bupropion or sertraline rather than switching blind, since the individual-drug differences are what matter here."
+      ],
+      "foods": [],
+      "avoid": [
+        "Do not switch on weight grounds alone if the current drug is working well for your mood. Relapse costs more than the kilograms, and a failed switch can be hard to walk back.",
+        "Do not stop the current drug yourself while waiting for a switch to be arranged. Discontinuation syndromes are worst on short-half-life drugs like paroxetine and venlafaxine, and an unplanned gap is the commonest way a switch goes badly."
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "how you feel day to day",
+      "timeline": "Appetite typically normalises within weeks of removing the driver. Weight loss, where it happens, is gradual over months and is usually partial rather than complete.",
+      "evidenceStrength": "clinical_studies",
+      "source": "VERIFIED: Speyer et al., 'Reversibility of Antipsychotic-Induced Weight Gain: A Systematic Review and Meta-Analysis', Frontiers in Endocrinology 2021 — 40 RCTs and 15 uncontrolled studies, 12,279 individuals. Dose reduction, drug discontinuation, or switch TO A PARTIAL AGONIST reduced weight by 1.5 kg (95% CI -2.03 to -0.98) versus maintenance; uncontrolled pre-post change was -1.13 kg. IMPORTANT CORRECTION: the previous version's action step said 'dose reduction, discontinuation or switching' and dropped 'to a partial agonist', which implied any switch delivers this benefit. It does not — the pooled estimate is specific to that comparator set. The authors themselves note few studies were designed with this as a primary outcome. HONEST GAP: direct evidence on reversal after ANTIDEPRESSANT-induced weight gain is thin. 'Expect partial reversal' is extrapolated from the antipsychotic literature plus general weight-regain physiology and should be presented as a reasonable expectation, not a measured result."
+    },
+    {
+      "id": "fluvoxamine-melatonin-cyp1a2",
+      "drugs": [
+        "fluvoxamine"
+      ],
+      "phase": "ongoing",
+      "goal": "Support yourself through this medicine",
+      "signals": [
+        "vivid_dreams"
+      ],
+      "substances": [
+        "high_caffeine",
+        "smoking",
+        "supplements"
+      ],
+      "bodyEffect": "Melatonin is cleared by the same enzyme fluvoxamine blocks, so a standard supplement dose can act like a much larger one.",
+      "mechanism": "Melatonin is metabolised principally by CYP1A2; with fluvoxamine blocking that enzyme, melatonin exposure rose roughly 17-fold in a small healthy-volunteer study.",
+      "actions": [
+        "Do not add a melatonin supplement while on fluvoxamine without asking your prescriber first. This is not a small interaction.",
+        "If you already take melatonin and have just started fluvoxamine, expect heavy morning grogginess and vivid dreams. Raise it rather than pushing through and concluding the antidepressant is intolerable.",
+        "For sleep in the first weeks, use a fixed wake time and 10-15 minutes of outdoor morning light instead. Neither goes through CYP1A2, and both shift your own melatonin timing rather than adding to a pool you cannot clear."
+      ],
+      "foods": [],
+      "avoid": [
+        "Melatonin-containing 'sleep gummies' and combination sleep supplements, which often do not lead with melatonin on the front of the pack."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "The effect is present from the first days of fluvoxamine and lasts the whole course.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Härtter et al., Clin Pharmacol Ther 2000 (PMID 10668847): 5 healthy male volunteers given 5mg oral melatonin with or without a single 50mg fluvoxamine dose; melatonin AUC approximately 17-fold higher and Cmax approximately 12-fold higher. Very small, single-dose, healthy-volunteer design — the direction is solid, the exact multiple in a real patient on steady-state fluvoxamine is not established. Caffeine also competes at CYP1A2 and can raise melatonin exposure on its own, so the two plausibly stack; direction only, no reliable multiplier."
+    },
+    {
+      "id": "smoking-quit-cyp1a2-rise",
+      "drugs": [
+        "duloxetine",
+        "fluvoxamine",
+        "olanzapine",
+        "clozapine",
+        "mirtazapine"
+      ],
+      "phase": "switching",
+      "goal": "Plan for how quitting smoking changes your drug level",
+      "signals": [
+        "nausea",
+        "insomnia",
+        "daytime_fatigue",
+        "anxiety_jitter"
+      ],
+      "substances": [
+        "high_caffeine",
+        "smoking",
+        "supplements"
+      ],
+      "bodyEffect": "Cigarette smoke revs up the enzyme that clears these drugs. Stop smoking and clearance falls within days, so the same dose becomes a bigger dose.",
+      "mechanism": "It is the polycyclic aromatic hydrocarbons in smoke, not the nicotine, that induce CYP1A2. Induction fades over days from the last cigarette and reaches a new steady state in about a week, while your prescription stays where it was.",
+      "actions": [
+        "Tell your prescriber before your quit date, not after. This is a dose conversation, not a willpower conversation.",
+        "Expect the change over roughly the first week after quitting: more sedation, nausea, unsteadiness, a drugged or slowed feeling. That is a level rise, not the quit going badly.",
+        "On clozapine or olanzapine, ask specifically about a planned reduction plus blood-level monitoring. Australian Prescriber suggests daily reductions of about 10% until the fourth day after cessation.",
+        "Cut your coffee down when you quit too. Caffeine runs through the same CYP1A2, so part of the jitteriness and insomnia of quit week is caffeine levels rising, not only nicotine withdrawal.",
+        "Do not skip this because you are using patches, gum or a vape. Nicotine replacement therapy does not influence CYP1A2, so it does not hold the enzyme up. Switching to NRT counts as quitting, metabolically."
+      ],
+      "foods": [],
+      "avoid": [
+        "Assuming a slow cigarette taper is metabolically gentle. As few as 7-12 cigarettes a day is enough for close to maximal induction, so most of the enzyme change happens in your last few cigarettes.",
+        "Assuming smoked cannabis is different. Combustion products rather than the cannabinoid are the inducer — but note this specific point is mechanistic inference from the tobacco data, not separately measured for cannabis."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Caffeine clearance falls about 36% on cessation of heavy smoking, reaching a new steady state at roughly one week (about 8 days). On clozapine or olanzapine the clinical consequences may take longer to become obvious.",
+      "evidenceStrength": "guideline",
+      "source": "Australian Prescriber, 'Smoking and drug interactions' (verified directly): 'A 50% difference in the mean daily dose of clozapine needed by smokers and nonsmokers to reach a given blood concentration has been reported'; 'a mean increase of 72% in plasma clozapine concentrations' after cessation; 'a new steady state of CYP1A2 activity reached after approximately one week'; 'Nicotine replacement therapy does not influence CYP1A2 activity'; 'daily dose reductions (of approximately 10% until the fourth day after smoking cessation)'. Time course: Faber & Fuhr, Clin Pharmacol Ther 2004 — 12 heavy smokers, caffeine clearance fell 36.1% (95% CI 30.9-42.2%) to a new steady state after cessation. 7-12 cigarettes/day sufficing for near-maximal induction: Oxford Health and Tees/Esk NHS formulary guidance. Case reports in CYP1A2-genotyped patients: PMID 16044115."
+    },
+    {
+      "id": "smoking-start-cyp1a2-loss",
+      "drugs": [
+        "duloxetine",
+        "fluvoxamine",
+        "mirtazapine",
+        "olanzapine",
+        "clozapine"
+      ],
+      "phase": "ongoing",
+      "goal": "Plan for how quitting smoking changes your drug level",
+      "signals": [],
+      "substances": [
+        "high_caffeine",
+        "smoking",
+        "supplements"
+      ],
+      "bodyEffect": "Starting or increasing smoking speeds up clearance of these drugs, so a dose that was working can quietly stop working.",
+      "mechanism": "The same PAH-driven CYP1A2 induction, running the other direction. Smokers carry substantially lower steady-state levels of duloxetine, fluvoxamine and mirtazapine on identical doses.",
+      "actions": [
+        "If your smoking has gone up during a bad stretch and the medicine feels like it has stopped working, say both things in the same sentence. 'It pooped out' and 'I am on 20 a day now' can be one event, not two.",
+        "Note roughly how much you smoke whenever a dose is set, so there is a baseline to compare against later.",
+        "Know where this is least likely to be your explanation. Escitalopram, citalopram and bupropion showed no significant smoking effect in the systematic review, so on those a loss of effect needs a different explanation and this should not distract from finding it.",
+        "Do not read this as a reason to keep smoking. It is a reason to change the dose deliberately rather than accidentally."
+      ],
+      "foods": [],
+      "avoid": [
+        "Silently self-adjusting your dose to compensate. The level change is real but the right size of correction needs measurement, especially for clozapine and olanzapine."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Induction builds over roughly a week of regular smoking and reverses over roughly a week after stopping.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Systematic review of smoking and antidepressant pharmacokinetics (PMC5340025), verified directly: nonsmokers had about 43% higher steady-state duloxetine concentrations than smokers; fluvoxamine serum levels significantly higher in nonsmokers (reductions exceeding 30% in smokers); S-mirtazapine and R-N-desmethylmirtazapine significantly lower in smokers; venlafaxine parent showed no significant difference but ODV metabolite was 21% lower in smokers. CORRECTION TO PRIOR DRAFT: sertraline is MIXED, not clean — one study found significantly lower concentration-to-dose ratios in smokers, another found no significant correlation. Fluoxetine parent showed no correlation but norfluoxetine was higher in smokers. Only escitalopram, citalopram and bupropion were clean negatives. Duloxetine labelling notes smoking reduces bioavailability by roughly a third. TDM cohort: PMID 30192450."
+    },
+    {
+      "id": "grapefruit-gut-cyp3a4",
+      "drugs": [
+        "buspirone",
+        "sertraline"
+      ],
+      "phase": "ongoing",
+      "goal": "Get through the first-weeks gut effects",
+      "signals": [
+        "nausea",
+        "insomnia",
+        "daytime_fatigue",
+        "anxiety_jitter"
+      ],
+      "substances": [
+        "grapefruit"
+      ],
+      "bodyEffect": "Grapefruit destroys CYP3A4 in your gut wall, so more of each dose survives absorption and the dose in the pill stops matching the dose reaching you.",
+      "mechanism": "Furanocoumarins in grapefruit irreversibly inactivate CYP3A4 inside intestinal cells. The gut has to build new enzyme, which is why a single glass matters for days and why the effect is on first-pass absorption rather than on liver clearance.",
+      "actions": [
+        "Treat one 200-250mL glass as enough to matter. This is not a dose-response you can drink around by having less.",
+        "If grapefruit genuinely matters to you, keep it constant rather than occasional, and tell your prescriber, so the dose gets set against your actual diet. An unpredictably inhibited enzyme is harder to prescribe against than a consistently inhibited one.",
+        "Do not bother spacing grapefruit a few hours from your dose. The enzyme is destroyed, not temporarily occupied, so timing does not rescue it.",
+        "Watch for the real-world signal: more side effect on an unchanged dose within a day of the juice. Sedation, dizziness, nausea, dry mouth.",
+        "Allow a few days after your last grapefruit before assuming you are back to baseline, since the gut has to synthesise new enzyme."
+      ],
+      "foods": [
+        "Ordinary oranges, mandarins, satsumas, lemons and limes — they do not carry the relevant furanocoumarins and are fine.",
+        "Standard or blood orange juice as a direct substitute if what you want is the citrus and the vitamin C."
+      ],
+      "avoid": [
+        "Grapefruit and grapefruit juice, pomelo, tangelo, and Seville (bitter) orange including marmalade made from it — all carry furanocoumarins.",
+        "Multi-fruit and 'breakfast blend' juices without reading the label, since grapefruit is a common component not flagged on the front."
+      ],
+      "contraindications": [],
+      "track": "nausea 0-10 each morning",
+      "timeline": "Intestinal CYP3A4 protein falls within about 4 hours of a glass. Recovery requires synthesis of new enzyme and takes on the order of one to three days.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Buspirone: Lilja et al., Clin Pharmacol Ther 1998 (PMID 9871430) — grapefruit juice raised mean buspirone Cmax 4.3-fold (range 2 to 15.6) and AUC 9.2-fold (range 3 to 20.4). NOTE: the 4.3-fold figure is Cmax, not AUC; a prior draft presented it as the headline exposure change and understated the AUC effect. Sertraline: Lee et al., Clin Ther 1999 (PMID 10890261) — n=5 patients on stable sertraline, trough rose from 13.7 to 20.2 µg/L (+47%) after one week of 240mL grapefruit juice daily. Real but very small; sertraline also has a wide safety margin, so this is 'worth knowing' not 'alarm'. Enzyme kinetics: the ~47% fall in enterocyte CYP3A4 within 4 hours is Schmiedlin-Ren et al., Drug Metab Dispos 1997, in a SINGLE volunteer — it was misattributed to Lown et al., J Clin Invest 1997 in a prior draft; Lown found a 62% fall in 10 men after 6 days. The commonly quoted '50% recovery at 24h, full at 72h' could not be traced to a primary source and has been removed. Negative: clozapine and haloperidol showed no significant grapefruit interaction (PMC12437050)."
+    },
+    {
+      "id": "grapefruit-cyp3a4-inference-only",
+      "drugs": [
+        "quetiapine",
+        "vilazodone",
+        "trazodone"
+      ],
+      "phase": "ongoing",
+      "goal": "Protect your sleep while the drug settles",
+      "signals": [
+        "insomnia",
+        "daytime_fatigue",
+        "anxiety_jitter"
+      ],
+      "substances": [
+        "grapefruit"
+      ],
+      "bodyEffect": "For these three the grapefruit effect is predicted from enzyme pathways, not measured. The direction is likely; the size is unknown.",
+      "mechanism": "All three are cleared substantially by CYP3A4, and grapefruit inactivates intestinal CYP3A4 — so an exposure rise is expected. But no one has given grapefruit alongside these drugs and measured what happens.",
+      "actions": [
+        "Treat this as a reason to mention grapefruit to your prescriber, not a reason to panic about a glass you already drank.",
+        "If you are on quetiapine, the caution is strongest: the label instructs reducing the dose to one sixth with a potent CYP3A4 inhibitor, which tells you how much headroom this pathway has.",
+        "If you are on vilazodone, note that its absorption is unusually food-dependent in the first place — taking it fasted drops AUC by about 50% and Cmax by about 60% versus fed. Taking it consistently with food matters more than grapefruit does.",
+        "Judge by symptoms rather than by theory: more sedation, dizziness or dry mouth on an unchanged dose within a day of grapefruit is the signal worth reporting."
+      ],
+      "foods": [],
+      "avoid": [
+        "Regular daily grapefruit alongside quetiapine specifically, given the size of the ketoconazole effect and the label's dose-reduction instruction."
+      ],
+      "contraindications": [],
+      "track": "hours slept and time to fall asleep",
+      "timeline": "If present, the effect would follow the same course as other grapefruit interactions — onset within hours, unwinding over a few days.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "Quetiapine: no human grapefruit PK study exists. The Seroquel label reports ketoconazole increased quetiapine AUC 5- to 8-fold and directs reducing the dose to one sixth with a potent CYP3A4 inhibitor (Grimm et al., Br J Clin Pharmacol 2006 measured ~6-fold). Extrapolating from a potent azole to grapefruit overstates grapefruit, which is a moderate intestinal inhibitor — treat the direction as real and the magnitude as much smaller and unquantified. Vilazodone: VERIFIED — the word 'grapefruit' does NOT appear anywhere in the FDA vilazodone label (DailyMed setid c3e167cd-7f56-45eb-80df-a60fa1392e57). The label says only 'The vilazodone hydrochloride dose should not exceed 20 mg once daily with the concomitant use of a strong CYP3A4 inhibitor.' Secondary sources that state 'grapefruit caps vilazodone at 20mg' are extrapolating and should not be presented as label text. Food effect verified verbatim: 'Vilazodone AUC and Cmax in the fasted state can be decreased by approximately 50% and 60%, respectively, compared to the fed state.' Trazodone: CYP3A4 substrate, no human grapefruit study located."
+    },
+    {
+      "id": "alcohol-cns-additive",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "venlafaxine",
+        "desvenlafaxine",
+        "duloxetine",
+        "mirtazapine",
+        "trazodone",
+        "amitriptyline",
+        "nortriptyline",
+        "quetiapine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Work with the drug’s sedation, not against it",
+      "signals": [
+        "daytime_fatigue",
+        "appetite_gain"
+      ],
+      "substances": [
+        "alcohol",
+        "supplements"
+      ],
+      "bodyEffect": "Alcohol and these drugs press the same sedative brakes in the brain, so the impairment adds up even though your blood alcohol does not change.",
+      "mechanism": "Alcohol potentiates GABA-A inhibition and blocks NMDA excitation. Mirtazapine, trazodone, quetiapine and the tricyclics add histamine H1 and alpha-1 blockade on top. The effect is additive at the receptor, which is why 'avoid alcohol' is about how you function, not about drug levels.",
+      "actions": [
+        "If you are going to drink, do it once you know how the medicine affects you. Not in the first two weeks, and not in the week after a dose increase.",
+        "Halve what you would normally have and check how you actually feel before the second drink. Judge from your body now, not from your old tolerance.",
+        "Do not drive after any alcohol on a sedating antidepressant. The additive impairment is the specific thing that catches people out.",
+        "Watch the mood cost, not just the sedation. Alcohol fragments the second half of the night and suppresses REM, so it directly undoes the sleep repair the medicine is trying to deliver — relief tonight and a worse tomorrow.",
+        "Be honest about amount as well as frequency when you are asked. Most intake questions record how often and miss how much."
+      ],
+      "foods": [],
+      "avoid": [
+        "Alcohol in the evening alongside mirtazapine, trazodone or quetiapine. All three are strongly sedating and this combination is the most common source of 'I cannot function the next morning on this'.",
+        "Using alcohol to get through the first weeks of side effects. It makes exactly those weeks worse, for the sleep reason above."
+      ],
+      "contraindications": [],
+      "track": "daytime alertness",
+      "timeline": "Additive sedation is there from the first dose and is worst in the first two weeks and after each increase. Sedation commonly eases over subsequent weeks, though this is clinical expectation rather than a measured trajectory.",
+      "evidenceStrength": "label",
+      "source": "US antidepressant labels in this class carry either an explicit advisory against alcohol or a somnolence/impairment precaution covering driving and operating machinery; the specific wording varies by product and should be checked per drug before display rather than asserted as uniform. The receptor pharmacology (ethanol potentiation of GABA-A and NMDA antagonism; H1 and alpha-1 blockade by mirtazapine, trazodone, quetiapine and TCAs) is established pharmacology, not a trial result. Stated honestly: most antidepressants do not measurably change blood alcohol concentration, and the size of the additive impairment is a clinical rule of thumb with no measured multiplier — never display it as a number."
+    },
+    {
+      "id": "alcohol-bupropion-seizure",
+      "drugs": [
+        "bupropion"
+      ],
+      "phase": "ongoing",
+      "goal": "Come off or switch safely, slowly",
+      "signals": [],
+      "substances": [
+        "alcohol",
+        "supplements"
+      ],
+      "bodyEffect": "Bupropion lowers the seizure threshold, and alcohol lowers it further on the way down. The risk sits in the withdrawal, not in the drinking.",
+      "mechanism": "Bupropion is dose-dependently pro-convulsant. Alcohol raises the seizure threshold while it is on board and rebounds below baseline as it clears, so the dangerous moment is abruptly stopping a heavy or daily drinking pattern, not the drink itself.",
+      "actions": [
+        "Keep alcohol low and, above all, steady. Steadiness matters more here than the average amount.",
+        "If you want to stop drinking and you drink daily or heavily, plan it with your prescriber. Supervised withdrawal, not a cold-turkey weekend.",
+        "Avoid a binge pattern of heavy nights and dry days. The swing is the risk, not the mean intake.",
+        "Tell your prescriber about anything else lowering the threshold at the same time: skipped meals, poor sleep, stimulants, tramadol, benzodiazepine withdrawal."
+      ],
+      "foods": [],
+      "avoid": [
+        "Abruptly stopping heavy or daily alcohol use while taking bupropion.",
+        "Bupropion at all with current or past anorexia nervosa or bulimia — a label contraindication."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Alcohol-withdrawal seizures classically cluster roughly 6 to 48 hours after the last drink. That window is from the alcohol-withdrawal literature, not from the bupropion label.",
+      "evidenceStrength": "label",
+      "source": "Bupropion US label: contraindicated in patients undergoing abrupt discontinuation of alcohol, benzodiazepines, barbiturates or antiepileptic drugs; contraindicated in patients with a current or prior diagnosis of bulimia or anorexia nervosa; seizure risk is dose-dependent and stated in the label; label advises minimising or avoiding alcohol. The 6-48 hour withdrawal-seizure window is standard alcohol-withdrawal teaching and is not a bupropion-label figure — a prior draft implied it came from the label."
+    },
+    {
+      "id": "alcohol-duloxetine-liver",
+      "drugs": [
+        "duloxetine"
+      ],
+      "phase": "ongoing",
+      "goal": "Consider evidence-backed adjuncts with your prescriber",
+      "signals": [
+        "daytime_fatigue",
+        "headache"
+      ],
+      "substances": [
+        "alcohol",
+        "supplements"
+      ],
+      "bodyEffect": "Duloxetine can injure the liver by one route and heavy drinking injures it by another, leaving less reserve to absorb either.",
+      "mechanism": "Duloxetine can cause idiosyncratic hepatocellular injury. Chronic alcohol separately induces CYP2E1, which generates oxidative stress and depletes glutathione — so the liver has less spare capacity when a second insult arrives.",
+      "actions": [
+        "Be specific about how much you drink, not just how often. The standard intake question captures frequency and misses volume, and volume is what matters here.",
+        "Ask for baseline liver tests before starting if you drink regularly.",
+        "Get urgent review for yellowing of the eyes or skin, dark urine, pain under the right ribs, unusual itching, or unexplained deep fatigue.",
+        "Be careful with paracetamol/acetaminophen too. It runs through the same CYP2E1 route to a toxic metabolite, and it is the most common thing people quietly add for the headaches of the first weeks."
+      ],
+      "foods": [],
+      "avoid": [
+        "Heavy or chronic alcohol use alongside duloxetine. The label is specific about this combination, which is stronger than the generic 'avoid alcohol' on other antidepressants."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Idiosyncratic liver injury is unpredictable in timing rather than dose-related, so this is a watch-for-symptoms risk across the whole course rather than a first-fortnight one.",
+      "evidenceStrength": "label",
+      "source": "Duloxetine US label, hepatotoxicity warning, verified wording: Cymbalta 'should ordinarily not be prescribed to patients with substantial alcohol use or evidence of chronic liver disease' because duloxetine and alcohol may interact to cause liver injury or duloxetine may aggravate pre-existing liver disease. DILI Network case series: PMC3773985. CYP2E1 induction by chronic ethanol and its role in oxidative hepatic stress and glutathione depletion is established (Lu & Cederbaum). Stated honestly: that the two mechanisms compound quantitatively is mechanistic inference — the label warning is real, the additive size is not measured."
+    },
+    {
+      "id": "st-johns-wort-cyp3a4-induction",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "fluoxetine",
+        "paroxetine",
+        "venlafaxine",
+        "duloxetine",
+        "vortioxetine",
+        "vilazodone",
+        "quetiapine",
+        "trazodone",
+        "amitriptyline",
+        "nortriptyline"
+      ],
+      "phase": "ongoing",
+      "goal": "Consider evidence-backed adjuncts with your prescriber",
+      "signals": [
+        "loose_stools",
+        "bruising_bleeding"
+      ],
+      "substances": [
+        "grapefruit",
+        "supplements"
+      ],
+      "bodyEffect": "St John's Wort speeds up the enzymes clearing your antidepressant and adds serotonin of its own, so it can weaken and overshoot at the same time.",
+      "mechanism": "Hyperforin is a potent ligand for the pregnane X receptor, which switches on CYP3A4 transcription — the same route prescription enzyme inducers use. Separately, St John's Wort inhibits monoamine reuptake, so it adds serotonergic load while lowering the level of the prescribed drug.",
+      "actions": [
+        "Do not start St John's Wort alongside a prescribed antidepressant without telling your prescriber. Of everything sold over the counter, this is the one that most changes your pharmacology.",
+        "If you are already on it, do not stop it abruptly on your own either. Induction unwinds over one to two weeks and your antidepressant level will climb as it does — a planned stop, not a silent one.",
+        "Tell your prescriber the brand and the dose. Induction tracks hyperforin content, which varies widely between products, so 'St John's Wort' is not a single exposure.",
+        "Know the serotonin-excess picture if you are on both: agitation, sweating, shivering, tremor, jumpy or twitchy reflexes, diarrhoea, fast heartbeat, fever. Several of those together is an emergency, not a side effect to sit with.",
+        "Remember what else it strips through the same enzyme: hormonal contraception, anticoagulants, some HIV, transplant and cancer drugs. The contraception failure route is the one people miss."
+      ],
+      "foods": [],
+      "avoid": [
+        "Combining it with an SSRI, SNRI, vortioxetine, vilazodone, a triptan or tramadol without supervision.",
+        "Treating it as 'natural, therefore additive-free'. Mechanistically it behaves like a prescription enzyme inducer with an antidepressant bolted on."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "Induction builds over roughly 10 to 14 days of daily use and takes a similar one to two weeks to unwind after stopping.",
+      "evidenceStrength": "clinical_studies",
+      "source": "Hohmann et al., Clin Transl Sci 2024 (PMC11329750), verified directly: dose-dependent CYP3A induction measured with oral midazolam microdoses after 14 days at 300, 900 and 1800 mg/day, giving estimated metabolic clearance increases of 1.96-fold (95% CI 1.66-2.31), 3.86-fold (3.39-4.40) and 5.62-fold (4.82-6.56) respectively. TWO FIGURES REMOVED from a prior draft: the '52% fall in mean substrate AUC' at 900mg and the hyperforin-content correlation 'R = 0.87, p = 0.004' do not appear in this paper; the authors report fold-changes in clearance and note qualitatively that induction correlates with hyperforin but not hypericin content, without giving that coefficient. Moore et al., PNAS 2000: hyperforin activates PXR and induces CYP3A4 in primary human hepatocytes (the specific Ki was not re-verified and is omitted). Serotonin syndrome risk with SSRIs rests on case reports and regulator advisories (Medsafe NZ 2012) rather than trials — real but not trial-quantified."
+    },
+    {
+      "id": "ssri-snri-hyponatraemia",
+      "drugs": [
+        "sertraline",
+        "escitalopram",
+        "citalopram",
+        "paroxetine",
+        "fluoxetine",
+        "fluvoxamine",
+        "venlafaxine",
+        "desvenlafaxine",
+        "duloxetine"
+      ],
+      "phase": "first_weeks",
+      "goal": "Watch for low-sodium warning signs",
+      "signals": [
+        "nausea",
+        "loose_stools",
+        "headache",
+        "dizzy_confused"
+      ],
+      "substances": [
+        "supplements"
+      ],
+      "bodyEffect": "These drugs can make you hold onto water, diluting the sodium in your blood. Drinking more plain water makes that worse, not better.",
+      "mechanism": "SSRIs and SNRIs can trigger inappropriate ADH release (SIADH), so the kidney retains free water. Sodium is not being lost so much as diluted — which is why the instinctive fix, drinking more, is the wrong direction.",
+      "actions": [
+        "Know the symptoms, because they impersonate both depression and a bad start on the drug: headache, poor concentration, memory trouble, confusion, weakness, unsteadiness, feeling generally muddled. Falls or a seizure are the severe end.",
+        "If those appear in the first few weeks, ask for a sodium blood test rather than assuming the drug 'is not agreeing with you'. It is a specific, measurable thing.",
+        "Know if you carry the risk factors: older age, low body weight, a thiazide or other diuretic, vomiting or diarrhoea, or a previous episode of low sodium.",
+        "Drink to thirst. Do not deliberately push fluids to 'flush out' side effects or to fix a headache — with SIADH, extra free water lowers sodium further.",
+        "Do not stop the drug on your own if you suspect this. Get the sodium measured and let your prescriber decide, because abrupt stops carry their own problems."
+      ],
+      "foods": [],
+      "avoid": [
+        "Loading up on plain water, electrolyte-free squash or large volumes of tea in response to headache or grogginess in the first weeks.",
+        "Starting an SSRI/SNRI and a new diuretic in the same window without a plan to check sodium."
+      ],
+      "contraindications": [
+        "eating_disorder_history"
+      ],
+      "track": "headache, confusion, unsteadiness",
+      "timeline": "Most reported cases occur within the first few weeks of starting or of a dose increase, which is exactly when people are most likely to misread the symptoms as the depression or as normal early side effects.",
+      "evidenceStrength": "label",
+      "source": "US SSRI and SNRI labels carry a Hyponatremia warning describing cases of hyponatraemia and SIADH, identifying elderly, volume-depleted and diuretic-treated patients as higher risk, and advising consideration of discontinuation in symptomatic patients. FLAG FOR THE OWNER: this protocol was NOT in the set submitted for review — the review brief referred to 'the hyponatraemia fluid advice' as if it existed, and it does not. I have written a corrected version because the failure mode here is dangerous in the specific direction the brief was worried about (advising fluids). Before shipping, verify the warning section wording against each individual product label rather than treating it as uniform, and confirm whether any existing content elsewhere in the app tells users to increase fluid intake."
+    },
+    {
+      "id": "cbd-cannabis-enzyme-effects",
+      "drugs": [
+        "clozapine",
+        "olanzapine",
+        "duloxetine",
+        "fluvoxamine",
+        "mirtazapine",
+        "amitriptyline",
+        "nortriptyline",
+        "quetiapine",
+        "citalopram",
+        "escitalopram",
+        "sertraline"
+      ],
+      "phase": "ongoing",
+      "goal": "Plan for how quitting smoking changes your drug level",
+      "signals": [],
+      "substances": [
+        "high_caffeine",
+        "smoking",
+        "grapefruit",
+        "supplements"
+      ],
+      "bodyEffect": "Cannabis pulls two ways: CBD blocks several clearing enzymes and raises drug levels, while smoking anything induces CYP1A2 and lowers them.",
+      "mechanism": "CBD inhibits CYP3A4/5, CYP2C19, CYP2C9, CYP2D6, CYP2B6 and CYP1A2 in laboratory systems. Independently, the combustion products of smoked cannabis are expected to induce CYP1A2 as tobacco smoke does, regardless of cannabinoid content. Which effect dominates depends on route and dose.",
+      "actions": [
+        "Tell your prescriber you use cannabis, and say which form. High-dose CBD oil and smoked flower are different pharmacology, not different amounts of the same thing.",
+        "If you change route — smoking to edibles or vaping, or the reverse — treat it as a smoking-status change for any CYP1A2 drug, and reread the smoking-cessation guidance.",
+        "Be most careful with high-dose CBD products alongside a narrow-margin drug: clozapine, a tricyclic, or anything where your level is already monitored.",
+        "Check the actual milligrams on CBD products. Over-the-counter doses vary enormously, and most of the interaction data comes from pharmaceutical epilepsy-scale CBD doses well above typical supplement use."
+      ],
+      "foods": [],
+      "avoid": [
+        "Assuming CBD is inert because it is not intoxicating. It is a broad multi-enzyme inhibitor in vitro, and that is precisely the property that makes interaction plausible.",
+        "Adding a high-dose CBD product on top of clozapine or a tricyclic without telling anyone."
+      ],
+      "contraindications": [],
+      "track": "how you feel day to day",
+      "timeline": "CBD's enzyme inhibition would track use day to day. CYP1A2 induction from smoking follows the same roughly one-week on and one-week off course as tobacco.",
+      "evidenceStrength": "mechanistic_inference",
+      "source": "Largely in vitro and in silico: Drug Metab Dispos 2024 (PMC11022895) on cannabinoid metabolites as CYP inhibitors; Front Psychiatry 2022 review of cannabinoid hepatic metabolism; reviews reporting time-dependent reversible inhibition of CYP2D6 and CYP1A2 and irreversible inhibition of CYP3A4 by CBD. Stated honestly and prominently: clinical antidepressant-specific interaction data is thin, and the human data that exists comes from pharmaceutical epilepsy-dose CBD. Treat the DIRECTION as likely and the MAGNITUDE as unknown — do not display numbers to users for this one. The smoked-cannabis CYP1A2 point is inference from tobacco data, not separately measured for cannabis."
+    }
+  ]
+}
