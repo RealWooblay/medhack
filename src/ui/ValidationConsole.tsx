@@ -11,6 +11,14 @@ import {
 import { canonicalDrug } from '../data/drug-lexicon'
 import { labelFor } from '../data/openfda'
 import {
+  EVIDENCE_LABEL,
+  PHASE_LABEL,
+  protocolsForDrug,
+  type EvidenceStrength,
+  type SupportPhase,
+  type SupportProtocol,
+} from '../data/support-protocols'
+import {
   OFFICIAL_PHARMCAT_EXAMPLES,
   type OfficialPharmCATExample,
 } from '../data/pharmcat-examples'
@@ -698,6 +706,57 @@ function directRule(rule: string): string {
   return rule.replace(/^The captured /, 'The ')
 }
 
+function EvidenceBadge({ strength }: { strength: EvidenceStrength }) {
+  return (
+    <span className={`evidence evidence--${strength}`} title={EVIDENCE_LABEL[strength]}>
+      {EVIDENCE_LABEL[strength]}
+    </span>
+  )
+}
+
+function SupportCard({ protocol }: { protocol: SupportProtocol }) {
+  return (
+    <article className="support-card">
+      <header>
+        <h3>{protocol.bodyEffect}</h3>
+        <EvidenceBadge strength={protocol.evidenceStrength} />
+      </header>
+
+      <p className="support-card__why">{protocol.mechanism}</p>
+
+      <div className="support-card__actions">
+        <div className="support-lane">
+          <span className="support-lane__label">Do this</span>
+          <ul>{protocol.doThis.map((item) => <li key={item}>{item}</li>)}</ul>
+        </div>
+
+        {protocol.eatThis.length > 0 && (
+          <div className="support-lane support-lane--eat">
+            <span className="support-lane__label">Eat this</span>
+            <ul>{protocol.eatThis.map((item) => <li key={item}>{item}</li>)}</ul>
+          </div>
+        )}
+
+        {protocol.avoidThis.length > 0 && (
+          <div className="support-lane support-lane--avoid">
+            <span className="support-lane__label">Avoid</span>
+            <ul>{protocol.avoidThis.map((item) => <li key={item}>{item}</li>)}</ul>
+          </div>
+        )}
+      </div>
+
+      {protocol.timeline && (
+        <p className="support-card__timeline"><strong>What to expect.</strong> {protocol.timeline}</p>
+      )}
+
+      <details className="support-card__source">
+        <summary>Where this comes from</summary>
+        <p>{protocol.source}</p>
+      </details>
+    </article>
+  )
+}
+
 function DailyLifePanel({
   result,
   selectedDrug,
@@ -725,13 +784,15 @@ function DailyLifePanel({
     ? matchLifestyle(protocol, careFromRoutine(routine), confirmedLifestyle)
     : null
   const protocolItems = protocol ? [...protocol.items, ...protocol.interactionItems] : []
-  const sourceIds = unique(protocolItems.flatMap((item) => item.citationIds))
+
+  const support = selectedDrug ? protocolsForDrug(selectedDrug) : []
+  const phases: SupportPhase[] = ['first_weeks', 'ongoing', 'switching']
 
   return (
     <section className="screen" aria-labelledby="daily-title">
       <div className="screen-heading">
-        <h1 id="daily-title">{selectedDrug ? `Daily life with ${capitalise(selectedDrug)}` : 'Daily instructions'}</h1>
-        <p>Check the exact product, then compare its label with your routine.</p>
+        <h1 id="daily-title">{selectedDrug ? `Living with ${capitalise(selectedDrug)}` : 'Living with your medicine'}</h1>
+        <p>What this medicine does to your body, and what actually helps. Ordered by where you are in the course.</p>
       </div>
 
       <label className="field medicine-picker medicine-picker--simple">
@@ -742,90 +803,94 @@ function DailyLifePanel({
         </select>
       </label>
 
-      {!protocol && <div className="empty-state"><span>Choose a medicine to see its daily instructions.</span></div>}
+      {!selectedDrug && <div className="empty-state"><span>Choose a medicine to see what to expect and what helps.</span></div>}
+
+      {selectedDrug && support.length === 0 && (
+        <div className="empty-state">
+          <span>No mechanism-based support content is available for {capitalise(selectedDrug)} yet.</span>
+        </div>
+      )}
+
+      {phases.map((phase) => {
+        const inPhase = support.filter((item) => item.phase === phase)
+        if (!inPhase.length) return null
+        return (
+          <section className="support-phase" key={phase} aria-label={PHASE_LABEL[phase]}>
+            <h2 className="support-phase__title">{PHASE_LABEL[phase]}</h2>
+            <div className="support-phase__cards">
+              {inPhase.map((item) => <SupportCard protocol={item} key={item.id} />)}
+            </div>
+          </section>
+        )
+      })}
 
       {protocol && (
-        <>
-          {product ? (
-            <section className="product-scope" aria-label="Product used for daily-life evidence">
-              <div>
-                <strong>{product.productName ?? capitalise(selectedDrug)}</strong>
-                <span>{product.dosageForm.toLowerCase()} · {product.route.join(', ').toLowerCase()} · {product.manufacturer ?? 'manufacturer not recorded'}</span>
-                <small>US label · NDC {product.productNdc} · SPL {product.setId} · version {product.versionId} · not matched to an Australian product</small>
-              </div>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={productConfirmed}
-                  onChange={(event) => onProductConfirmed(event.target.checked)}
-                />
-                <span>This is the exact product and form I want to check</span>
-              </label>
-            </section>
-          ) : (
-            <p className="plain-warning">No product-specific daily information is available.</p>
-          )}
+        <details className="label-facts">
+          <summary>What the product label says ({protocolItems.length})</summary>
+          <div>
+            {product && (
+              <p className="label-facts__product">
+                {product.productName ?? capitalise(selectedDrug)} · {product.dosageForm.toLowerCase()} · US label, SPL {product.setId}
+              </p>
+            )}
+            <div className="instruction-list">
+              {protocolItems.map((item) => (
+                <article className={item.severity === 'critical' ? 'instruction instruction--important' : 'instruction'} key={item.id}>
+                  <span className="instruction-icon" aria-hidden="true">{item.icon}</span>
+                  <div>
+                    <span>{lifestyleLabel(item.label)}</span>
+                    <strong>{directRule(item.rule)}</strong>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <label className="product-confirm">
+              <input
+                type="checkbox"
+                checked={productConfirmed}
+                onChange={(event) => onProductConfirmed(event.target.checked)}
+              />
+              <span>This is the exact product and form I take</span>
+            </label>
+          </div>
+        </details>
+      )}
 
-          <section className="daily-section" aria-labelledby="instructions-title">
-            <h2 id="instructions-title">What this label says</h2>
-            {protocolItems.length ? (
-              <div className="instruction-list">
-                {protocolItems.map((item) => (
-                  <article className={item.severity === 'critical' ? 'instruction instruction--important' : 'instruction'} key={item.id}>
-                    <span className="instruction-icon" aria-hidden="true">{item.icon}</span>
-                    <div>
-                      <span>{lifestyleLabel(item.label)}</span>
-                      <strong>{directRule(item.rule)}</strong>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : <p className="empty-copy">No daily instruction is available in the current evidence set.</p>}
-          </section>
+      {protocol && productConfirmed && questions.length > 0 && (
+        <section className="daily-section" aria-labelledby="routine-title">
+          <h2 id="routine-title">Does this fit your day?</h2>
+          <div className="routine-grid">
+            {questions.map((question) => {
+              const status = routineFitStatus(question, routine, match?.facts ?? [])
+              return (
+                <label className="compact-field" key={question.key}>
+                  <span>{question.label}</span>
+                  <select
+                    value={routine[question.key]}
+                    onChange={(event) => onRoutine({ ...routine, [question.key]: event.target.value })}
+                  >
+                    <option value="">Choose an answer</option>
+                    {question.options.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  <small className={`fit fit--${status.label.toLowerCase().replace(/\s+/g, '-')}`}>{status.label}: {status.detail}</small>
+                </label>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
-          {productConfirmed && questions.length > 0 && (
-            <section className="daily-section" aria-labelledby="routine-title">
-              <h2 id="routine-title">Does this fit your day?</h2>
-              <div className="routine-list">
-                {questions.map((question) => {
-                  const status = routineFitStatus(question, routine, match?.facts ?? [])
-                  const answered = Boolean(routine[question.key])
-                  return (
-                    <div className="routine-row" key={question.key}>
-                      <label className="compact-field">
-                        <span>{question.label}</span>
-                        <select value={routine[question.key]} onChange={(event) => onRoutine({ ...routine, [question.key]: event.target.value })}>
-                          <option value="">Select</option>
-                          {question.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                        </select>
-                      </label>
-                      {answered && (
-                        <div className={`routine-result routine-result--${status.label.toLowerCase().replaceAll(' ', '-')}`}>
-                          <strong>{status.label}</strong>
-                          <span>{status.detail}</span>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </section>
-          )}
-
-          {!productConfirmed && protocolItems.length > 0 && (
-            <p className="product-wait">Confirm the exact product above before matching these facts to your routine.</p>
-          )}
-
-          <details className="daily-sources">
-            <summary>Sources</summary>
-            <p><SourceLinks ids={sourceIds} result={result} /></p>
-          </details>
-          <div className="page-action"><button type="button" className="primary-button" onClick={onNext}>Continue to AI review</button></div>
-        </>
+      {selectedDrug && (
+        <div className="page-action">
+          <button type="button" className="primary-button" onClick={onNext}>Continue to AI review</button>
+        </div>
       )}
     </section>
   )
 }
+
 
 const REVIEW_ACTION_LABEL: Record<ClinicalReviewAction, string> = {
   evidence_gap: 'Missing information',
@@ -1434,15 +1499,6 @@ export function ValidationConsole() {
         <div className="brand"><strong>Antidepressant PGx</strong></div>
       </header>
 
-      <div className="safety-banner" role="note">
-        <strong>Decision support only. This is not medical advice and not a diagnosis.</strong>{' '}
-        It can inform dose and safety, not which antidepressant will work for you. Never start,
-        stop or change a medicine based on this — talk to your prescriber first.
-        <span className="safety-banner__crisis">
-          If you are in crisis or thinking about harming yourself, contact emergency services
-          on <strong>000</strong> (Australia) or Lifeline on <strong>13 11 14</strong>.
-        </span>
-      </div>
 
       <nav className="tab-bar" role="tablist" aria-label="Product steps">
         {tabs.map((item) => (
