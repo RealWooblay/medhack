@@ -50,7 +50,7 @@ async function validationResult() {
 }
 
 describe('simplified validation surface', () => {
-  it('renders the explicit product flow with raw DNA first', () => {
+  it('renders the explicit product flow', () => {
     const markup = renderToStaticMarkup(<App />)
 
     expect(markup).toContain('DNA')
@@ -59,16 +59,35 @@ describe('simplified validation surface', () => {
     expect(markup).toContain('Daily life')
     expect(markup).toContain('AI review')
     expect(markup).toContain('Sources')
-    expect(markup).toContain('Upload your DNA')
     expect(markup).toContain('Current medicines and supplements')
     expect(markup).toContain('I take none')
-    expect(markup).toContain('Use published example')
+    // The switcher offers the modes you are not currently in; example mode is the default.
+    expect(markup).toContain('Other ways to start')
     expect(markup).toContain('Import PharmCAT report')
     expect(markup).not.toContain('Report sections')
     expect(markup).not.toContain('Sample journey')
     expect(markup).not.toContain('PHQ-9')
     expect(markup).not.toContain('preferred')
     expect(markup).not.toContain('shortlist')
+  })
+
+  it('opens on a mode that works without a deployed backend', () => {
+    // Genome upload needs the private worker. Defaulting to it meant a new visitor's first
+    // action failed against any deployment without the full backend.
+    const markup = renderToStaticMarkup(<App />)
+
+    expect(markup).toContain('Use a published example')
+    expect(markup).toContain('Published report')
+    // The genome route stays reachable from the mode switcher, just not as the landing state.
+    expect(markup).toContain('Upload your DNA')
+  })
+
+  it('always shows the safety notice and crisis contacts', () => {
+    const markup = renderToStaticMarkup(<App />)
+
+    expect(markup).toContain('not medical advice')
+    expect(markup).toContain('Lifeline')
+    expect(markup).toContain('13 11 14')
   })
 
   it('requires medicines or an explicit confirmation of none', () => {

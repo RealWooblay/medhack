@@ -465,15 +465,22 @@ function FilePanel({
           <button type="button" className="primary-button" disabled={!ready || busy} onClick={onRun}>{buttonLabel}</button>
         </div>
 
-        {mode === 'genome' && (
-          <details className="advanced-input">
-            <summary>Other ways to start</summary>
-            <div>
+        {/* Always offer the modes you are not currently in. This used to render only in
+            genome mode, so once the default moved off genome there was no route back. */}
+        <details className="advanced-input">
+          <summary>Other ways to start</summary>
+          <div>
+            {mode !== 'genome' && (
+              <button type="button" className="secondary-button" onClick={() => onMode('genome')}>Upload your DNA</button>
+            )}
+            {mode !== 'example' && (
               <button type="button" className="secondary-button" onClick={() => onMode('example')}>Use published example</button>
+            )}
+            {mode !== 'report' && (
               <button type="button" className="secondary-button" onClick={() => onMode('report')}>Import PharmCAT report</button>
-            </div>
-          </details>
-        )}
+            )}
+          </div>
+        </details>
       </div>
     </section>
   )
@@ -1205,7 +1212,9 @@ function EvidencePanel({ result, receipt, selectedDrug, productConfirmed, routin
 
 export function ValidationConsole() {
   const [tab, setTab] = useState<TabId>('file')
-  const [mode, setMode] = useState<InputMode>('genome')
+  // Defaults to the mode that works without a backend. Genome upload needs the private
+  // worker; opening on it meant the first thing a new visitor saw was a failing run.
+  const [mode, setMode] = useState<InputMode>('example')
   const [exampleId, setExampleId] = useState(OFFICIAL_PHARMCAT_EXAMPLES[0].id)
   const [medicines, setMedicines] = useState('')
   const [noCurrentMedicines, setNoCurrentMedicines] = useState(false)
@@ -1424,6 +1433,16 @@ export function ValidationConsole() {
       <header className="app-header">
         <div className="brand"><strong>Antidepressant PGx</strong></div>
       </header>
+
+      <div className="safety-banner" role="note">
+        <strong>Decision support only. This is not medical advice and not a diagnosis.</strong>{' '}
+        It can inform dose and safety, not which antidepressant will work for you. Never start,
+        stop or change a medicine based on this — talk to your prescriber first.
+        <span className="safety-banner__crisis">
+          If you are in crisis or thinking about harming yourself, contact emergency services
+          on <strong>000</strong> (Australia) or Lifeline on <strong>13 11 14</strong>.
+        </span>
+      </div>
 
       <nav className="tab-bar" role="tablist" aria-label="Product steps">
         {tabs.map((item) => (

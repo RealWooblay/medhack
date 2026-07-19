@@ -346,6 +346,25 @@ function antidepressantGuidelineCitation(drug: string): string | null {
 export function recommendationActionFromText(text: string): PharmCATDrugRecommendation['action'] {
   const value = text.trim()
   if (!value || /\bno recommendation\b|\bno action recommended\b/i.test(value)) return 'no_recommendation'
+
+  /*
+   * The anchored "initiate therapy with recommended starting dose" test must run BEFORE the
+   * unanchored avoid/alternative tests.
+   *
+   * CPIC routinely opens with that phrase and then qualifies it in a subordinate clause, e.g.
+   * the real CYP2C19 rapid-metaboliser citalopram row ends "...or switching to a clinically
+   * appropriate alternative antidepressant not predominantly metabolized by CYP2C19", and
+   * ordinary dose guidance says "...a lower maintenance dose to avoid adverse effects".
+   * Tested in the old order, both returned avoid/alternative and the row rendered under
+   * "Discuss a different medicine" while the guideline it quotes says to start normally.
+   */
+  if (/^initiate therapy with (?:the )?recommended starting dose/i.test(value)) {
+    if (/\blower maintenance dose\b/i.test(value)) return 'standard_start_reduced_maintenance'
+    if (/\bhigher maintenance dose\b/i.test(value)) return 'standard_start_conditional_increase'
+    if (/\bslower titration\b/i.test(value)) return 'standard_start_reduced_maintenance'
+    return 'standard'
+  }
+
   if (/\bavoid\b/i.test(value)) return 'avoid'
   if (
     /\b(?:consider|select|use)(?:\s+[a-z-]+){0,5}\s+alternative\b/i.test(value) ||
@@ -356,11 +375,6 @@ export function recommendationActionFromText(text: string): PharmCATDrugRecommen
   }
   if (/\breduc(?:e|ed|tion)\b.{0,80}\b(?:maintenance )?dose\b/i.test(value)) return 'decrease'
   if (/\bhigher (?:target|maintenance) dose\b|\bincrease\b.{0,80}\bdose\b/i.test(value)) return 'increase'
-  if (/^initiate therapy with (?:the )?recommended starting dose/i.test(value)) {
-    if (/\blower maintenance dose\b/i.test(value)) return 'standard_start_reduced_maintenance'
-    if (/\bhigher maintenance dose\b/i.test(value)) return 'standard_start_conditional_increase'
-    return 'standard'
-  }
   return 'caution'
 }
 
