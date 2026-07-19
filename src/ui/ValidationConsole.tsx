@@ -8,7 +8,7 @@ import {
   type ClinicalReviewItem,
   type ClinicalReviewResult,
 } from '../ai/clinical-review'
-import { canonicalDrug, DRUG_LEXICON } from '../data/drug-lexicon'
+import { canonicalDrug } from '../data/drug-lexicon'
 import { labelFor } from '../data/openfda'
 import {
   OFFICIAL_PHARMCAT_EXAMPLES,
@@ -1162,8 +1162,6 @@ export function DailyLifePanel({
   onRoutine: (routine: RoutineAnswers) => void
   onNext: () => void
 }) {
-  const [isModalOpen, setModalOpen] = useState(false)
-  const [showExtended, setShowExtended] = useState(false)
   const protocol = selectedDrug ? result.protocolsByDrug[selectedDrug] : null
   const product = selectedDrug ? labelFor(selectedDrug) : undefined
   const questions = protocol ? relevantRoutineQuestions(protocol) : []
@@ -1284,7 +1282,6 @@ export function DailyLifePanel({
           <button type="button" className="primary-button" onClick={onNext}>Continue to AI review</button>
         </div>
       )}
-      </div>}
     </section>
   )
 }
