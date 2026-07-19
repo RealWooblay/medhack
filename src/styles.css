@@ -340,6 +340,30 @@ code {
   color: var(--muted);
 }
 
+.demo-upload {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 3px 10px;
+  align-items: baseline;
+  margin: -2px 0 20px;
+  padding: 11px 13px;
+  border-radius: 8px;
+  background: var(--soft);
+  font-size: 0.8rem;
+}
+
+.demo-upload strong {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.demo-upload small {
+  grid-column: 2;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
 .upload-symbol {
   display: grid;
   place-items: center;
@@ -509,6 +533,35 @@ code {
   white-space: nowrap;
 }
 
+.gene-scope {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+
+.gene-scope > div {
+  display: grid;
+  gap: 3px;
+}
+
+.gene-scope span,
+.gene-scope p {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.gene-scope p {
+  margin: 0;
+  text-align: right;
+}
+
 .gene-list {
   overflow: hidden;
   border: 1px solid var(--line);
@@ -528,6 +581,19 @@ code {
 
 .gene-row:last-child {
   border-bottom: 0;
+}
+
+.scope-note {
+  margin-top: 12px;
+  padding: 0 2px;
+}
+
+.scope-note p {
+  max-width: 720px;
+  margin: 9px 0 5px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
 }
 
 .gene-result {
@@ -723,6 +789,7 @@ details > summary {
 }
 
 .medicine-picker {
+  max-width: 480px;
   margin-bottom: 18px;
   padding: 16px;
   border: 1px solid var(--line);
@@ -730,51 +797,55 @@ details > summary {
   background: var(--paper);
 }
 
-.product-scope {
+.product-check {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, auto);
+  gap: 20px;
   align-items: center;
+  margin-bottom: 12px;
   padding: 14px 16px;
-  border: 1px solid #dfbf84;
+  border: 1px solid var(--line);
   border-radius: 10px;
-  background: var(--amber-soft);
+  background: var(--paper);
 }
 
-.product-scope > div {
+.product-check > div {
   display: grid;
   gap: 3px;
 }
 
-.product-scope > div span,
-.product-scope > div small,
-.product-wait {
-  color: #654313;
+.product-check span,
+.product-check small {
+  color: var(--muted);
   font-size: 0.8rem;
   line-height: 1.45;
 }
 
-.product-scope > div small {
-  overflow-wrap: anywhere;
-  font-size: 0.72rem;
+.product-check strong {
+  color: var(--ink);
+  font-size: 0.92rem;
 }
 
-.product-scope > label {
+.choice-pair {
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  max-width: 270px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  line-height: 1.35;
+  gap: 6px;
+  margin-top: 6px;
 }
 
-.product-scope input {
-  margin-top: 2px;
+.choice-pair button {
+  min-width: 78px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: #fff;
+  cursor: pointer;
 }
 
-.product-wait {
-  margin: 16px 0 0;
+.choice-pair button[aria-pressed="true"] {
+  border-color: var(--green);
+  color: #fff;
+  background: var(--green);
 }
 
 .empty-state {
@@ -790,13 +861,20 @@ details > summary {
   text-align: center;
 }
 
-.daily-section {
-  margin-top: 28px;
+.empty-state--small {
+  min-height: 100px;
 }
 
-.daily-section > h2 {
+.daily-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.daily-card > h2 {
   margin-bottom: 12px;
-  font-size: 1.2rem;
 }
 
 .instruction-list {
@@ -809,10 +887,9 @@ details > summary {
   grid-template-columns: 36px minmax(0, 1fr);
   gap: 12px;
   align-items: start;
-  padding: 14px 15px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--paper);
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--soft);
 }
 
 .instruction--important {
@@ -844,27 +921,60 @@ details > summary {
   line-height: 1.45;
 }
 
-.empty-copy {
-  margin: 0;
+.daily-source {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+}
+
+.daily-source > span {
   color: var(--muted);
-  font-size: 0.84rem;
-  line-height: 1.45;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.routine-check {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+}
+
+.routine-check > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  list-style: none;
+}
+
+.routine-check > summary::-webkit-details-marker {
+  display: none;
+}
+
+.routine-check > summary small {
+  color: var(--muted);
+  font-weight: 550;
 }
 
 .routine-list {
   display: grid;
-  gap: 9px;
+  gap: 8px;
+  padding: 0 16px 16px;
 }
 
 .routine-row {
   display: grid;
-  grid-template-columns: minmax(210px, 0.7fr) minmax(260px, 1fr);
-  gap: 14px;
+  grid-template-columns: minmax(220px, 1fr) auto;
+  gap: 12px;
   align-items: end;
-  padding: 14px 15px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--paper);
+  padding: 11px 12px;
+  border-radius: 8px;
+  background: var(--soft);
 }
 
 .compact-field {
@@ -877,44 +987,20 @@ details > summary {
   font-size: 0.84rem;
 }
 
-.routine-result {
-  display: grid;
-  gap: 2px;
-  padding: 9px 11px;
-  border-left: 3px solid #4e816f;
-  border-radius: 5px;
-  background: var(--green-soft);
-}
-
-.routine-result strong {
+.routine-status {
+  margin-bottom: 9px;
+  color: var(--green-dark);
   font-size: 0.78rem;
+  font-weight: 800;
 }
 
-.routine-result span {
-  color: #3b4c44;
-  font-size: 0.78rem;
-  line-height: 1.4;
+.routine-status--caution,
+.routine-status--unknown {
+  color: var(--amber);
 }
 
-.routine-result--may-conflict,
-.routine-result--not-checked {
-  border-left-color: #bd8735;
-  background: var(--amber-soft);
-}
-
-.routine-result--important {
-  border-left-color: var(--red);
-  background: var(--red-soft);
-}
-
-.daily-sources {
-  margin-top: 18px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-}
-
-.daily-sources p {
-  margin: 9px 0 0;
+.routine-status--critical {
+  color: var(--red);
 }
 
 .model-status {
@@ -1351,9 +1437,18 @@ pre {
   .gene-row,
   .medicine-row,
   .routine-row,
-  .product-scope {
+  .product-check {
     grid-template-columns: 1fr;
     gap: 9px;
+  }
+
+  .gene-scope {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .gene-scope p {
+    text-align: left;
   }
 
   .science-details,
@@ -1388,283 +1483,4 @@ pre {
   .evidence-group > summary small {
     display: none;
   }
-}
-
-/* ---------------------------------------------------------------- */
-/* Mechanism-based support: what the drug does, and what helps.      */
-/* Distinct from the label facts, which stay collapsed below.        */
-/* ---------------------------------------------------------------- */
-
-.support-phase {
-  width: min(1080px, 100%);
-  margin: 34px 0 0;
-}
-
-.support-phase__title {
-  margin-bottom: 14px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--line);
-  color: var(--green-dark);
-  font-size: 1.05rem;
-}
-
-.support-phase__cards {
-  display: grid;
-  gap: 14px;
-}
-
-.support-card {
-  padding: 20px 22px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: var(--paper);
-  box-shadow: var(--shadow);
-}
-
-.support-card > header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 10px;
-}
-
-.support-card h3 {
-  margin: 0;
-  color: var(--ink);
-  font-size: 1.12rem;
-  line-height: 1.35;
-  letter-spacing: -0.015em;
-}
-
-.support-card__why {
-  margin: 0 0 16px;
-  padding-left: 12px;
-  border-left: 3px solid var(--green-soft);
-  color: var(--muted);
-  font-size: 0.92rem;
-  line-height: 1.6;
-}
-
-.support-card__actions {
-  display: grid;
-  gap: 14px;
-}
-
-@media (min-width: 780px) {
-  .support-card__actions {
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  }
-}
-
-.support-lane__label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--green-dark);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.support-lane--eat .support-lane__label { color: #7a5a12; }
-.support-lane--avoid .support-lane__label { color: var(--red); }
-
-.support-lane ul {
-  margin: 0;
-  padding-left: 18px;
-}
-
-.support-lane li {
-  margin-bottom: 5px;
-  font-size: 0.9rem;
-  line-height: 1.5;
-}
-
-.support-card__timeline {
-  margin: 16px 0 0;
-  padding: 11px 13px;
-  border-radius: 8px;
-  background: var(--soft);
-  font-size: 0.88rem;
-  line-height: 1.55;
-}
-
-.support-card__source {
-  margin-top: 12px;
-}
-
-.support-card__source summary {
-  color: var(--muted);
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-.support-card__source p {
-  margin: 8px 0 0;
-  color: var(--muted);
-  font-size: 0.82rem;
-  line-height: 1.55;
-}
-
-.evidence {
-  flex: none;
-  padding: 3px 9px;
-  border-radius: 999px;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  white-space: nowrap;
-}
-
-.evidence--clinical_studies { color: #14513c; background: var(--green-soft); }
-.evidence--guideline        { color: #14513c; background: var(--green-soft); }
-.evidence--label            { color: #35423c; background: #e6ebe8; }
-.evidence--mechanistic_inference { color: #76501d; background: var(--amber-soft); }
-
-.label-facts {
-  width: min(1080px, 100%);
-  margin-top: 34px;
-  padding: 14px 18px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--soft);
-}
-
-.label-facts summary {
-  color: var(--muted);
-  font-size: 0.86rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.label-facts > div { margin-top: 14px; }
-
-.label-facts__product {
-  margin-bottom: 12px;
-  color: var(--muted);
-  font-size: 0.8rem;
-}
-
-.product-confirm {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 14px;
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-/* ---------------------------------------------------------------- */
-/* Today: the AI-written daily plan.                                 */
-/* ---------------------------------------------------------------- */
-
-.today {
-  width: min(1080px, 100%);
-  margin-top: 30px;
-  padding: 22px 24px;
-  border: 1px solid #9fb9ad;
-  border-radius: 13px;
-  background: linear-gradient(180deg, #f1f7f4 0%, var(--paper) 60%);
-  box-shadow: var(--shadow);
-}
-
-.today h2 {
-  margin-bottom: 4px;
-  color: var(--green-dark);
-  font-size: 1.35rem;
-  letter-spacing: -0.02em;
-}
-
-.today__lede {
-  margin-bottom: 18px;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.today__controls {
-  display: grid;
-  gap: 12px;
-  align-items: end;
-  margin-bottom: 6px;
-}
-
-@media (min-width: 720px) {
-  .today__controls { grid-template-columns: 2fr 1fr auto; }
-}
-
-.today__controls .compact-field { display: grid; gap: 6px; margin: 0; }
-
-.today__controls input,
-.today__controls select {
-  min-height: 44px;
-  padding: 9px 11px;
-  border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  background: #fff;
-}
-
-.today__note {
-  margin: 14px 0 0;
-  color: var(--muted);
-  font-size: 0.86rem;
-}
-
-.today__flags { font-family: ui-monospace, monospace; font-size: 0.78rem; }
-
-.today__plan { margin-top: 22px; }
-
-.today__plan h3 {
-  margin-bottom: 16px;
-  color: var(--ink);
-  font-size: 1.25rem;
-  line-height: 1.3;
-  letter-spacing: -0.02em;
-}
-
-.today__grid {
-  display: grid;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-@media (min-width: 720px) {
-  .today__grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-.today__block {
-  padding: 13px 15px;
-  border-radius: 9px;
-  background: var(--paper);
-  border: 1px solid var(--line);
-}
-
-.today__block p { margin: 0; font-size: 0.93rem; line-height: 1.55; }
-
-.today__block ul { margin: 0; padding-left: 18px; }
-
-.today__block li { margin-bottom: 6px; font-size: 0.93rem; line-height: 1.5; }
-
-.today__block--eat { border-color: #d8c79a; background: #fffdf6; }
-.today__block--skip { border-color: #dfa9a5; background: var(--red-soft); }
-.today__block--hard { border-color: #9fb9ad; background: var(--green-soft); }
-
-.today__label {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--green-dark);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-
-.today__block--eat .today__label { color: #7a5a12; }
-.today__block--skip .today__label { color: var(--red); }
-
-.today__provenance {
-  margin: 16px 0 0;
-  color: var(--muted);
-  font-size: 0.78rem;
-  line-height: 1.5;
 }

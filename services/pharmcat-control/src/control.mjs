@@ -14,6 +14,9 @@ const SHA256 = /^[0-9a-f]{64}$/
 const BUCKET = /^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$/
 const JOB_NAME = /^projects\/[a-z][a-z0-9-]{4,28}[a-z0-9]\/locations\/[a-z]+-[a-z0-9]+[0-9]\/jobs\/[a-z]([a-z0-9-]{0,61}[a-z0-9])?$/
 const OFFICIAL_IMAGE = /^pgkb\/pharmcat:([0-9]+\.[0-9]+\.[0-9]+)@sha256:([0-9a-f]{64})$/
+const ANTIDEPRESSANT_RELEVANT_GENES = Object.freeze(['CYP2B6', 'CYP2C19', 'CYP2D6'])
+const CYP2D6_WITHHELD_REASON = 'No validated structural/copy-number-aware CYP2D6 outside call was supplied for this run.'
+const OUTSIDE_ANTIDEPRESSANT_SCOPE_REASON = 'Outside this antidepressant pharmacogenomics analysis scope.'
 
 class ControlError extends Error {
   constructor(status, code, publicMessage) {
@@ -466,6 +469,79 @@ function sameJson(left, right) {
   return JSON.stringify(left) === JSON.stringify(right)
 }
 
+function reporterGeneNames(value) {
+  if (!isRecord(value) || !isRecord(value.genes)) return null
+  const names = Object.keys(value.genes)
+  if (names.some((gene) => !gene.trim())) return null
+  return names.sort()
+}
+
+function validReporterGeneScope(scope, originalReport, restrictedReport, exclusions) {
+  if (
+    !isRecord(scope) ||
+    !exactKeys(scope, [
+      'unrestrictedReporterGeneCount',
+      'unrestrictedReporterGenes',
+      'antidepressantRelevantGenes',
+      'retainedReporterGenes',
+      'withheldReporterGenes',
+    ])
+  ) return false
+
+  const unrestrictedGenes = reporterGeneNames(originalReport)
+  const retainedGenes = reporterGeneNames(restrictedReport)
+  if (!unrestrictedGenes || !retainedGenes || retainedGenes.includes('CYP2D6')) return false
+  const unrestrictedSet = new Set(unrestrictedGenes)
+  if (retainedGenes.some((gene) => !unrestrictedSet.has(gene))) return false
+
+  const retainedSet = new Set(retainedGenes)
+  const expectedWithheld = unrestrictedGenes
+    .filter((gene) => !retainedSet.has(gene))
+    .map((gene) => ({
+      gene,
+      reason: gene === 'CYP2D6' ? CYP2D6_WITHHELD_REASON : OUTSIDE_ANTIDEPRESSANT_SCOPE_REASON,
+    }))
+
+  if (
+    !Number.isSafeInteger(scope.unrestrictedReporterGeneCount) ||
+    scope.unrestrictedReporterGeneCount !== unrestrictedGenes.length ||
+    !Array.isArray(scope.unrestrictedReporterGenes) ||
+    !sameJson(scope.unrestrictedReporterGenes, unrestrictedGenes) ||
+    !Array.isArray(scope.antidepressantRelevantGenes) ||
+    !sameJson(scope.antidepressantRelevantGenes, ANTIDEPRESSANT_RELEVANT_GENES) ||
+    !Array.isArray(scope.retainedReporterGenes) ||
+    !sameJson(scope.retainedReporterGenes, retainedGenes) ||
+    !Array.isArray(scope.withheldReporterGenes) ||
+    scope.withheldReporterGenes.length !== expectedWithheld.length ||
+    scope.retainedReporterGenes.length + scope.withheldReporterGenes.length !== scope.unrestrictedReporterGeneCount
+  ) return false
+
+  for (let index = 0; index < expectedWithheld.length; index += 1) {
+    const actual = scope.withheldReporterGenes[index]
+    const expected = expectedWithheld[index]
+    if (
+      !isRecord(actual) ||
+      !exactKeys(actual, ['gene', 'reason']) ||
+      actual.gene !== expected.gene ||
+      actual.reason !== expected.reason
+    ) return false
+  }
+
+  if (!Array.isArray(exclusions) || exclusions.length !== 1) return false
+  const cyp2d6Exclusion = exclusions[0]
+  if (
+    !isRecord(cyp2d6Exclusion) ||
+    !exactKeys(cyp2d6Exclusion, ['gene', 'reason']) ||
+    cyp2d6Exclusion.gene !== 'CYP2D6' ||
+    cyp2d6Exclusion.reason !== CYP2D6_WITHHELD_REASON
+  ) return false
+
+  const withheldCYP2D6 = scope.withheldReporterGenes.find((entry) => entry.gene === 'CYP2D6')
+  return unrestrictedSet.has('CYP2D6')
+    ? withheldCYP2D6?.reason === cyp2d6Exclusion.reason
+    : withheldCYP2D6 === undefined
+}
+
 async function createRun(request, tenantId, config, storage, now, id) {
   const input = parseCreate(await readJson(request), config)
   const runId = id()
@@ -611,6 +687,12 @@ async function completeResponse(storage, config, loaded, now, id) {
   const manifestInput = isRecord(manifest) ? manifest.input : null
   const manifestCaller = isRecord(manifest) ? manifest.caller : null
   const manifestOutputs = isRecord(manifest) ? manifest.outputs : null
+  const geneScopeValid = isRecord(manifest) && validReporterGeneScope(
+    manifest.geneScope,
+    original,
+    report,
+    manifest.exclusions,
+  )
   const missingTotal = validCoverageGenes(coverageGenes)
     ? ['CYP2C19', 'CYP2B6'].reduce(
       (total, gene) => total + Number(coverageGenes[gene].positionsMissing),
@@ -656,9 +738,7 @@ async function completeResponse(storage, config, loaded, now, id) {
     isRecord(coverageDocument) && coverageDocument.schemaVersion === '1.0' && coverageDocument.runId === state.runId &&
     validCoverageGenes(coverageGenes) && sameJson(manifest.coverage, coverageGenes) &&
     missingBytes && sha256(missingBytes) === manifestOutputs.missingPositionsSha256 &&
-    Array.isArray(manifest.exclusions) && manifest.exclusions.some(
-      (exclusion) => isRecord(exclusion) && exclusion.gene === 'CYP2D6',
-    )
+    geneScopeValid
   if (!valid) {
     const failed = await markFailed(
       storage,

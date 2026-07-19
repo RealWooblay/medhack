@@ -10,22 +10,16 @@ import {
 } from '../ai/clinical-review'
 import { canonicalDrug } from '../data/drug-lexicon'
 import { labelFor } from '../data/openfda'
-import { dailyPlanConfigured, requestDailyPlan, type DailyPlan, type DailyPlanResult } from '../ai/daily-plan'
-import {
-  EVIDENCE_LABEL,
-  PHASE_LABEL,
-  protocolsForDrug,
-  type EvidenceStrength,
-  type SupportPhase,
-  type SupportProtocol,
-} from '../data/support-protocols'
 import {
   OFFICIAL_PHARMCAT_EXAMPLES,
   type OfficialPharmCATExample,
 } from '../data/pharmcat-examples'
 import { matchLifestyle } from '../engine/lifestyle-fit'
 import { runAnalysis } from '../engine/pipeline'
-import { PharmCATReportJsonAdapter } from '../engine/pharmcat/adapter'
+import {
+  ANTIDEPRESSANT_PGX_GENES,
+  PharmCATReportJsonAdapter,
+} from '../engine/pharmcat/adapter'
 import {
   inspectGenomeInput,
   type InputInspection,
@@ -394,6 +388,12 @@ function FilePanel({
               <small>Single-person GRCh38 VCF or VCF.GZ</small>
             </label>
 
+            <div className="demo-upload">
+              <strong>Raw pipeline demo</strong>
+              <a href="/samples/pharmcat-example.vcf" download>Download official Example 1 VCF</a>
+              <small>GRCh38 · one sample · all-reference sites. Runs PharmCAT; CYP2D6 is withheld.</small>
+            </div>
+
             {uploadedFile && (
               <div className={`file-ready ${validVcf ? '' : 'file-ready--blocked'}`}>
                 <div>
@@ -439,6 +439,11 @@ function FilePanel({
               <strong>{status === 'reading' ? 'Checking report…' : 'Choose report'}</strong>
               <small>PharmCAT Reporter JSON</small>
             </label>
+            <div className="demo-upload">
+              <strong>Report-import demo</strong>
+              <a href="/samples/pharmcat-example.report.json" download>Download official Example 1 Reporter JSON</a>
+              <small>Published result with an outside CYP2D6 call. Parses only; does not rerun PharmCAT.</small>
+            </div>
             {uploadedFile && inspection && (
               <div className={`file-ready ${inspection.canRunAnalysis ? '' : 'file-ready--blocked'}`}>
                 <div><strong>{inspection.canRunAnalysis ? 'Report ready' : 'Cannot use this report'}</strong><span>{uploadedFile.file.name}</span></div>
@@ -496,16 +501,36 @@ function FilePanel({
 }
 
 function GenesPanel({ result, runManifest, onNext }: { result: AnalysisResult; runManifest?: PharmCATRunManifest; onNext: () => void }) {
+  const reportedGenes = new Set(result.pharmcat.genes.map((gene) => gene.gene))
+  const missingGenes = ANTIDEPRESSANT_PGX_GENES.filter((gene) => !reportedGenes.has(gene))
+  const medicineGuidanceCount = unique(result.pharmcat.recommendations.map((item) => item.drug)).length
+  const sourceGeneCount = runManifest?.geneScope?.unrestrictedReporterGeneCount
+    ?? result.pharmcat.sourceGeneCount
+    ?? reportedGenes.size
+  const scopeNotices = [
+    missingGenes.length > 0
+      ? `${missingGenes.join(', ')} ${missingGenes.length === 1 ? 'needs' : 'need'} a more complete genetic call.`
+      : null,
+    result.pharmcat.provenance === 'pharmcat-json' && !runManifest
+      ? 'Coverage not verified.'
+      : null,
+  ].filter((notice): notice is string => Boolean(notice))
+
   return (
     <section className="screen" aria-labelledby="genes-title">
       <div className="screen-heading">
         <h1 id="genes-title">How your body processes medicines</h1>
-        <p>These gene results can affect dose or safety. They cannot tell us which antidepressant will work.</p>
+        <p>Only gene results with antidepressant prescribing guidance are shown.</p>
       </div>
 
-      {result.pharmcat.provenance === 'pharmcat-json' && !runManifest && (
-        <div className="shared-limit"><strong>Coverage is not in this file</strong><span>Open Sources to see what could and could not be verified.</span></div>
-      )}
+      <div className="gene-scope" data-role="gene-scope">
+        <div>
+          <strong>{reportedGenes.size} of {ANTIDEPRESSANT_PGX_GENES.length} gene results available</strong>
+          <span>{sourceGeneCount} genes in the source report · {medicineGuidanceCount} medicine{medicineGuidanceCount === 1 ? ' has' : 's have'} matched guidance</span>
+        </div>
+        {scopeNotices.length > 0 && <p>{scopeNotices.join(' ')}</p>}
+      </div>
+
       {runManifest && runManifest.outputs.missingPositionCount > 0 && (
         <div className="shared-limit"><strong>DNA coverage gap</strong><span>{runManifest.outputs.missingPositionCount} required position{runManifest.outputs.missingPositionCount === 1 ? ' was' : 's were'} missing. Affected results stay incomplete.</span></div>
       )}
@@ -564,6 +589,12 @@ function GenesPanel({ result, runManifest, onNext }: { result: AnalysisResult; r
           )
         })}
       </div>
+
+      <details className="scope-note">
+        <summary>Why only these genes?</summary>
+        <p>CPIC antidepressant guidance uses CYP2C19, CYP2D6 and CYP2B6. SLC6A4 and HTR2A do not have prescribing recommendations.</p>
+        <SourceLinks ids={['cpic-2023-sri']} result={result} />
+      </details>
 
       <div className="page-action"><button type="button" className="primary-button" onClick={onNext}>See medicine guidance</button></div>
     </section>
@@ -679,18 +710,21 @@ function MedicinesPanel({ result, onExplore }: { result: AnalysisResult; onExplo
   )
 }
 
-function routineFitStatus(question: RoutineQuestion, routine: RoutineAnswers, facts: DailyFitFact[]): { label: 'Matches' | 'May conflict' | 'Important' | 'Choose an answer' | 'Not checked'; detail: string } {
+function routineFitStatus(question: RoutineQuestion, routine: RoutineAnswers, facts: DailyFitFact[]): {
+  label: 'Choose' | 'Fits' | 'May be difficult' | 'Tell your prescriber' | 'Not checked'
+  tone: 'neutral' | 'fits' | 'caution' | 'critical' | 'unknown'
+} {
   const answer = routine[question.key]
-  if (!answer) return { label: 'Choose an answer', detail: '' }
+  if (!answer) return { label: 'Choose', tone: 'neutral' }
 
   const fact = facts.find((item) => item.dimension === question.dimension)
   if (fact) {
-    if (fact.verdict === 'supports_routine') return { label: 'Matches', detail: 'Your answer matches this medicine instruction.' }
-    if (fact.verdict === 'clinician_review') return { label: 'Important', detail: 'Tell your doctor about this before starting.' }
-    return { label: 'May conflict', detail: 'This instruction may be difficult with your routine.' }
+    if (fact.verdict === 'supports_routine') return { label: 'Fits', tone: 'fits' }
+    if (fact.verdict === 'clinician_review') return { label: 'Tell your prescriber', tone: 'critical' }
+    return { label: 'May be difficult', tone: 'caution' }
   }
 
-  return { label: 'Not checked', detail: 'The available medicine information cannot check this answer.' }
+  return { label: 'Not checked', tone: 'unknown' }
 }
 
 function lifestyleLabel(label: string): string {
@@ -707,177 +741,7 @@ function directRule(rule: string): string {
   return rule.replace(/^The captured /, 'The ')
 }
 
-function EvidenceBadge({ strength }: { strength: EvidenceStrength }) {
-  return (
-    <span className={`evidence evidence--${strength}`} title={EVIDENCE_LABEL[strength]}>
-      {EVIDENCE_LABEL[strength]}
-    </span>
-  )
-}
-
-function SupportCard({ protocol }: { protocol: SupportProtocol }) {
-  return (
-    <article className="support-card">
-      <header>
-        <h3>{protocol.bodyEffect}</h3>
-        <EvidenceBadge strength={protocol.evidenceStrength} />
-      </header>
-
-      <p className="support-card__why">{protocol.mechanism}</p>
-
-      <div className="support-card__actions">
-        <div className="support-lane">
-          <span className="support-lane__label">Do this</span>
-          <ul>{protocol.doThis.map((item) => <li key={item}>{item}</li>)}</ul>
-        </div>
-
-        {protocol.eatThis.length > 0 && (
-          <div className="support-lane support-lane--eat">
-            <span className="support-lane__label">Eat this</span>
-            <ul>{protocol.eatThis.map((item) => <li key={item}>{item}</li>)}</ul>
-          </div>
-        )}
-
-        {protocol.avoidThis.length > 0 && (
-          <div className="support-lane support-lane--avoid">
-            <span className="support-lane__label">Avoid</span>
-            <ul>{protocol.avoidThis.map((item) => <li key={item}>{item}</li>)}</ul>
-          </div>
-        )}
-      </div>
-
-      {protocol.timeline && (
-        <p className="support-card__timeline"><strong>What to expect.</strong> {protocol.timeline}</p>
-      )}
-
-      <details className="support-card__source">
-        <summary>Where this comes from</summary>
-        <p>{protocol.source}</p>
-      </details>
-    </article>
-  )
-}
-
-
-const WHERE_OPTIONS: Array<{ value: SupportPhase; label: string; dayHint: string }> = [
-  { value: 'first_weeks', label: 'Just started, or the first few weeks', dayHint: 'e.g. day 9' },
-  { value: 'ongoing', label: 'Been on it a while', dayHint: 'e.g. month 4' },
-  { value: 'switching', label: 'Changing or coming off it', dayHint: 'e.g. tapering, week 2' },
-]
-
-function TodayPlan({ drug }: { drug: string }) {
-  const [phase, setPhase] = useState<SupportPhase>('first_weeks')
-  const [dayLabel, setDayLabel] = useState('')
-  const [result, setResult] = useState<DailyPlanResult | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  const configured = dailyPlanConfigured()
-  const hint = WHERE_OPTIONS.find((option) => option.value === phase)?.dayHint ?? ''
-
-  async function build() {
-    setLoading(true)
-    setResult(null)
-    setResult(await requestDailyPlan({ drug, phase, dayLabel: dayLabel.trim() }))
-    setLoading(false)
-  }
-
-  const plan: DailyPlan | null = result?.status === 'ok' ? result.plan : null
-
-  return (
-    <section className="today" aria-labelledby="today-title">
-      <h2 id="today-title">Today</h2>
-      <p className="today__lede">
-        A plan for where you actually are, built from what {capitalise(drug)} is doing to your
-        body right now.
-      </p>
-
-      <div className="today__controls">
-        <label className="compact-field">
-          <span>Where are you with it?</span>
-          <select value={phase} onChange={(event) => setPhase(event.target.value as SupportPhase)}>
-            {WHERE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
-        <label className="compact-field">
-          <span>How far in? <em>optional</em></span>
-          <input
-            type="text"
-            value={dayLabel}
-            placeholder={hint}
-            onChange={(event) => setDayLabel(event.target.value)}
-          />
-        </label>
-        <button type="button" className="primary-button" disabled={loading || !configured} onClick={() => void build()}>
-          {loading ? 'Building…' : plan ? 'Rebuild today' : "Build today's plan"}
-        </button>
-      </div>
-
-      {!configured && (
-        <p className="today__note">The plan service is not configured for this build.</p>
-      )}
-
-      {result?.status === 'error' && <p className="today__note">{result.message}</p>}
-
-      {result?.status === 'rejected' && (
-        <p className="today__note">
-          {result.note} <span className="today__flags">({result.problems.join(', ')})</span>
-        </p>
-      )}
-
-      {plan && (
-        <div className="today__plan">
-          <h3>{plan.today.headline}</h3>
-
-          <div className="today__grid">
-            <div className="today__block">
-              <span className="today__label">This morning</span>
-              <p>{plan.today.morning}</p>
-            </div>
-
-            <div className="today__block today__block--eat">
-              <span className="today__label">Eat today</span>
-              <ul>{plan.today.eat.map((item) => <li key={item}>{item}</li>)}</ul>
-            </div>
-
-            <div className="today__block">
-              <span className="today__label">Notice</span>
-              <p>{plan.today.watchFor}</p>
-            </div>
-
-            {plan.today.skip && (
-              <div className="today__block today__block--skip">
-                <span className="today__label">Skip today</span>
-                <p>{plan.today.skip}</p>
-              </div>
-            )}
-          </div>
-
-          <div className="today__block">
-            <span className="today__label">This week</span>
-            <p>{plan.thisWeek}</p>
-          </div>
-
-          <div className="today__block today__block--hard">
-            <span className="today__label">If today is hard</span>
-            <p>{plan.ifItIsHard}</p>
-          </div>
-
-          {result?.status === 'ok' && (
-            <p className="today__provenance">
-              Written by {result.model} from {result.protocolsUsed} support protocols for{' '}
-              {drug}. It cannot give a dose or tell you to change your medicine — output
-              containing either is withheld.
-            </p>
-          )}
-        </div>
-      )}
-    </section>
-  )
-}
-
-function DailyLifePanel({
+export function DailyLifePanel({
   result,
   selectedDrug,
   onSelectedDrug,
@@ -890,7 +754,7 @@ function DailyLifePanel({
   result: AnalysisResult
   selectedDrug: string
   onSelectedDrug: (drug: string) => void
-  productConfirmed: boolean
+  productConfirmed: boolean | null
   onProductConfirmed: (confirmed: boolean) => void
   routine: RoutineAnswers
   onRoutine: (routine: RoutineAnswers) => void
@@ -900,64 +764,60 @@ function DailyLifePanel({
   const product = selectedDrug ? labelFor(selectedDrug) : undefined
   const questions = protocol ? relevantRoutineQuestions(protocol) : []
   const confirmedLifestyle = confirmedLifestyleFromRoutine(routine)
-  const match = protocol && productConfirmed
+  const match = protocol && productConfirmed === true
     ? matchLifestyle(protocol, careFromRoutine(routine), confirmedLifestyle)
     : null
   const protocolItems = protocol ? [...protocol.items, ...protocol.interactionItems] : []
-
-  const support = selectedDrug ? protocolsForDrug(selectedDrug) : []
-  const phases: SupportPhase[] = ['first_weeks', 'ongoing', 'switching']
+  const dailySourceIds = unique(protocolItems.flatMap((item) => item.citationIds)).filter(
+    (id, index, ids) => ids.findIndex((candidate) =>
+      result.citations[candidate]?.url === result.citations[id]?.url,
+    ) === index,
+  )
+  const answeredQuestions = questions.filter((question) => Boolean(routine[question.key])).length
 
   return (
     <section className="screen" aria-labelledby="daily-title">
       <div className="screen-heading">
-        <h1 id="daily-title">{selectedDrug ? `Living with ${capitalise(selectedDrug)}` : 'Living with your medicine'}</h1>
-        <p>What this medicine does to your body, and what actually helps. Ordered by where you are in the course.</p>
+        <h1 id="daily-title">Daily life</h1>
+        <p>Verified instructions for the selected medicine and product.</p>
       </div>
 
-      <label className="field medicine-picker medicine-picker--simple">
-        <span>Choose a medicine</span>
+      <label className="field medicine-picker">
+        <span>Medicine</span>
         <select value={selectedDrug} onChange={(event) => onSelectedDrug(event.target.value)}>
           <option value="">Select</option>
           {result.shortlist.map((drug) => <option key={drug.drug} value={drug.drug}>{capitalise(drug.drug)}</option>)}
         </select>
       </label>
 
-      {!selectedDrug && <div className="empty-state"><span>Choose a medicine to see what to expect and what helps.</span></div>}
+      {!selectedDrug && <div className="empty-state empty-state--small"><span>Choose a medicine.</span></div>}
 
-      {selectedDrug && support.length === 0 && (
-        <div className="empty-state">
-          <span>No mechanism-based support content is available for {capitalise(selectedDrug)} yet.</span>
-        </div>
-      )}
-
-      {selectedDrug && support.length > 0 && <TodayPlan drug={selectedDrug} />}
-
-      {phases.map((phase) => {
-        const inPhase = support.filter((item) => item.phase === phase)
-        if (!inPhase.length) return null
-        return (
-          <section className="support-phase" key={phase} aria-label={PHASE_LABEL[phase]}>
-            <h2 className="support-phase__title">{PHASE_LABEL[phase]}</h2>
-            <div className="support-phase__cards">
-              {inPhase.map((item) => <SupportCard protocol={item} key={item.id} />)}
+      {selectedDrug && product && protocolItems.length > 0 && (
+        <>
+          <section className="product-check" aria-labelledby="product-title">
+            <div>
+              <span id="product-title">US source product</span>
+              <strong>{product.productName ?? capitalise(selectedDrug)}</strong>
+              <small>{product.dosageForm.toLowerCase()} · {product.manufacturer ?? 'manufacturer not reported'} · NDC {product.productNdc}</small>
+            </div>
+            <div>
+              <span>Same product as your pack?</span>
+              <div className="choice-pair" role="group" aria-label="Product match">
+                <button type="button" aria-pressed={productConfirmed === true} onClick={() => onProductConfirmed(true)}>Yes</button>
+                <button type="button" aria-pressed={productConfirmed === false} onClick={() => onProductConfirmed(false)}>Not sure</button>
+              </div>
             </div>
           </section>
-        )
-      })}
 
-      {protocol && (
-        <details className="label-facts">
-          <summary>What the product label says ({protocolItems.length})</summary>
-          <div>
-            {product && (
-              <p className="label-facts__product">
-                {product.productName ?? capitalise(selectedDrug)} · {product.dosageForm.toLowerCase()} · US label, SPL {product.setId}
-              </p>
-            )}
+          <section className="daily-card" aria-labelledby="essentials-title">
+            <h2 id="essentials-title">Daily essentials</h2>
             <div className="instruction-list">
               {protocolItems.map((item) => (
-                <article className={item.severity === 'critical' ? 'instruction instruction--important' : 'instruction'} key={item.id}>
+                <article
+                  className={item.severity === 'critical' ? 'instruction instruction--important' : 'instruction'}
+                  data-role="daily-essential"
+                  key={item.id}
+                >
                   <span className="instruction-icon" aria-hidden="true">{item.icon}</span>
                   <div>
                     <span>{lifestyleLabel(item.label)}</span>
@@ -966,42 +826,53 @@ function DailyLifePanel({
                 </article>
               ))}
             </div>
-            <label className="product-confirm">
-              <input
-                type="checkbox"
-                checked={productConfirmed}
-                onChange={(event) => onProductConfirmed(event.target.checked)}
-              />
-              <span>This is the exact product and form I take</span>
-            </label>
-          </div>
-        </details>
+            <div className="daily-source" data-role="daily-source">
+              <span>Source</span>
+              <SourceLinks ids={dailySourceIds} result={result} />
+            </div>
+          </section>
+        </>
       )}
 
-      {protocol && productConfirmed && questions.length > 0 && (
-        <section className="daily-section" aria-labelledby="routine-title">
-          <h2 id="routine-title">Does this fit your day?</h2>
-          <div className="routine-grid">
+      {selectedDrug && protocolItems.length === 0 && (
+        <div className="empty-state empty-state--small">
+          <span>No verified product-label instructions are loaded for {capitalise(selectedDrug)}.</span>
+        </div>
+      )}
+
+      {protocol && productConfirmed === true && questions.length > 0 && (
+        <details className="routine-check">
+          <summary>
+            <span>Check your routine</span>
+            <small>{answeredQuestions} of {questions.length} answered</small>
+          </summary>
+          <div className="routine-list">
             {questions.map((question) => {
               const status = routineFitStatus(question, routine, match?.facts ?? [])
               return (
-                <label className="compact-field" key={question.key}>
-                  <span>{question.label}</span>
-                  <select
-                    value={routine[question.key]}
-                    onChange={(event) => onRoutine({ ...routine, [question.key]: event.target.value })}
-                  >
-                    <option value="">Choose an answer</option>
-                    {question.options.map((option) => (
-                      <option key={option.value} value={option.value}>{option.label}</option>
-                    ))}
-                  </select>
-                  <small className={`fit fit--${status.label.toLowerCase().replace(/\s+/g, '-')}`}>{status.label}: {status.detail}</small>
-                </label>
+                <div className="routine-row" key={question.key}>
+                  <label className="compact-field">
+                    <span>{question.label}</span>
+                    <select
+                      value={routine[question.key]}
+                      onChange={(event) => onRoutine({ ...routine, [question.key]: event.target.value })}
+                    >
+                      <option value="">Choose</option>
+                      {question.options.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {routine[question.key] && (
+                    <span className={`routine-status routine-status--${status.tone}`}>
+                      {status.label}
+                    </span>
+                  )}
+                </div>
               )
             })}
           </div>
-        </section>
+        </details>
       )}
 
       {selectedDrug && (
@@ -1178,7 +1049,7 @@ function EvidencePanel({ result, receipt, selectedDrug, productConfirmed, routin
   result: AnalysisResult
   receipt: RunReceipt
   selectedDrug: string
-  productConfirmed: boolean
+  productConfirmed: boolean | null
   routine: RoutineAnswers
   review: ClinicalReviewResult | null
 }) {
@@ -1187,9 +1058,17 @@ function EvidencePanel({ result, receipt, selectedDrug, productConfirmed, routin
   const selectedProtocol = selectedDrug ? result.protocolsByDrug[selectedDrug] : null
   const selectedProduct = selectedDrug ? labelFor(selectedDrug) : undefined
   const confirmedLifestyle = confirmedLifestyleFromRoutine(routine)
-  const displayedLifestyleMatch = selectedProtocol && productConfirmed
+  const displayedLifestyleMatch = selectedProtocol && productConfirmed === true
     ? matchLifestyle(selectedProtocol, careFromRoutine(routine), confirmedLifestyle)
     : null
+  const sourceGeneNames = receipt.runManifest?.geneScope?.unrestrictedReporterGenes
+    ?? result.pharmcat.sourceGeneNames
+    ?? result.pharmcat.genes.map((gene) => gene.gene)
+  const withheldGenes = receipt.runManifest?.geneScope?.withheldReporterGenes ?? []
+  const cyp2d6Withheld = withheldGenes.find((item) => item.gene === 'CYP2D6')
+  const outsideScopeGenes = withheldGenes
+    .filter((item) => item.gene !== 'CYP2D6')
+    .map((item) => item.gene)
   const endpointConnected = Boolean(import.meta.env.VITE_MEDGEMMA_ENDPOINT?.trim())
   const rawFilePreview = receipt.contents.length > 12_000
     ? `${receipt.contents.slice(0, 12_000)}\n\n[Preview stopped at 12,000 characters]`
@@ -1274,6 +1153,13 @@ function EvidencePanel({ result, receipt, selectedDrug, productConfirmed, routin
 
         <details className="evidence-group">
           <summary><span>2</span><strong>Gene calls</strong><small>Caller, versions, coverage and calculation</small></summary>
+          <dl className="evidence-list">
+            <div><dt>Genes in source Reporter</dt><dd>{sourceGeneNames.length}: {sourceGeneNames.join(', ')}</dd></div>
+            <div><dt>Antidepressant guidance scope</dt><dd>{ANTIDEPRESSANT_PGX_GENES.join(', ')}</dd></div>
+            <div><dt>Result genes shown</dt><dd>{result.pharmcat.genes.map((gene) => gene.gene).join(', ')}</dd></div>
+            {cyp2d6Withheld && <div><dt>CYP2D6 withheld</dt><dd>{cyp2d6Withheld.reason}</dd></div>}
+            {outsideScopeGenes.length > 0 && <div><dt>Other drug areas</dt><dd>{outsideScopeGenes.join(', ')}</dd></div>}
+          </dl>
           <div className="table-wrap">
             <table>
               <thead><tr><th>Gene</th><th>Two gene versions</th><th>Reported result</th><th>Modeled estimate</th><th>Caller and versions</th><th>Coverage</th><th>Source</th></tr></thead>
@@ -1399,9 +1285,7 @@ function EvidencePanel({ result, receipt, selectedDrug, productConfirmed, routin
 
 export function ValidationConsole() {
   const [tab, setTab] = useState<TabId>('file')
-  // Defaults to the mode that works without a backend. Genome upload needs the private
-  // worker; opening on it meant the first thing a new visitor saw was a failing run.
-  const [mode, setMode] = useState<InputMode>('example')
+  const [mode, setMode] = useState<InputMode>('genome')
   const [exampleId, setExampleId] = useState(OFFICIAL_PHARMCAT_EXAMPLES[0].id)
   const [medicines, setMedicines] = useState('')
   const [noCurrentMedicines, setNoCurrentMedicines] = useState(false)
@@ -1410,7 +1294,7 @@ export function ValidationConsole() {
   const [receipt, setReceipt] = useState<RunReceipt | null>(null)
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [selectedDrug, setSelectedDrug] = useState('')
-  const [lifestyleProductConfirmed, setLifestyleProductConfirmed] = useState(false)
+  const [lifestyleProductConfirmed, setLifestyleProductConfirmed] = useState<boolean | null>(null)
   const [routine, setRoutine] = useState<RoutineAnswers>({ ...EMPTY_ROUTINE })
   const [clinicalReview, setClinicalReview] = useState<ClinicalReviewResult | null>(null)
   const [status, setStatus] = useState<RunStatus>('idle')
@@ -1425,7 +1309,7 @@ export function ValidationConsole() {
     setResult(null)
     setReceipt(null)
     setSelectedDrug('')
-    setLifestyleProductConfirmed(false)
+    setLifestyleProductConfirmed(null)
     setRoutine({ ...EMPTY_ROUTINE })
     setClinicalReview(null)
     setError(null)
@@ -1587,7 +1471,7 @@ export function ValidationConsole() {
       })
       setResult(analysis)
       setSelectedDrug('')
-      setLifestyleProductConfirmed(false)
+      setLifestyleProductConfirmed(null)
       setRoutine({ ...EMPTY_ROUTINE })
       setClinicalReview(null)
       setStatus('complete')
@@ -1600,7 +1484,7 @@ export function ValidationConsole() {
 
   const openDailyLife = (drug: string) => {
     setSelectedDrug(drug)
-    setLifestyleProductConfirmed(false)
+    setLifestyleProductConfirmed(null)
     setRoutine({ ...EMPTY_ROUTINE })
     setClinicalReview(null)
     setTab('daily')
@@ -1664,7 +1548,7 @@ export function ValidationConsole() {
           <DailyLifePanel
             result={result}
             selectedDrug={selectedDrug}
-            onSelectedDrug={(drug) => { setSelectedDrug(drug); setLifestyleProductConfirmed(false); setRoutine({ ...EMPTY_ROUTINE }); setClinicalReview(null) }}
+            onSelectedDrug={(drug) => { setSelectedDrug(drug); setLifestyleProductConfirmed(null); setRoutine({ ...EMPTY_ROUTINE }); setClinicalReview(null) }}
             productConfirmed={lifestyleProductConfirmed}
             onProductConfirmed={(confirmed) => { setLifestyleProductConfirmed(confirmed); setRoutine({ ...EMPTY_ROUTINE }); setClinicalReview(null) }}
             routine={routine}

@@ -12,11 +12,12 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --exclude 'services/**'",
+    "test": "vitest run --exclude 'services/**' --exclude 'src/engine/__tests__/support-protocols.test.ts'",
+    "test:research": "vitest run src/engine/__tests__/support-protocols.test.ts",
     "test:watch": "vitest --exclude 'services/**'",
     "test:control": "npm test --prefix services/pharmcat-control",
     "test:worker": "cd services/pharmcat-worker && go test ./...",
-    "test:all": "npm test && npm run test:control && npm run test:worker",
+    "test:all": "npm test && npm run test:research && npm run test:control && npm run test:worker",
     "data:sync": "node scripts/sync-clinical-sources.mjs"
   },
   "dependencies": {

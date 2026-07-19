@@ -1,7 +1,10 @@
 /**
- * Daily plan endpoint.
+ * RESEARCH ONLY — not deployed or called by the validation application.
  *
- * RISK TIERING — the reason this exists as a separate path from /api/clinical-review.
+ * This free-writing prototype does not yet meet the fact-ID, typed-output or claim-level
+ * provenance requirements of /api/clinical-review. Keep it disconnected from patient UI.
+ *
+ * Original prototype rationale:
  *
  * The clinical review gateway locks the model to emitting fact IDs with no free text,
  * because it speaks about doses, drug choice and interactions, where an invented number is

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
   parseGenomeFile,
@@ -35,6 +36,23 @@ chr22\t42130692\trs1065852\tG\tA\t.\tPASS\t.\tGT\t2/2`)
 })
 
 describe('official PharmCAT Reporter JSON import', () => {
+  it('records the full source gene scope before antidepressant filtering', async () => {
+    const contents = readFileSync(
+      new URL('../../../public/samples/pharmcat-example.report.json', import.meta.url),
+      'utf8',
+    )
+    const report = await new PharmCATReportJsonAdapter().analyze({
+      fileName: 'pharmcat-example.report.json',
+      contents,
+      assayType: CAPTURED_EXAMPLE_ASSAY,
+    })
+
+    expect(report.sourceGeneCount).toBe(23)
+    expect(report.sourceGeneNames).toContain('ABCG2')
+    expect(report.sourceGeneNames).toEqual([...report.sourceGeneNames!].sort())
+    expect(report.genes.map((gene) => gene.gene)).toEqual(['CYP2C19', 'CYP2D6', 'CYP2B6'])
+  })
+
   it('parses the captured official example through the production adapter', async () => {
     const result = await runAnalysis({
       adapter: new PharmCATReportJsonAdapter(),
