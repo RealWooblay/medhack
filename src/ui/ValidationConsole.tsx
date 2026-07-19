@@ -1,12 +1,5 @@
 import { useMemo, useState } from 'react'
 import {
-  buildClinicalReviewContext,
-  createClinicalReviewProvider,
-  NotConnectedClinicalReviewProvider,
-  type ClinicalReviewAction,
-  type ClinicalReviewFact,
-  type ClinicalReviewItem,
-  type ClinicalReviewResult,
 } from '../ai/clinical-review'
 import { canonicalDrug } from '../data/drug-lexicon'
 import { labelFor } from '../data/openfda'
@@ -866,10 +859,7 @@ function MyFirstWeeks({ result }: { result: AnalysisResult }) {
     <section className="screen" aria-labelledby="journey-title">
       <div className="screen-heading">
         <h1 id="journey-title">My first weeks</h1>
-        <p>
-          A plan for where you actually are — built from what {drug ? capitalise(drug) : 'your medicine'} is
-          doing to your body, your genetics, and what you tell us you are feeling.
-        </p>
+        <p>Answer three short things. Get a plan for today.</p>
       </div>
 
       {drugs.length === 0 && (
@@ -878,65 +868,72 @@ function MyFirstWeeks({ result }: { result: AnalysisResult }) {
 
       {drugs.length > 0 && (
         <div className="checkin">
-          <div className="checkin__row">
-            <label className="compact-field">
-              <span>Your medicine</span>
-              <select value={drug} onChange={(event) => setDrug(event.target.value)}>
-                {drugs.map((name) => <option key={name} value={name}>{capitalise(name)}</option>)}
-              </select>
-            </label>
-            <label className="compact-field">
-              <span>Where are you with it?</span>
-              <select value={phase} onChange={(event) => setPhase(event.target.value as JourneyPhase)}>
-                {PHASE_CHOICES.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
-              </select>
-            </label>
-            <label className="compact-field">
-              <span>How far in? <em>optional</em></span>
-              <input
-                type="text"
-                value={dayLabel}
-                placeholder={PHASE_CHOICES.find((choice) => choice.value === phase)?.hint ?? ''}
-                onChange={(event) => setDayLabel(event.target.value)}
-              />
-            </label>
-          </div>
+          <section className="step">
+            <h2 className="step__head"><span className="step__num">1</span>Your medicine</h2>
+            <div className="step__grid step__grid--3">
+              <label className="compact-field">
+                <span>Medicine</span>
+                <select value={drug} onChange={(event) => setDrug(event.target.value)}>
+                  {drugs.map((name) => <option key={name} value={name}>{capitalise(name)}</option>)}
+                </select>
+              </label>
+              <label className="compact-field">
+                <span>Where you are</span>
+                <select value={phase} onChange={(event) => setPhase(event.target.value as JourneyPhase)}>
+                  {PHASE_CHOICES.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+                </select>
+              </label>
+              <label className="compact-field">
+                <span>How far in <em>optional</em></span>
+                <input
+                  type="text"
+                  value={dayLabel}
+                  placeholder={PHASE_CHOICES.find((choice) => choice.value === phase)?.hint ?? ''}
+                  onChange={(event) => setDayLabel(event.target.value)}
+                />
+              </label>
+            </div>
+          </section>
 
-          <div className="checkin__block">
-            <span className="checkin__label">What are you actually feeling? Pick any that fit.</span>
-            <Chips options={SIGNAL_OPTIONS} selected={signals} onToggle={(value) => toggle(signals, setSignals, value)} />
-          </div>
-
-          <div className="checkin__block">
-            <span className="checkin__label">What do you have most days?</span>
-            <Chips options={SUBSTANCE_OPTIONS} selected={substances} onToggle={(value) => toggle(substances, setSubstances, value)} />
-          </div>
-
-          <div className="checkin__block">
-            <span className="checkin__label">What matters to you right now?</span>
-            <Chips
-              options={GOAL_OPTIONS.map((goal) => ({ value: goal, label: goal }))}
-              selected={goals}
-              onToggle={(value) => toggle(goals, setGoals, value)}
-            />
-          </div>
-
-          <div className="checkin__row">
-            <label className="compact-field">
-              <span>How you eat</span>
-              <select value={dietPattern} onChange={(event) => setDietPattern(event.target.value as DietContext['pattern'])}>
-                {DIET_CHOICES.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
-              </select>
-            </label>
-            <div className="compact-field">
-              <span>Allergies</span>
+          <section className="step">
+            <h2 className="step__head"><span className="step__num">2</span>How you are</h2>
+            <div className="step__field">
+              <span className="step__label">Side effects you have</span>
+              <Chips options={SIGNAL_OPTIONS} selected={signals} onToggle={(value) => toggle(signals, setSignals, value)} />
+            </div>
+            <div className="step__field">
+              <span className="step__label">Most days you have</span>
+              <Chips options={SUBSTANCE_OPTIONS} selected={substances} onToggle={(value) => toggle(substances, setSubstances, value)} />
+            </div>
+            <div className="step__field">
+              <span className="step__label">What you want back</span>
               <Chips
-                options={ALLERGY_CHOICES.map((item) => ({ value: item, label: item }))}
-                selected={allergies}
-                onToggle={(value) => toggle(allergies, setAllergies, value)}
+                options={GOAL_OPTIONS.map((goal) => ({ value: goal, label: goal }))}
+                selected={goals}
+                onToggle={(value) => toggle(goals, setGoals, value)}
               />
             </div>
-          </div>
+          </section>
+
+          <section className="step">
+            <h2 className="step__head"><span className="step__num">3</span>Your food</h2>
+            <div className="step__grid step__grid--2">
+              <label className="compact-field">
+                <span>How you eat</span>
+                <select value={dietPattern} onChange={(event) => setDietPattern(event.target.value as DietContext['pattern'])}>
+                  {DIET_CHOICES.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+                </select>
+              </label>
+              <div className="compact-field">
+                <span>Allergies</span>
+                <Chips
+                  options={ALLERGY_CHOICES.map((item) => ({ value: item, label: item }))}
+                  selected={allergies}
+                  onToggle={(value) => toggle(allergies, setAllergies, value)}
+                />
+              </div>
+            </div>
+          </section>
 
           <div className="checkin__toggles">
             <label><input type="checkbox" checked={budget} onChange={(event) => setBudget(event.target.checked)} /> Keep suggestions cheap</label>
@@ -1004,9 +1001,9 @@ function MyFirstWeeks({ result }: { result: AnalysisResult }) {
 
           {result_?.status === 'ok' && (
             <p className="journey__provenance">
-              Sequenced by {result_.model} from {result_.actionsUsed} clinically-approved actions matched to
-              your genetics, your medicine and what you told us. It personalises the plan; it cannot give a
-              dose, change your medicine, or invent a reason to eat something.
+              {result_.model} sequenced {result_.actionsUsed} approved actions matched to your genetics,
+              your medicine and what you told us. It personalises the plan. It cannot give a dose, change
+              your medicine, or invent a reason to eat something.
             </p>
           )}
         </div>
@@ -1159,173 +1156,12 @@ export function DailyLifePanel({
 }
 
 
-const REVIEW_ACTION_LABEL: Record<ClinicalReviewAction, string> = {
-  evidence_gap: 'Missing information',
-  input_conflict: 'Facts to reconcile',
-  clinician_question: 'Question for the prescriber',
-  lifestyle_constraint: 'Daily-life constraint',
-  request_counterfactual: 'Scenario to re-run',
-}
-
-function counterfactualText(item: ClinicalReviewItem): string {
-  const request = item.rerunRequest
-  if (!request) return 'Re-run the full deterministic system before answering this scenario.'
-  switch (request.operation) {
-    case 'add_current_medication': return `Re-run with ${capitalise(request.drug)} added as a current medicine.`
-    case 'remove_current_medication': return `Re-run without ${capitalise(request.drug)} in the current-medicine list.`
-    case 'select_lifestyle_drug': return `Re-run the daily-life match for ${capitalise(request.drug)}.`
-    case 'set_lifestyle_context': return `Re-run after confirming ${request.dimension.replaceAll(/([A-Z])/g, ' $1').toLowerCase()} as ${String(request.value).replaceAll('_', ' ')}.`
-  }
-}
-
-function factLead(text: string): string {
-  const firstSentence = text.match(/^.*?[.!?](?:\s|$)/)?.[0]?.trim() ?? text.trim()
-  return firstSentence.length > 180 ? `${firstSentence.slice(0, 177).trimEnd()}…` : firstSentence
-}
-
-function canonicalReviewText(item: ClinicalReviewItem, factsById: Map<string, ClinicalReviewFact>): string {
-  const facts = item.factIds
-    .map((id) => factsById.get(id))
-    .filter((fact): fact is ClinicalReviewFact => Boolean(fact))
-    .slice(0, 2)
-    .map((fact) => factLead(fact.text))
-  const subject = facts.join(' · ') || 'The linked facts need review.'
-  switch (item.action) {
-    case 'evidence_gap': return `More evidence is needed: ${subject}`
-    case 'input_conflict': return `Reconcile these facts: ${subject}`
-    case 'clinician_question': return `Ask the prescriber about: ${subject}`
-    case 'lifestyle_constraint': return `Plan around: ${subject}`
-    case 'request_counterfactual': return counterfactualText(item)
-  }
-}
-
-function AiReviewPanel({
-  result,
-  selectedDrug,
-  routine,
-  review,
-  attestedRunId,
-  onReview,
-}: {
-  result: AnalysisResult
-  selectedDrug: string
-  routine: RoutineAnswers
-  review: ClinicalReviewResult | null
-  attestedRunId: string | null
-  onReview: (review: ClinicalReviewResult | null) => void
-}) {
-  const [running, setRunning] = useState(false)
-  const providerState = useMemo(() => {
-    try {
-      return { provider: createClinicalReviewProvider(), configurationError: null as string | null }
-    } catch (caught) {
-      return {
-        provider: new NotConnectedClinicalReviewProvider(),
-        configurationError: caught instanceof Error ? caught.message : 'The model endpoint configuration is invalid.',
-      }
-    }
-  }, [])
-  const confirmedLifestyle = useMemo(() => confirmedLifestyleFromRoutine(routine), [routine])
-  const context = useMemo(
-    () => buildClinicalReviewContext(result, { selectedDrug, confirmedLifestyle, includeSymptomContext: false }),
-    [confirmedLifestyle, result, selectedDrug],
-  )
-  const factsById = useMemo(() => new Map(context.facts.map((fact) => [fact.id, fact])), [context])
-  const modelConfigured = providerState.provider.mode === 'ai'
-  const hasAttestedRun = Boolean(attestedRunId)
-  const connected = modelConfigured && hasAttestedRun
-  const answers = Object.keys(confirmedLifestyle).length
-
-  const runReview = async () => {
-    setRunning(true)
-    onReview(null)
-    const nextReview = await providerState.provider.review(result, {
-      attestedRunId,
-      selectedDrug,
-      confirmedLifestyle,
-      includeSymptomContext: false,
-    })
-    onReview(nextReview)
-    setRunning(false)
-  }
-
-  return (
-    <section className="screen" aria-labelledby="ai-title">
-      <div className="screen-heading">
-        <h1 id="ai-title">Clinical AI review</h1>
-        <p>MedGemma proposes source-linked gaps, conflicts and prescriber questions. Invalid proposals are rejected.</p>
-      </div>
-
-      <div className={`model-status ${connected ? 'model-status--connected' : ''}`}>
-        <span className="status-dot" aria-hidden="true" />
-        <div>
-          <strong>{!hasAttestedRun ? 'AI review unavailable' : connected ? 'MedGemma ready' : 'MedGemma not connected'}</strong>
-          <span>{!hasAttestedRun ? 'AI review requires a completed DNA analysis.' : connected ? 'The model can review this completed result.' : 'The medical model is not available in this deployment.'}</span>
-        </div>
-      </div>
-
-      <div className="review-inputs">
-        <span>{result.genes.length} gene results · {result.input.currentMedications.length ? `${result.input.currentMedications.length} current medicine${result.input.currentMedications.length === 1 ? '' : 's'}` : 'No current medicines or supplements'} · {selectedDrug ? capitalise(selectedDrug) : 'no medicine selected'} · {answers} routine answer{answers === 1 ? '' : 's'}</span>
-      </div>
-
-      {connected && !review && (
-        <div className="ai-ready">
-          <span>Only derived facts and source IDs are sent. Raw DNA stays out of the model.</span>
-          <button type="button" className="primary-button" disabled={running} onClick={() => void runReview()}>{running ? 'Reviewing…' : 'Run review'}</button>
-        </div>
-      )}
-
-      {!connected && hasAttestedRun && (
-        <div className="connection-help">
-          <strong>Review unavailable</strong>
-          <span>{providerState.configurationError ?? 'No private model connection is configured here.'}</span>
-        </div>
-      )}
-
-      {review && review.status === 'complete' && (
-        <section className="review-output" aria-label="Fact-linked AI review">
-          <div className="review-output__heading">
-            <div><h2>Fact-linked review</h2></div>
-            <button type="button" className="secondary-button" onClick={() => void runReview()}>Run again</button>
-          </div>
-          <div className="review-items">
-            {review.items.map((item, index) => (
-              <article className="review-item" key={`${item.action}-${index}`}>
-                <span>{REVIEW_ACTION_LABEL[item.action]}</span>
-                <strong>{canonicalReviewText(item, factsById)}</strong>
-                <details>
-                  <summary>Evidence · {item.factIds.length} fact{item.factIds.length === 1 ? '' : 's'}</summary>
-                  <ul>{item.factIds.map((id) => <li key={id}><code>{id}</code><span>{factsById.get(id)?.text ?? 'Fact not found in the current review context.'}</span></li>)}</ul>
-                  {item.sourceIds.length > 0 && <p>Sources: {item.sourceIds.join(', ')}</p>}
-                </details>
-              </article>
-            ))}
-          </div>
-          <div className="review-audit"><strong>{review.provider}</strong><span>{review.items.length} passed grounding checks · {review.rejections.length} failed</span></div>
-          {review.rejections.length > 0 && (
-            <details className="rejection-log"><summary>See rejected model output</summary><ul>{review.rejections.map((item, index) => <li key={`${item.kind}-${index}`}><strong>{item.kind}</strong><span>{item.reason}</span></li>)}</ul></details>
-          )}
-        </section>
-      )}
-
-      {review && review.status !== 'complete' && (
-        <div className="review-stopped" role="alert">
-          <strong>{review.status === 'rejected' ? 'Model output rejected' : review.status === 'error' ? 'Model review failed' : 'Model not connected'}</strong>
-          <span>{review.message}</span>
-          {connected && <button type="button" className="secondary-button" onClick={() => void runReview()}>Try again</button>}
-        </div>
-      )}
-    </section>
-  )
-}
-
-function EvidencePanel({ result, receipt, selectedDrug, productConfirmed, routine, review }: {
+function EvidencePanel({ result, receipt, selectedDrug, productConfirmed, routine }: {
   result: AnalysisResult
   receipt: RunReceipt
   selectedDrug: string
   productConfirmed: boolean | null
   routine: RoutineAnswers
-  review: ClinicalReviewResult | null
 }) {
   const checks = buildValidationChecks(result)
   const sources = buildSourceUsage(result)
@@ -1387,7 +1223,6 @@ function EvidencePanel({ result, receipt, selectedDrug, productConfirmed, routin
       },
       ai: {
         endpointConfigured: endpointConnected,
-        review,
         rawGenomeSent: false,
       },
       result,
@@ -1495,34 +1330,14 @@ function EvidencePanel({ result, receipt, selectedDrug, productConfirmed, routin
         </details>
 
         <details className="evidence-group">
-          <summary><span>5</span><strong>AI audit</strong><small>Connection, boundaries and software checks</small></summary>
+          <summary><span>5</span><strong>AI audit</strong><small>What the model can and cannot do</small></summary>
           <dl className="evidence-list">
-            <div><dt>Medical AI endpoint</dt><dd>{endpointConnected ? 'Configured' : 'Not configured'}</dd></div>
-            <div><dt>AI review run</dt><dd>{review ? review.status : 'No'}</dd></div>
-            <div><dt>Provider</dt><dd>{review?.provider ?? 'None'}</dd></div>
-            <div><dt>Model</dt><dd>{review?.model ?? 'None'}</dd></div>
-            <div><dt>Items that passed grounding checks</dt><dd>{review?.items.length ?? 0}</dd></div>
-            <div><dt>Items that failed grounding checks</dt><dd>{review?.rejections.length ?? 0}</dd></div>
+            <div><dt>Journey endpoint</dt><dd>{endpointConnected ? 'Configured' : 'Not configured'}</dd></div>
             <div><dt>Raw genome sent to AI</dt><dd>No</dd></div>
+            <div><dt>Clinical facts sent to AI</dt><dd>Only actions the engine already approved</dd></div>
             <div><dt>Core clinical result</dt><dd>Deterministic; AI cannot mutate it</dd></div>
+            <div><dt>Blocked in model output</dt><dd>Doses, prescribing advice, any drug not in context</dd></div>
           </dl>
-          {review && review.items.length > 0 && (
-            <>
-              <h3>Model proposals that passed grounding checks</h3>
-              <div className="table-wrap">
-                <table>
-                  <thead><tr><th>Action</th><th>Displayed wording</th><th>Fact IDs</th><th>Source IDs</th></tr></thead>
-                  <tbody>{review.items.map((item, index) => <tr key={`${item.action}-${index}`}><td>{item.action}</td><td>Deterministic wording assembled from the linked facts</td><td>{item.factIds.join(', ')}</td><td>{item.sourceIds.join(', ') || 'None'}</td></tr>)}</tbody>
-                </table>
-              </div>
-            </>
-          )}
-          {review && review.rejections.length > 0 && (
-            <>
-              <h3>Rejected model output</h3>
-              <ul className="check-list">{review.rejections.map((item, index) => <li className="check-fail" key={`${item.kind}-${index}`}><strong>{item.kind} · {item.offendingToken}</strong><span>{item.reason}</span></li>)}</ul>
-            </>
-          )}
           <h3>Software lineage checks</h3>
           <p>These checks verify processing and traceability, not clinical accuracy.</p>
           <ul className="check-list">{checks.map((check) => <li key={check.id} className={check.passed ? 'check-pass' : 'check-fail'}><strong>{check.passed ? 'PASS' : 'FAIL'} · {check.label}</strong><span>{check.detail}</span></li>)}</ul>
@@ -1570,7 +1385,6 @@ export function ValidationConsole() {
   const [selectedDrug, setSelectedDrug] = useState('')
   const [lifestyleProductConfirmed, setLifestyleProductConfirmed] = useState<boolean | null>(null)
   const [routine, setRoutine] = useState<RoutineAnswers>({ ...EMPTY_ROUTINE })
-  const [clinicalReview, setClinicalReview] = useState<ClinicalReviewResult | null>(null)
   const [status, setStatus] = useState<RunStatus>('idle')
   const [error, setError] = useState<string | null>(null)
 
@@ -1585,7 +1399,6 @@ export function ValidationConsole() {
     setSelectedDrug('')
     setLifestyleProductConfirmed(null)
     setRoutine({ ...EMPTY_ROUTINE })
-    setClinicalReview(null)
     setError(null)
     setStatus('idle')
     setTab('file')
@@ -1747,7 +1560,6 @@ export function ValidationConsole() {
       setSelectedDrug('')
       setLifestyleProductConfirmed(null)
       setRoutine({ ...EMPTY_ROUTINE })
-      setClinicalReview(null)
       setStatus('complete')
       setTab('genes')
     } catch (caught) {
@@ -1760,7 +1572,6 @@ export function ValidationConsole() {
     setSelectedDrug(drug)
     setLifestyleProductConfirmed(null)
     setRoutine({ ...EMPTY_ROUTINE })
-    setClinicalReview(null)
     setTab('daily')
   }
 
@@ -1769,7 +1580,6 @@ export function ValidationConsole() {
     { id: 'genes', label: 'Gene results', disabled: !result },
     { id: 'medicines', label: 'Medicines', disabled: !result },
     { id: 'daily', label: 'My first weeks', disabled: !result },
-    { id: 'ai', label: 'AI review', disabled: !result },
     { id: 'evidence', label: 'Sources', disabled: !result },
   ]
 
@@ -1819,8 +1629,7 @@ export function ValidationConsole() {
         {tab === 'genes' && result && receipt && <GenesPanel result={result} runManifest={receipt.runManifest} onNext={() => setTab('medicines')} />}
         {tab === 'medicines' && result && <MedicinesPanel result={result} onExplore={openDailyLife} />}
         {tab === 'daily' && result && <MyFirstWeeks result={result} />}
-        {tab === 'ai' && result && receipt && <AiReviewPanel result={result} selectedDrug={lifestyleProductConfirmed ? selectedDrug : ''} routine={routine} review={clinicalReview} attestedRunId={receipt.source === 'pharmcat-run' ? receipt.runManifest?.runId ?? null : null} onReview={setClinicalReview} />}
-        {tab === 'evidence' && result && receipt && <EvidencePanel result={result} receipt={receipt} selectedDrug={selectedDrug} productConfirmed={lifestyleProductConfirmed} routine={routine} review={clinicalReview} />}
+        {tab === 'evidence' && result && receipt && <EvidencePanel result={result} receipt={receipt} selectedDrug={selectedDrug} productConfirmed={lifestyleProductConfirmed} routine={routine} />}
       </div>
     </main>
   )

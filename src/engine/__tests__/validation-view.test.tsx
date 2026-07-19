@@ -61,7 +61,8 @@ describe('simplified validation surface', () => {
     expect(markup).toContain('Gene results')
     expect(markup).toContain('Medicines')
     expect(markup).toContain('My first weeks')
-    expect(markup).toContain('AI review')
+    // AI review is no longer a destination: the model writes the plan in My first weeks.
+    expect(markup).not.toContain('AI review')
     expect(markup).toContain('Sources')
     expect(markup).toContain('Current medicines and supplements')
     expect(markup).toContain('I take none')
