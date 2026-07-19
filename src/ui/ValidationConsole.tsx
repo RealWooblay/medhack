@@ -15,6 +15,18 @@ import {
   type OfficialPharmCATExample,
 } from '../data/pharmcat-examples'
 import { matchLifestyle } from '../engine/lifestyle-fit'
+import {
+  assembleJourney,
+  hasJourneyContent,
+  GOAL_OPTIONS,
+  SIGNAL_OPTIONS,
+  SUBSTANCE_OPTIONS,
+  type DietContext,
+  type JourneyPhase,
+  type Signal,
+  type Substance,
+} from '../engine/journey'
+import { journeyConfigured, requestJourney, type JourneyResult } from '../ai/journey-client'
 import { runAnalysis } from '../engine/pipeline'
 import {
   ANTIDEPRESSANT_PGX_GENES,
@@ -692,7 +704,25 @@ function MedicinesPanel({ result, onExplore }: { result: AnalysisResult; onExplo
       </div>
 
       {cyp2d6?.structuralVariationUnresolved && (
-        <div className="shared-limit"><strong>CYP2D6 is incomplete</strong><span>Structural and copy-number variation could not be confirmed, so affected medicine results stay limited.</span></div>
+        <details className="cyp2d6-note">
+          <summary>
+            <strong>One medicine-processing result needs a lab test</strong>
+            <span>CYP2D6 couldn't be read from this file, so guidance that depends on it is held back.</span>
+          </summary>
+          <div className="cyp2d6-note__body">
+            <p>
+              CYP2D6 is unusual: what matters most is how many copies of the gene you have and
+              whether it has rearranged with a neighbour. A standard DNA file records single letters,
+              not gene copies, so this can't be read from the file you gave — and no amount of
+              analysis can reconstruct it. That's a real limit of the input, not of the analysis.
+            </p>
+            <p>
+              A pharmacogenomic lab test reads copy number and rearrangements directly. With that
+              result added, guidance for the CYP2D6 medicines is filled in.
+            </p>
+            <p className="cyp2d6-note__action">To complete this, add a CYP2D6 lab result from a pharmacogenomic panel.</p>
+          </div>
+        </details>
       )}
 
       <MedicineGroup title="Discuss a different medicine" drugs={alternatives} result={result} onExplore={onExplore} />
@@ -739,6 +769,250 @@ function lifestyleLabel(label: string): string {
 
 function directRule(rule: string): string {
   return rule.replace(/^The captured /, 'The ')
+}
+
+/* ================================================================== */
+/* My first weeks — the journey                                        */
+/* ================================================================== */
+
+const PHASE_CHOICES: Array<{ value: JourneyPhase; label: string; hint: string }> = [
+  { value: 'first_weeks', label: 'Just started / first few weeks', hint: 'e.g. day 9' },
+  { value: 'ongoing', label: 'Been on it a while', hint: 'e.g. month 4' },
+  { value: 'switching', label: 'Changing or coming off it', hint: 'e.g. tapering' },
+]
+
+const DIET_CHOICES: Array<{ value: DietContext['pattern']; label: string }> = [
+  { value: 'no_restriction', label: 'No restriction' },
+  { value: 'vegetarian', label: 'Vegetarian' },
+  { value: 'vegan', label: 'Vegan' },
+  { value: 'halal', label: 'Halal' },
+  { value: 'kosher', label: 'Kosher' },
+]
+
+const ALLERGY_CHOICES = ['nuts', 'dairy', 'eggs', 'fish', 'gluten', 'soy']
+
+function Chips<T extends string>({
+  options,
+  selected,
+  onToggle,
+}: {
+  options: Array<{ value: T; label: string }>
+  selected: T[]
+  onToggle: (value: T) => void
+}) {
+  return (
+    <div className="chip-row">
+      {options.map((option) => {
+        const on = selected.includes(option.value)
+        return (
+          <button
+            type="button"
+            key={option.value}
+            className={on ? 'pick pick--on' : 'pick'}
+            aria-pressed={on}
+            onClick={() => onToggle(option.value)}
+          >
+            {option.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function MyFirstWeeks({ result }: { result: AnalysisResult }) {
+  const drugs = result.shortlist.map((entry) => entry.drug).filter(hasJourneyContent)
+  const [drug, setDrug] = useState(drugs[0] ?? '')
+  const [phase, setPhase] = useState<JourneyPhase>('first_weeks')
+  const [dayLabel, setDayLabel] = useState('')
+  const [signals, setSignals] = useState<Signal[]>([])
+  const [substances, setSubstances] = useState<Substance[]>([])
+  const [goals, setGoals] = useState<string[]>([])
+  const [dietPattern, setDietPattern] = useState<DietContext['pattern']>('no_restriction')
+  const [allergies, setAllergies] = useState<string[]>([])
+  const [edHistory, setEdHistory] = useState(false)
+  const [budget, setBudget] = useState(false)
+  const [result_, setResult_] = useState<JourneyResult | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const toggle = <T extends string>(list: T[], set: (next: T[]) => void, value: T) =>
+    set(list.includes(value) ? list.filter((item) => item !== value) : [...list, value])
+
+  const configured = journeyConfigured()
+
+  async function build() {
+    if (!drug) return
+    setLoading(true)
+    setResult_(null)
+    const context = assembleJourney(
+      {
+        drug,
+        phase,
+        dayLabel: dayLabel.trim(),
+        signals,
+        substances,
+        goals,
+        diet: { pattern: dietPattern, allergies, eatingDisorderHistory: edHistory, budgetConscious: budget },
+      },
+      result.genes,
+    )
+    setResult_(await requestJourney(context))
+    setLoading(false)
+  }
+
+  const plan = result_?.status === 'ok' ? result_.plan : null
+
+  return (
+    <section className="screen" aria-labelledby="journey-title">
+      <div className="screen-heading">
+        <h1 id="journey-title">My first weeks</h1>
+        <p>
+          A plan for where you actually are — built from what {drug ? capitalise(drug) : 'your medicine'} is
+          doing to your body, your genetics, and what you tell us you are feeling.
+        </p>
+      </div>
+
+      {drugs.length === 0 && (
+        <div className="empty-state"><span>No journey content is available for the medicines in this result yet.</span></div>
+      )}
+
+      {drugs.length > 0 && (
+        <div className="checkin">
+          <div className="checkin__row">
+            <label className="compact-field">
+              <span>Your medicine</span>
+              <select value={drug} onChange={(event) => setDrug(event.target.value)}>
+                {drugs.map((name) => <option key={name} value={name}>{capitalise(name)}</option>)}
+              </select>
+            </label>
+            <label className="compact-field">
+              <span>Where are you with it?</span>
+              <select value={phase} onChange={(event) => setPhase(event.target.value as JourneyPhase)}>
+                {PHASE_CHOICES.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+              </select>
+            </label>
+            <label className="compact-field">
+              <span>How far in? <em>optional</em></span>
+              <input
+                type="text"
+                value={dayLabel}
+                placeholder={PHASE_CHOICES.find((choice) => choice.value === phase)?.hint ?? ''}
+                onChange={(event) => setDayLabel(event.target.value)}
+              />
+            </label>
+          </div>
+
+          <div className="checkin__block">
+            <span className="checkin__label">What are you actually feeling? Pick any that fit.</span>
+            <Chips options={SIGNAL_OPTIONS} selected={signals} onToggle={(value) => toggle(signals, setSignals, value)} />
+          </div>
+
+          <div className="checkin__block">
+            <span className="checkin__label">What do you have most days?</span>
+            <Chips options={SUBSTANCE_OPTIONS} selected={substances} onToggle={(value) => toggle(substances, setSubstances, value)} />
+          </div>
+
+          <div className="checkin__block">
+            <span className="checkin__label">What matters to you right now?</span>
+            <Chips
+              options={GOAL_OPTIONS.map((goal) => ({ value: goal, label: goal }))}
+              selected={goals}
+              onToggle={(value) => toggle(goals, setGoals, value)}
+            />
+          </div>
+
+          <div className="checkin__row">
+            <label className="compact-field">
+              <span>How you eat</span>
+              <select value={dietPattern} onChange={(event) => setDietPattern(event.target.value as DietContext['pattern'])}>
+                {DIET_CHOICES.map((choice) => <option key={choice.value} value={choice.value}>{choice.label}</option>)}
+              </select>
+            </label>
+            <div className="compact-field">
+              <span>Allergies</span>
+              <Chips
+                options={ALLERGY_CHOICES.map((item) => ({ value: item, label: item }))}
+                selected={allergies}
+                onToggle={(value) => toggle(allergies, setAllergies, value)}
+              />
+            </div>
+          </div>
+
+          <div className="checkin__toggles">
+            <label><input type="checkbox" checked={budget} onChange={(event) => setBudget(event.target.checked)} /> Keep suggestions cheap</label>
+            <label><input type="checkbox" checked={edHistory} onChange={(event) => setEdHistory(event.target.checked)} /> I have a history of disordered eating</label>
+          </div>
+
+          <button type="button" className="primary-button" disabled={loading || !configured || !drug} onClick={() => void build()}>
+            {loading ? 'Building your plan…' : plan ? 'Rebuild my plan' : 'Build my plan'}
+          </button>
+          {!configured && <p className="today__note">The journey service is not configured for this build.</p>}
+          {result_?.status === 'error' && <p className="today__note">{result_.message}</p>}
+          {result_?.status === 'rejected' && (
+            <p className="today__note">{result_.note} <span className="today__flags">({result_.problems.join(', ')})</span></p>
+          )}
+        </div>
+      )}
+
+      {plan && (
+        <div className="journey">
+          <h2 className="journey__headline">{plan.headline}</h2>
+
+          <div className="journey__section">
+            <span className="journey__eyebrow">Today</span>
+            {plan.today.map((item, index) => (
+              <div className="journey__do" key={index}>
+                <strong>{item.do}</strong>
+                <span>{item.because}</span>
+              </div>
+            ))}
+          </div>
+
+          {plan.eatToday.length > 0 && (
+            <div className="journey__section journey__section--eat">
+              <span className="journey__eyebrow">Eat today</span>
+              <ul>{plan.eatToday.map((item) => <li key={item}>{item}</li>)}</ul>
+            </div>
+          )}
+
+          <div className="journey__section">
+            <span className="journey__eyebrow">This week</span>
+            {plan.thisWeek.map((item, index) => (
+              <div className="journey__week" key={index}>
+                <strong>{item.goal}</strong>
+                <span>{item.step}</span>
+              </div>
+            ))}
+          </div>
+
+          {plan.watchFor.length > 0 && (
+            <div className="journey__section journey__section--watch">
+              <span className="journey__eyebrow">Watch for</span>
+              {plan.watchFor.map((item, index) => (
+                <div className="journey__watch" key={index}>
+                  <strong>{item.sign}</strong>
+                  <span>{item.meaning}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <details className="journey__clinician">
+            <summary>Summary for your next clinician review</summary>
+            <p>{plan.clinicianSummary}</p>
+          </details>
+
+          {result_?.status === 'ok' && (
+            <p className="journey__provenance">
+              Sequenced by {result_.model} from {result_.actionsUsed} clinically-approved actions matched to
+              your genetics, your medicine and what you told us. It personalises the plan; it cannot give a
+              dose, change your medicine, or invent a reason to eat something.
+            </p>
+          )}
+        </div>
+      )}
+    </section>
+  )
 }
 
 export function DailyLifePanel({
@@ -1494,7 +1768,7 @@ export function ValidationConsole() {
     { id: 'file', label: 'DNA', disabled: false },
     { id: 'genes', label: 'Gene results', disabled: !result },
     { id: 'medicines', label: 'Medicines', disabled: !result },
-    { id: 'daily', label: 'Daily life', disabled: !result },
+    { id: 'daily', label: 'My first weeks', disabled: !result },
     { id: 'ai', label: 'AI review', disabled: !result },
     { id: 'evidence', label: 'Sources', disabled: !result },
   ]
@@ -1544,18 +1818,7 @@ export function ValidationConsole() {
         )}
         {tab === 'genes' && result && receipt && <GenesPanel result={result} runManifest={receipt.runManifest} onNext={() => setTab('medicines')} />}
         {tab === 'medicines' && result && <MedicinesPanel result={result} onExplore={openDailyLife} />}
-        {tab === 'daily' && result && (
-          <DailyLifePanel
-            result={result}
-            selectedDrug={selectedDrug}
-            onSelectedDrug={(drug) => { setSelectedDrug(drug); setLifestyleProductConfirmed(null); setRoutine({ ...EMPTY_ROUTINE }); setClinicalReview(null) }}
-            productConfirmed={lifestyleProductConfirmed}
-            onProductConfirmed={(confirmed) => { setLifestyleProductConfirmed(confirmed); setRoutine({ ...EMPTY_ROUTINE }); setClinicalReview(null) }}
-            routine={routine}
-            onRoutine={(nextRoutine) => { setRoutine(nextRoutine); setClinicalReview(null) }}
-            onNext={() => setTab('ai')}
-          />
-        )}
+        {tab === 'daily' && result && <MyFirstWeeks result={result} />}
         {tab === 'ai' && result && receipt && <AiReviewPanel result={result} selectedDrug={lifestyleProductConfirmed ? selectedDrug : ''} routine={routine} review={clinicalReview} attestedRunId={receipt.source === 'pharmcat-run' ? receipt.runManifest?.runId ?? null : null} onReview={setClinicalReview} />}
         {tab === 'evidence' && result && receipt && <EvidencePanel result={result} receipt={receipt} selectedDrug={selectedDrug} productConfirmed={lifestyleProductConfirmed} routine={routine} review={clinicalReview} />}
       </div>
