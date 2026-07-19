@@ -120,7 +120,7 @@ code {
 
 .tab-bar {
   display: grid;
-  grid-template-columns: repeat(6, minmax(110px, 1fr));
+  grid-template-columns: repeat(7, minmax(110px, 1fr));
   width: min(1080px, calc(100% - 40px));
   margin: 22px auto 0;
   overflow-x: auto;
@@ -237,6 +237,7 @@ code {
 
 .field input,
 .field select,
+.field textarea,
 .compact-field select {
   width: 100%;
   min-height: 46px;
@@ -245,6 +246,48 @@ code {
   border-radius: 8px;
   color: var(--ink);
   background: #fff;
+}
+
+.field textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.history-grid,
+.das21-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 18px;
+}
+
+.bmi-readout {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin: -2px 0 22px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
+}
+
+.bmi-readout span,
+.das21-card > p {
+  color: var(--muted);
+}
+
+.das21-card {
+  margin-top: 24px;
+}
+
+.das21-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.das21-grid .compact-field {
+  display: grid;
+  gap: 7px;
 }
 
 .field small {
@@ -790,6 +833,140 @@ details > summary {
   text-align: center;
 }
 
+.drug-ranking {
+  display: grid;
+  gap: 8px;
+}
+
+.drug-ranking__item {
+  display: grid;
+  grid-template-columns: 34px minmax(130px, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 15px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  background: var(--paper);
+  text-align: left;
+  cursor: pointer;
+}
+
+.drug-ranking__item:hover {
+  border-color: #7da391;
+  background: var(--green-soft);
+}
+
+.drug-ranking__rank {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  color: var(--green-dark);
+  background: var(--green-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.drug-ranking__item > span:last-child {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.drug-modal-backdrop {
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgb(16 35 27 / 48%);
+}
+
+.drug-modal {
+  position: relative;
+  width: min(610px, 100%);
+  max-height: min(720px, 100%);
+  overflow: auto;
+  padding: clamp(22px, 5vw, 34px);
+  border-radius: 14px;
+  background: var(--paper);
+  box-shadow: 0 20px 55px rgb(0 0 0 / 23%);
+}
+
+.drug-modal > h2 { margin-bottom: 4px; }
+.drug-modal > p { color: var(--muted); }
+
+.quick-expectation {
+  display: grid;
+  gap: 4px;
+  margin: 18px 0;
+  padding: 13px 14px;
+  border-left: 4px solid #7da391;
+  border-radius: 7px;
+  background: var(--green-soft);
+}
+
+.quick-expectation > strong {
+  color: var(--green-dark);
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.quick-expectation > span { font-size: 0.9rem; }
+
+.drug-modal__close {
+  position: absolute;
+  top: 10px;
+  right: 13px;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--soft);
+  font-size: 1.45rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.quick-guidance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 20px 0;
+}
+
+.quick-guidance > div {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--soft);
+}
+
+.quick-guidance > div:last-child { background: var(--red-soft); }
+.quick-guidance > div:last-child > strong { color: var(--red); }
+.quick-guidance ul { margin: 8px 0 0; padding-left: 18px; }
+.quick-guidance li {
+  margin-bottom: 6px;
+  font-size: 0.87rem;
+  line-height: 1.4;
+}
+
+.quick-guidance__more {
+  color: var(--green);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.quick-guidance > div:last-child .quick-guidance__more { color: var(--red); }
+
+.daily-details { margin-top: 36px; }
+.daily-details__heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+
 .daily-section {
   margin-top: 28px;
 }
@@ -1326,7 +1503,12 @@ pre {
   }
 
   .tab-bar {
-    grid-template-columns: repeat(6, 105px);
+    grid-template-columns: repeat(7, 105px);
+  }
+
+  .history-grid,
+  .das21-grid {
+    grid-template-columns: 1fr;
   }
 
   .screen {
@@ -1336,6 +1518,11 @@ pre {
   .input-card {
     padding: 17px;
   }
+
+  .drug-ranking__item { grid-template-columns: 30px 1fr; }
+  .drug-ranking__item > span:last-child { grid-column: 2; }
+  .quick-guidance { grid-template-columns: 1fr; }
+  .daily-details__heading { align-items: flex-start; flex-direction: column; }
 
   .action-row,
   .group-heading,
