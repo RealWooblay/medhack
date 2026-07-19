@@ -120,7 +120,7 @@ code {
 
 .tab-bar {
   display: grid;
-  grid-template-columns: repeat(6, minmax(110px, 1fr));
+  grid-template-columns: repeat(7, minmax(110px, 1fr));
   width: min(1080px, calc(100% - 40px));
   margin: 22px auto 0;
   overflow-x: auto;
@@ -237,6 +237,7 @@ code {
 
 .field input,
 .field select,
+.field textarea,
 .compact-field select {
   width: 100%;
   min-height: 46px;
@@ -245,6 +246,48 @@ code {
   border-radius: 8px;
   color: var(--ink);
   background: #fff;
+}
+
+.field textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.history-grid,
+.das21-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 18px;
+}
+
+.bmi-readout {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin: -2px 0 22px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--soft);
+}
+
+.bmi-readout span,
+.das21-card > p {
+  color: var(--muted);
+}
+
+.das21-card {
+  margin-top: 24px;
+}
+
+.das21-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.das21-grid .compact-field {
+  display: grid;
+  gap: 7px;
 }
 
 .field small {
@@ -1412,7 +1455,12 @@ pre {
   }
 
   .tab-bar {
-    grid-template-columns: repeat(6, 105px);
+    grid-template-columns: repeat(7, 105px);
+  }
+
+  .history-grid,
+  .das21-grid {
+    grid-template-columns: 1fr;
   }
 
   .screen {
@@ -1422,6 +1470,11 @@ pre {
   .input-card {
     padding: 17px;
   }
+
+  .drug-ranking__item { grid-template-columns: 30px 1fr; }
+  .drug-ranking__item > span:last-child { grid-column: 2; }
+  .quick-guidance { grid-template-columns: 1fr; }
+  .daily-details__heading { align-items: flex-start; flex-direction: column; }
 
   .action-row,
   .group-heading,
