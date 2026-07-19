@@ -73,6 +73,17 @@ export interface PharmCATRunManifest {
     positionsMissing: number
     missingPositionLabels: string[]
   }>
+  /** Additive audit field. Current governed runs require it; optional here for older imported receipts. */
+  geneScope?: {
+    unrestrictedReporterGeneCount: number
+    unrestrictedReporterGenes: string[]
+    antidepressantRelevantGenes: Array<'CYP2B6' | 'CYP2C19' | 'CYP2D6'>
+    retainedReporterGenes: string[]
+    withheldReporterGenes: Array<{
+      gene: string
+      reason: string
+    }>
+  }
   exclusions: Array<{
     gene: 'CYP2D6'
     reason: string

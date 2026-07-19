@@ -208,6 +208,13 @@ const PHENOTYPES: Phenotype[] = [
   'Indeterminate',
 ]
 
+/**
+ * Genes for which the pinned CPIC serotonin-reuptake-inhibitor guideline can produce
+ * antidepressant prescribing guidance. PharmCAT may call many other pharmacogenes, but
+ * they belong to other drug areas and must not be presented as antidepressant results.
+ */
+export const ANTIDEPRESSANT_PGX_GENES = ['CYP2C19', 'CYP2D6', 'CYP2B6'] as const
+
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -226,8 +233,7 @@ function asArray(value: unknown): unknown[] {
 export function isRecognisablePharmCATReporter(value: unknown): value is PharmCATReporterJson {
   const report = asRecord(value)
   const genes = asRecord(report.genes)
-  const supportedGenes = ['CYP2C19', 'CYP2D6', 'CYP2B6']
-  const hasSupportedGene = supportedGenes.some((gene) => {
+  const hasSupportedGene = ANTIDEPRESSANT_PGX_GENES.some((gene) => {
     const record = asRecord(genes[gene])
     return (
       typeof record.callSource === 'string' &&
@@ -495,7 +501,8 @@ export class PharmCATReportJsonAdapter implements PharmCATAdapter {
       throw new Error('The JSON does not match the supported PharmCAT Reporter structure. No result was created.')
     }
 
-    const genes = ['CYP2C19', 'CYP2D6', 'CYP2B6']
+    const sourceGeneNames = Object.keys(geneMap).sort((a, b) => a.localeCompare(b))
+    const genes = ANTIDEPRESSANT_PGX_GENES
       .filter((gene) => {
         const raw = asRecord(geneMap[gene]) as PharmCATGeneJson
         return typeof raw.callSource === 'string' && Array.isArray(raw.sourceDiplotypes)
@@ -518,6 +525,8 @@ export class PharmCATReportJsonAdapter implements PharmCATAdapter {
       pharmcatVersion: `${parsed.pharmcatVersion}`,
       pharmcatDataVersion: typeof parsed.dataVersion === 'string' ? parsed.dataVersion : null,
       reportTimestamp: typeof parsed.timestamp === 'string' ? parsed.timestamp : null,
+      sourceGeneNames,
+      sourceGeneCount: sourceGeneNames.length,
       assayType: input.assayType,
       genes,
       excludedGenes: excludedGeneCalls(excludedObserved),

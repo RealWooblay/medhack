@@ -6,7 +6,7 @@ import {
   protocolsForDrug,
 } from '../../data/support-protocols'
 
-describe('mechanism-based support protocols', () => {
+describe('research-only mechanism-based support corpus', () => {
   it('every protocol explains a body effect, a mechanism and something to do', () => {
     expect(SUPPORT_PROTOCOLS.length).toBeGreaterThan(20)
     for (const p of SUPPORT_PROTOCOLS) {

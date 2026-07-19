@@ -1,7 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 import { App } from '../../App'
-import { currentMedicinesResolved, exactDoseSentence } from '../../ui/ValidationConsole'
+import {
+  currentMedicinesResolved,
+  DailyLifePanel,
+  exactDoseSentence,
+} from '../../ui/ValidationConsole'
 import { runAnalysis } from '../pipeline'
 import {
   CAPTURED_EXAMPLE_ASSAY,
@@ -61,7 +65,7 @@ describe('simplified validation surface', () => {
     expect(markup).toContain('Sources')
     expect(markup).toContain('Current medicines and supplements')
     expect(markup).toContain('I take none')
-    // The switcher offers the modes you are not currently in; example mode is the default.
+    // Alternate inputs remain available without becoming the primary journey.
     expect(markup).toContain('Other ways to start')
     expect(markup).toContain('Import PharmCAT report')
     expect(markup).not.toContain('Report sections')
@@ -71,15 +75,66 @@ describe('simplified validation surface', () => {
     expect(markup).not.toContain('shortlist')
   })
 
-  it('opens on a mode that works without a deployed backend', () => {
-    // Genome upload needs the private worker. Defaulting to it meant a new visitor's first
-    // action failed against any deployment without the full backend.
+  it('opens on the real genome-first journey', () => {
     const markup = renderToStaticMarkup(<App />)
 
-    expect(markup).toContain('Use a published example')
-    expect(markup).toContain('Published report')
-    // The genome route stays reachable from the mode switcher, just not as the landing state.
-    expect(markup).toContain('Upload your DNA')
+    expect(markup).toContain('<h1 id="file-title">Upload your DNA</h1>')
+    expect(markup).toContain('Single-person GRCh38 VCF or VCF.GZ')
+    expect(markup).toContain('Analyse DNA')
+    expect(markup).toContain('href="/samples/pharmcat-example.vcf"')
+    expect(markup).toContain('Download official Example 1 VCF')
+    expect(markup).not.toContain('<h1 id="file-title">Use a published example</h1>')
+    expect(markup).not.toContain('<span>Published report</span>')
+    expect(markup).not.toContain('PharmCAT Reporter JSON')
+    expect(markup).toContain('Use published example')
+  })
+
+  it('keeps Daily life to verified product essentials', async () => {
+    const result = await validationResult()
+    const routine = {
+      sleep: '' as const,
+      mealRoutine: '' as const,
+      dailySchedule: '' as const,
+      alcohol: '' as const,
+      drivingOrMachinery: '' as const,
+      missedDoses: '' as const,
+      eatingDisorderHistory: '' as const,
+    }
+    const renderPanel = (productConfirmed: boolean | null) => renderToStaticMarkup(
+      <DailyLifePanel
+        result={result}
+        selectedDrug="sertraline"
+        onSelectedDrug={() => undefined}
+        productConfirmed={productConfirmed}
+        onProductConfirmed={() => undefined}
+        routine={routine}
+        onRoutine={() => undefined}
+        onNext={() => undefined}
+      />,
+    )
+
+    const unansweredMarkup = renderPanel(null)
+    const compactMarkup = renderPanel(false)
+    const confirmedMarkup = renderPanel(true)
+    const protocol = result.protocolsByDrug.sertraline
+    const expectedEssentials = protocol.items.length + protocol.interactionItems.length
+
+    expect(compactMarkup.match(/data-role="daily-essential"/g) ?? []).toHaveLength(expectedEssentials)
+    expect(compactMarkup.match(/data-role="daily-source"/g) ?? []).toHaveLength(1)
+    expect(compactMarkup).toContain('Daily essentials')
+    expect(compactMarkup).toContain('US source product')
+    expect(unansweredMarkup.match(/aria-pressed="false"/g) ?? []).toHaveLength(2)
+    expect(confirmedMarkup).toContain('Check your routine')
+
+    for (const markup of [compactMarkup, confirmedMarkup]) {
+      expect(markup).not.toContain('support-card')
+      expect(markup).not.toContain('support-phase')
+      expect(markup).not.toContain('today-title')
+      expect(markup).not.toContain("Build today's plan")
+      expect(markup).not.toContain('Written by')
+      expect(markup).not.toContain('Do this')
+      expect(markup).not.toContain('Eat this')
+    }
   })
 
 

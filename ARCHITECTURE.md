@@ -50,6 +50,11 @@ There is no fixed patient shortlist and no generated filler result. The app tran
 terms into short labels, but the original recommendation, genes, source URL and versions remain in
 **Sources**.
 
+PharmCAT can report many genes because it covers many drug areas. This antidepressant product shows
+only CYP2C19, CYP2D6 and CYP2B6, the genes in the supported antidepressant prescribing guidance. The
+full source-gene list is still counted and shown in **Sources**, so filtering never hides what the
+uploaded report contained.
+
 ### 4. Add current medicines
 
 A dated FDA interaction release identifies known CYP2D6, CYP2C19 and CYP2B6 modifiers. Its own source
@@ -70,6 +75,11 @@ explicitly confirmed.
 The current evidence release is 14 pinned US Structured Product Label records with exact reviewed
 text anchors. It is not an Australian PI/CMI release and it does not yet capture formulation in the
 user input. Those are release blockers, not details for AI to fill in.
+
+The broader mechanism-support dataset and free-writing daily-plan Lambda remain research assets in
+the repository, but they are not connected to the validation journey. They need structured source
+IDs, exact anchors, typed model output and claim-level verification before they can become product
+features. This keeps the work available without presenting unverified text as clinical data.
 
 ## What the medical model does
 

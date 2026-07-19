@@ -1,10 +1,9 @@
 /**
- * Daily plan client.
+ * RESEARCH ONLY — not imported by the validation application.
  *
- * Deliberately thin. The browser sends a medicine, a phase and a free-text "where I am"
- * label — never clinical content. The server holds the support protocols and supplies every
- * fact the model is allowed to build on, so widening what the plan can say is a server-side
- * data change rather than something the client can push.
+ * This client belongs to the unvalidated free-writing daily-plan experiment. It must not be
+ * connected to patient UI until the underlying claims have structured source IDs and exact
+ * anchors, the response has a strict schema, and every displayed claim passes verification.
  */
 
 import type { SupportPhase } from '../data/support-protocols'

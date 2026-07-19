@@ -1,19 +1,9 @@
 /**
- * Mechanism-based support protocols.
+ * RESEARCH ONLY — not imported by the validation application.
  *
- * This is deliberately NOT the label layer. `lifestyle-rules.ts` carries what the printed
- * product information says — "morning dosing", "food is optional", "avoid alcohol". Those
- * are facts about the pill.
- *
- * This file answers a different question: what is this drug actually doing to your body,
- * and what should you eat or do to support yourself through it. The distinction matters
- * because the label tells someone on day four that nausea is a known adverse reaction,
- * which is useless. Knowing that most of the body's serotonin is in the gut, that this is
- * why week one feels like a stomach bug, and that it reliably settles by week three, is the
- * thing that stops them giving up.
- *
- * Evidence strength is carried per protocol and shown in the UI. Mechanistic inference is
- * labelled as mechanistic inference — plausible physiology is not dressed up as trial data.
+ * These draft mechanism-based support records are deliberately separate from the governed
+ * product-label layer in `lifestyle-rules.ts`. Their prose sources are not yet claim-level
+ * citations with versioned URLs, exact anchors and digests, so they cannot drive clinical UI.
  */
 
 import source from './sources/support-protocols.json'
