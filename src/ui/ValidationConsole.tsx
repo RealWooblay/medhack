@@ -131,7 +131,24 @@ const EMPTY_LIFESTYLE_MEDICAL_HISTORY: LifestyleMedicalHistory = {
   exerciseDetails: '',
 }
 
-const DAS21_ITEM_COUNT = 21
+const PHQ9_QUESTIONS = [
+  'Little interest or pleasure in doing things',
+  'Feeling down, depressed, or hopeless',
+  'Trouble falling or staying asleep, or sleeping too much',
+  'Feeling tired or having little energy',
+  'Poor appetite or overeating',
+  'Feeling bad about yourself — or that you are a failure or have let yourself or your family down',
+  'Trouble concentrating on things, such as reading the newspaper or watching television',
+  'Moving or speaking so slowly that other people could notice; or the opposite — being so fidgety or restless that you have been moving a lot more than usual',
+  'Thoughts that you would be better off dead or of hurting yourself in some way',
+] as const
+
+const PHQ9_RESPONSE_OPTIONS = [
+  { value: '0', label: 'Not at all' },
+  { value: '1', label: 'Several days' },
+  { value: '2', label: 'More than half the days' },
+  { value: '3', label: 'Nearly every day' },
+] as const
 
 const BASE_CARE_CONTEXT: CareContext = {
   checkIn: null,
@@ -542,16 +559,16 @@ function FilePanel({
 function LifestyleMedicalHistoryPanel({
   history,
   onHistory,
-  das21Answers,
-  onDas21Answers,
+  phq9Answers,
+  onPhq9Answers,
   conditions,
   onConditions,
   onNext,
 }: {
   history: LifestyleMedicalHistory
   onHistory: (history: LifestyleMedicalHistory) => void
-  das21Answers: string[]
-  onDas21Answers: (answers: string[]) => void
+  phq9Answers: string[]
+  onPhq9Answers: (answers: string[]) => void
   conditions: string[]
   onConditions: (conditions: string[]) => void
   onNext: () => void
@@ -562,12 +579,13 @@ function LifestyleMedicalHistoryPanel({
   const weight = Number(history.weightKg)
   const bmi = height > 0 && weight > 0 ? weight / ((height / 100) ** 2) : null
   const update = (key: keyof LifestyleMedicalHistory, value: string) => onHistory({ ...history, [key]: value })
-  const updateDas21 = (index: number, value: string) => onDas21Answers(das21Answers.map((answer, answerIndex) => answerIndex === index ? value : answer))
+  const updatePhq9 = (index: number, value: string) => onPhq9Answers(phq9Answers.map((answer, answerIndex) => answerIndex === index ? value : answer))
+  const needsImmediateSupport = Number(phq9Answers[8] ?? '0') > 0
 
   return (
     <section className="screen screen--narrow" aria-labelledby="history-title">
       <div className="screen-heading">
-        <h1 id="history-title">Lifestyle and Medical History</h1>
+        <h1 id="history-title">Medical History</h1>
         <p>Add the context that may be useful when discussing medicine options with your clinician.</p>
       </div>
 
@@ -622,7 +640,7 @@ function LifestyleMedicalHistoryPanel({
         </div>
       </div>
 
-      <section className="input-card das21-card" aria-labelledby="das21-title">
+      <section className="input-card questionnaire-card" aria-labelledby="conditions-title">
         <h2 id="conditions-title">Conditions that change medicine choice</h2>
         <p>These are the ones that move a medicine on their own, whatever your genes say. Tick any that apply.</p>
         <div className="condition-groups">
@@ -654,24 +672,22 @@ function LifestyleMedicalHistoryPanel({
           })}
         </div>
 
-        <h2 id="das21-title">DAS21 questionnaire</h2>
-        <p>Record each response using the questionnaire item number and its 0–3 response. A clinician should interpret questionnaire results in context.</p>
-        <div className="das21-grid">
-          {das21Answers.map((answer, index) => (
+        <h2 id="phq9-title">PHQ-9 questionnaire</h2>
+        <p>Over the last 2 weeks, how often have you been bothered by any of the following problems? This screening tool does not provide a diagnosis.</p>
+        <div className="phq9-list">
+          {PHQ9_QUESTIONS.map((question, index) => (
             <label className="compact-field" key={index}>
-              <span>Item {index + 1}</span>
-              <select value={answer} onChange={(event) => updateDas21(index, event.target.value)} aria-label={`DAS21 item ${index + 1}`}>
-                <option value="">Select</option>
-                <option value="0">0</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
+              <span><strong>{index + 1}.</strong> {question}</span>
+              <select value={phq9Answers[index] ?? ''} onChange={(event) => updatePhq9(index, event.target.value)} aria-label={`PHQ-9 question ${index + 1}: ${question}`}>
+                <option value="">Select an answer</option>
+                {PHQ9_RESPONSE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </label>
           ))}
         </div>
+        {needsImmediateSupport && <div className="phq9-support" role="alert"><strong>You deserve immediate support.</strong><span>If you might act on these thoughts or are in immediate danger, call 000. In Australia, Lifeline is available 24/7 on 13 11 14.</span></div>}
       </section>
-      <div className="page-action"><button type="button" className="primary-button" onClick={onNext}>See medicine guidance</button></div>
+      <div className="page-action"><button type="button" className="primary-button" onClick={onNext}>See gene report</button></div>
     </section>
   )
 }
@@ -1042,11 +1058,11 @@ function Chips<T extends string>({
   )
 }
 
-function MyFirstWeeks({ result, historyConditions, history, das21Answers, startedDrug }: {
+function MyFirstWeeks({ result, historyConditions, history, phq9Answers, startedDrug }: {
   result: AnalysisResult
   historyConditions: string[]
   history: LifestyleMedicalHistory
-  das21Answers: string[]
+  phq9Answers: string[]
   startedDrug: string
 }) {
   const drugs = result.shortlist.map((entry) => entry.drug).filter(hasJourneyContent)
@@ -1096,11 +1112,11 @@ function MyFirstWeeks({ result, historyConditions, history, das21Answers, starte
 
     // Everything the person told us, not just their genes: the conditions that shaped the
     // medicine choice, their distress score, and the basics a plan should respect.
-    const das21Score = das21Answers
+    const phq9Score = phq9Answers
       .map((answer) => Number(answer))
       .filter((value) => Number.isFinite(value))
       .reduce((total, value) => total + value, 0)
-    const answeredDas21 = das21Answers.filter((answer) => answer.trim() !== '').length
+    const answeredPhq9 = phq9Answers.filter((answer) => answer.trim() !== '').length
 
     setResult_(await requestJourney({
       ...context,
@@ -1112,7 +1128,7 @@ function MyFirstWeeks({ result, historyConditions, history, das21Answers, starte
         age: history.age || null,
         exerciseHours: history.exerciseHours || null,
         chronicConditions: history.chronicConditions || null,
-        distress: answeredDas21 > 0 ? `DAS21 total ${das21Score} from ${answeredDas21} answered items` : null,
+        distress: answeredPhq9 > 0 ? `PHQ-9 total ${phq9Score} from ${answeredPhq9} answered items` : null,
       },
     }))
     setLoading(false)
@@ -1698,7 +1714,7 @@ export function ValidationConsole() {
   const [lifestyleProductConfirmed, setLifestyleProductConfirmed] = useState<boolean | null>(null)
   const [routine, setRoutine] = useState<RoutineAnswers>({ ...EMPTY_ROUTINE })
   const [medicalHistory, setMedicalHistory] = useState<LifestyleMedicalHistory>({ ...EMPTY_LIFESTYLE_MEDICAL_HISTORY })
-  const [das21Answers, setDas21Answers] = useState<string[]>(() => Array(DAS21_ITEM_COUNT).fill(''))
+  const [phq9Answers, setPhq9Answers] = useState<string[]>(() => Array(PHQ9_QUESTIONS.length).fill(''))
   const [historyConditions, setHistoryConditions] = useState<string[]>([])
   const [startedDrug, setStartedDrug] = useState('')
   const [status, setStatus] = useState<RunStatus>('idle')
@@ -1716,7 +1732,7 @@ export function ValidationConsole() {
     setLifestyleProductConfirmed(null)
     setRoutine({ ...EMPTY_ROUTINE })
     setMedicalHistory({ ...EMPTY_LIFESTYLE_MEDICAL_HISTORY })
-    setDas21Answers(Array(DAS21_ITEM_COUNT).fill(''))
+    setPhq9Answers(Array(PHQ9_QUESTIONS.length).fill(''))
     setHistoryConditions([])
     setStartedDrug('')
     setError(null)
@@ -1881,7 +1897,7 @@ export function ValidationConsole() {
       setLifestyleProductConfirmed(null)
       setRoutine({ ...EMPTY_ROUTINE })
       setStatus('complete')
-      setTab('genes')
+      setTab('history')
     } catch (caught) {
       setStatus('error')
       setError(caught instanceof Error ? caught.message : 'The check failed.')
@@ -1897,8 +1913,8 @@ export function ValidationConsole() {
 
   const tabs: Array<{ id: TabId; label: string; disabled: boolean }> = [
     { id: 'file', label: 'DNA', disabled: false },
-    { id: 'genes', label: 'Gene results', disabled: !result },
-    { id: 'history', label: 'Lifestyle & history', disabled: !result },
+    { id: 'history', label: 'Medical history', disabled: !result },
+    { id: 'genes', label: 'Gene report', disabled: !result },
     { id: 'medicines', label: 'Medicines', disabled: !result },
     { id: 'daily', label: 'My first weeks', disabled: !result },
     { id: 'evidence', label: 'Sources', disabled: !result },
@@ -1907,7 +1923,7 @@ export function ValidationConsole() {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <div className="brand"><strong>Antidepressant PGx</strong></div>
+        <div className="brand"><strong>MERIDIAN</strong></div>
       </header>
 
 
@@ -1947,10 +1963,10 @@ export function ValidationConsole() {
             onRun={() => void run()}
           />
         )}
-        {tab === 'genes' && result && receipt && <GenesPanel result={result} runManifest={receipt.runManifest} onNext={() => setTab('history')} />}
-        {tab === 'history' && result && <LifestyleMedicalHistoryPanel history={medicalHistory} onHistory={setMedicalHistory} das21Answers={das21Answers} onDas21Answers={setDas21Answers} conditions={historyConditions} onConditions={setHistoryConditions} onNext={() => setTab('medicines')} />}
+        {tab === 'genes' && result && receipt && <GenesPanel result={result} runManifest={receipt.runManifest} onNext={() => setTab('medicines')} />}
+        {tab === 'history' && result && <LifestyleMedicalHistoryPanel history={medicalHistory} onHistory={setMedicalHistory} phq9Answers={phq9Answers} onPhq9Answers={setPhq9Answers} conditions={historyConditions} onConditions={setHistoryConditions} onNext={() => setTab('genes')} />}
         {tab === 'medicines' && result && <MedicinesPanel result={result} onExplore={openDailyLife} historyConditions={historyConditions} startedDrug={startedDrug} onStartedDrug={(drug) => { setStartedDrug(drug); setTab('daily') }} />}
-        {tab === 'daily' && result && <MyFirstWeeks result={result} historyConditions={historyConditions} history={medicalHistory} das21Answers={das21Answers} startedDrug={startedDrug} />}
+        {tab === 'daily' && result && <MyFirstWeeks result={result} historyConditions={historyConditions} history={medicalHistory} phq9Answers={phq9Answers} startedDrug={startedDrug} />}
         {tab === 'evidence' && result && receipt && <EvidencePanel result={result} receipt={receipt} selectedDrug={selectedDrug} productConfirmed={lifestyleProductConfirmed} routine={routine} />}
       </div>
     </main>

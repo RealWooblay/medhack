@@ -1,4 +1,4 @@
-# Antidepressant PGx
+# MERIDIAN
 
 **Genome in → gene results → medicine guidance → daily instructions → constrained AI check → sources.**
 

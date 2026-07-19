@@ -253,8 +253,7 @@ code {
   resize: vertical;
 }
 
-.history-grid,
-.das21-grid {
+.history-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 18px;
@@ -272,22 +271,38 @@ code {
 }
 
 .bmi-readout span,
-.das21-card > p {
+.questionnaire-card > p {
   color: var(--muted);
 }
 
-.das21-card {
+.questionnaire-card {
   margin-top: 24px;
 }
 
-.das21-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+.phq9-list { display: grid; gap: 16px; }
+
+.phq9-list .compact-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, 240px);
+  align-items: center;
   gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
 }
 
-.das21-grid .compact-field {
+.phq9-list .compact-field > span { color: #35423c; font-size: 0.9rem; line-height: 1.45; }
+
+.phq9-support {
   display: grid;
-  gap: 7px;
+  gap: 4px;
+  margin-top: 20px;
+  padding: 14px;
+  border: 1px solid #dfa9a5;
+  border-radius: 9px;
+  color: #742722;
+  background: var(--red-soft);
+  line-height: 1.45;
 }
 
 .field small {
@@ -1458,10 +1473,11 @@ pre {
     grid-template-columns: repeat(7, 105px);
   }
 
-  .history-grid,
-  .das21-grid {
+  .history-grid {
     grid-template-columns: 1fr;
   }
+
+  .phq9-list .compact-field { grid-template-columns: 1fr; gap: 8px; }
 
   .screen {
     margin-top: 32px;
