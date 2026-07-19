@@ -58,7 +58,8 @@ describe('simplified validation surface', () => {
     const markup = renderToStaticMarkup(<App />)
 
     expect(markup).toContain('DNA')
-    expect(markup).toContain('Gene results')
+    expect(markup).toContain('Medical history')
+    expect(markup).toContain('Gene report')
     expect(markup).toContain('Medicines')
     expect(markup).toContain('My first weeks')
     // AI review is no longer a destination: the model writes the plan in My first weeks.
