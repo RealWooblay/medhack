@@ -166,3 +166,37 @@ describe('official PharmCAT Reporter JSON import', () => {
     expect(recommendationActionFromText('No recommendation.')).toBe('no_recommendation')
   })
 })
+
+describe('recommendationActionFromText branch order', () => {
+  // Real CPIC wording. Both of these open by telling the prescriber to start at the normal
+  // dose, then qualify it. Before the anchored branch was moved ahead of the unanchored
+  // avoid/alternative tests, both were classified into the most alarming bucket and the row
+  // rendered under "Discuss a different medicine" while quoting a guideline that says the
+  // opposite.
+  it('does not read a trailing switch clause as "choose a different drug"', () => {
+    const cyp2c19RapidCitalopram =
+      'Initiate therapy with recommended starting dose. If patient does not adequately respond '
+      + 'to recommended maintenance dosing, consider titrating to a higher maintenance dose or '
+      + 'switching to a clinically appropriate alternative antidepressant not predominantly '
+      + 'metabolized by CYP2C19.'
+
+    expect(recommendationActionFromText(cyp2c19RapidCitalopram)).toBe(
+      'standard_start_conditional_increase',
+    )
+  })
+
+  it('does not read "to avoid adverse effects" as an instruction to avoid the drug', () => {
+    const doseGuidance =
+      'Initiate therapy with recommended starting dose. Consider a slower titration schedule '
+      + 'and a lower maintenance dose to avoid adverse effects.'
+
+    expect(recommendationActionFromText(doseGuidance)).toBe('standard_start_reduced_maintenance')
+  })
+
+  it('still classifies genuine avoid and alternative wording', () => {
+    expect(recommendationActionFromText('Avoid amitriptyline use.')).toBe('avoid')
+    expect(
+      recommendationActionFromText('Select alternative drug not predominantly metabolized by CYP2D6.'),
+    ).toBe('alternative')
+  })
+})

@@ -965,7 +965,11 @@ export class MedGemmaClinicalReviewProvider implements ClinicalReviewProvider {
           schemaVersion: '1.0',
           runId,
           patientContext: {
-            selectedDrug: options.selectedDrug ?? null,
+            // `||` not `??`: the UI passes '' when no medicine is confirmed, and '' is not
+            // nullish, so `??` let it through and the gateway rejected it with a 400 on every
+            // default "Run review" click. buildClinicalReviewContext already normalises '' to
+            // null, so this makes the payload agree with the context it is checked against.
+            selectedDrug: options.selectedDrug || null,
             currentMedications: result.input.currentMedications,
             currentMedicationsStatus,
             confirmedLifestyle: sanitiseConfirmedLifestyle(options.confirmedLifestyle),

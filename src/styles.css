@@ -1389,3 +1389,28 @@ pre {
     display: none;
   }
 }
+
+/* Persistent safety notice. Deliberately not collapsible and not dismissible: this is a
+   consumer-facing antidepressant tool and the dose sentences elsewhere in the UI are quoted
+   verbatim from prescribing guidelines. */
+.safety-banner {
+  margin: 0 auto 1rem;
+  max-width: 68rem;
+  padding: 0.85rem 1.1rem;
+  border: 1px solid #b23b32;
+  border-left: 4px solid #b23b32;
+  border-radius: 8px;
+  background: #fdf1f0;
+  color: #2a1512;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.safety-banner strong { color: #8f2c24; }
+
+.safety-banner__crisis {
+  display: block;
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(178, 59, 50, 0.25);
+}
