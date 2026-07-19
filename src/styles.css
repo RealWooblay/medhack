@@ -1647,3 +1647,29 @@ pre {
   display: block; margin-bottom: 8px;
   color: #4a5a52; font-size: 0.8rem; font-weight: 700;
 }
+
+/* ---------------------------------------------------------------- */
+/* Medical history that changes medicine choice                      */
+/* ---------------------------------------------------------------- */
+.condition-groups { display: grid; gap: 18px; margin-bottom: 28px; }
+.condition-group__label {
+  display: block; margin-bottom: 9px;
+  color: #4a5a52; font-size: 0.8rem; font-weight: 700;
+}
+
+.history-flags { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.history-flag {
+  padding: 9px 12px; border-radius: 8px; border-left: 3px solid var(--line-strong); background: var(--soft);
+}
+.history-flag strong { display: block; font-size: 0.85rem; margin-bottom: 3px; }
+.history-flag span { display: block; font-size: 0.85rem; line-height: 1.5; color: var(--muted); }
+.history-flag small { display: block; margin-top: 4px; font-size: 0.74rem; color: var(--ink-faint, #8b929b); }
+.history-flag--avoid { border-left-color: var(--red); background: var(--red-soft); }
+.history-flag--avoid strong { color: var(--red); }
+.history-flag--caution { border-left-color: #c39a4e; background: var(--amber-soft); }
+.history-flag--caution strong { color: var(--amber); }
+.history-flag--prefer { border-left-color: var(--green); background: var(--green-soft); }
+.history-flag--prefer strong { color: var(--green-dark); }
+
+.medicine-actions { display: flex; flex-direction: column; gap: 8px; }
+.row-button--on { border-color: var(--green); background: var(--green-soft); color: var(--green-dark); font-weight: 700; }

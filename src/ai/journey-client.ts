@@ -29,7 +29,9 @@ export function journeyConfigured(): boolean {
   return ENDPOINT.length > 0
 }
 
-export async function requestJourney(context: JourneyContext): Promise<JourneyResult> {
+export async function requestJourney(
+  context: JourneyContext & { person?: Record<string, unknown> },
+): Promise<JourneyResult> {
   if (!ENDPOINT) return { status: 'not_configured' }
 
   let response: Response

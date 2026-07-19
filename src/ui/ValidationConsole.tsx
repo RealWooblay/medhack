@@ -1,7 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
 } from '../ai/clinical-review'
 import { canonicalDrug } from '../data/drug-lexicon'
+import {
+  HISTORY_CONDITIONS,
+  historyFlagsFor,
+  worstHistoryEffect,
+  type HistoryFlag,
+} from '../data/history-modifiers'
 import { labelFor } from '../data/openfda'
 import {
   OFFICIAL_PHARMCAT_EXAMPLES,
@@ -538,14 +544,20 @@ function LifestyleMedicalHistoryPanel({
   onHistory,
   das21Answers,
   onDas21Answers,
+  conditions,
+  onConditions,
   onNext,
 }: {
   history: LifestyleMedicalHistory
   onHistory: (history: LifestyleMedicalHistory) => void
   das21Answers: string[]
   onDas21Answers: (answers: string[]) => void
+  conditions: string[]
+  onConditions: (conditions: string[]) => void
   onNext: () => void
 }) {
+  const toggleCondition = (id: string) =>
+    onConditions(conditions.includes(id) ? conditions.filter((x) => x !== id) : [...conditions, id])
   const height = Number(history.heightCm)
   const weight = Number(history.weightKg)
   const bmi = height > 0 && weight > 0 ? weight / ((height / 100) ** 2) : null
@@ -611,6 +623,37 @@ function LifestyleMedicalHistoryPanel({
       </div>
 
       <section className="input-card das21-card" aria-labelledby="das21-title">
+        <h2 id="conditions-title">Conditions that change medicine choice</h2>
+        <p>These are the ones that move a medicine on their own, whatever your genes say. Tick any that apply.</p>
+        <div className="condition-groups">
+          {(['conditions', 'risks', 'priorities'] as const).map((group) => {
+            const items = HISTORY_CONDITIONS.filter((condition) => condition.group === group)
+            const heading = group === 'conditions' ? 'Health conditions'
+              : group === 'risks' ? 'Other risks' : 'What matters to you'
+            return (
+              <div className="condition-group" key={group}>
+                <span className="condition-group__label">{heading}</span>
+                <div className="chip-row">
+                  {items.map((condition) => {
+                    const on = conditions.includes(condition.id)
+                    return (
+                      <button
+                        type="button"
+                        key={condition.id}
+                        className={on ? 'pick pick--on' : 'pick'}
+                        aria-pressed={on}
+                        onClick={() => toggleCondition(condition.id)}
+                      >
+                        {condition.label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
         <h2 id="das21-title">DAS21 questionnaire</h2>
         <p>Record each response using the questionnaire item number and its 0–3 response. A clinician should interpret questionnaire results in context.</p>
         <div className="das21-grid">
@@ -755,7 +798,14 @@ export function exactDoseSentence(drug: DrugAssessment): string | null {
   return null
 }
 
-function MedicineRow({ drug, result, onExplore }: { drug: DrugAssessment; result: AnalysisResult; onExplore: (drug: string) => void }) {
+function MedicineRow({ drug, result, onExplore, flags = [], started = false, onStarted }: {
+  drug: DrugAssessment
+  result: AnalysisResult
+  onExplore: (drug: string) => void
+  flags?: HistoryFlag[]
+  started?: boolean
+  onStarted?: () => void
+}) {
   const protocol = result.protocolsByDrug[drug.drug]
   const hasDailyEvidence = Boolean(protocol && (protocol.items.length || protocol.interactionItems.length))
   const doseSentence = exactDoseSentence(drug)
@@ -766,10 +816,30 @@ function MedicineRow({ drug, result, onExplore }: { drug: DrugAssessment; result
         <strong className="medicine-guidance">{doseSentence ?? (drug.headline === 'avoid' ? 'Guideline says to avoid' : capitalise(drug.headline))}</strong>
         <p>{medicineSummary(drug)}</p>
         {drug.interactionFlags.length > 0 && <span className="inline-alert">A current medicine adds an interaction question.</span>}
+        {flags.length > 0 && (
+          <ul className="history-flags">
+            {flags.map((flag) => (
+              <li className={`history-flag history-flag--${flag.effect}`} key={`${flag.conditionId}-${flag.effect}`}>
+                <strong>
+                  {flag.effect === 'avoid' ? 'Avoid' : flag.effect === 'caution' ? 'Care needed' : 'Good fit'} · {flag.conditionLabel}
+                </strong>
+                <span>{flag.reason}</span>
+                <small>{flag.source}</small>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
-      <button type="button" className="row-button" disabled={!hasDailyEvidence} onClick={() => onExplore(drug.drug)}>
-        {hasDailyEvidence ? 'Check daily life' : 'No daily information'}
-      </button>
+      <div className="medicine-actions">
+        <button type="button" className="row-button" disabled={!hasDailyEvidence} onClick={() => onExplore(drug.drug)}>
+          {hasDailyEvidence ? 'Check daily life' : 'No daily information'}
+        </button>
+        {onStarted && (
+          <button type="button" className={started ? 'row-button row-button--on' : 'row-button'} onClick={onStarted}>
+            {started ? 'Started — build my plan' : 'I started this one'}
+          </button>
+        )}
+      </div>
       {drug.geneFindings.length > 0 && (
         <details className="rule-details">
           <summary>See source rule</summary>
@@ -795,25 +865,42 @@ function MedicineRow({ drug, result, onExplore }: { drug: DrugAssessment; result
   )
 }
 
-function MedicineGroup({ title, drugs, result, onExplore }: {
+function MedicineGroup({ title, drugs, result, onExplore, flagsByDrug, startedDrug, onStartedDrug }: {
   title: string
   drugs: DrugAssessment[]
   result: AnalysisResult
   onExplore: (drug: string) => void
+  flagsByDrug: Map<string, HistoryFlag[]>
+  startedDrug: string
+  onStartedDrug: (drug: string) => void
 }) {
   if (!drugs.length) return null
   return (
     <section className="medicine-group">
       <div className="group-heading"><h2>{title}</h2></div>
-      <div className="medicine-list">{drugs.map((drug) => <MedicineRow key={drug.drug} drug={drug} result={result} onExplore={onExplore} />)}</div>
+      <div className="medicine-list">{drugs.map((drug) => <MedicineRow key={drug.drug} drug={drug} result={result} onExplore={onExplore} flags={flagsByDrug.get(drug.drug) ?? []} started={startedDrug === drug.drug} onStarted={() => onStartedDrug(drug.drug)} />)}</div>
     </section>
   )
 }
 
-function MedicinesPanel({ result, onExplore }: { result: AnalysisResult; onExplore: (drug: string) => void }) {
-  const alternatives = result.shortlist.filter((drug) => drug.pgxCategory === 'alternative_discussion')
-  const doseReview = result.shortlist.filter((drug) => drug.pgxCategory === 'dose_or_titration_review')
-  const usual = result.shortlist.filter((drug) => drug.pgxCategory === 'usual_guidance')
+function MedicinesPanel({ result, onExplore, historyConditions, startedDrug, onStartedDrug }: {
+  result: AnalysisResult
+  onExplore: (drug: string) => void
+  historyConditions: string[]
+  startedDrug: string
+  onStartedDrug: (drug: string) => void
+}) {
+  // History can override the genetic grouping: a contraindication moves a medicine into the
+  // discuss-alternatives group no matter what the genotype says about dose.
+  const flagsByDrug = new Map(result.shortlist.map((drug) => [drug.drug, historyFlagsFor(drug.drug, historyConditions)]))
+  const historyEffect = (drug: string) => worstHistoryEffect(flagsByDrug.get(drug) ?? [])
+  const inGroup = (category: string) => result.shortlist.filter((drug) =>
+    historyEffect(drug.drug) === 'avoid' ? category === 'alternative_discussion'
+      : drug.pgxCategory === category && historyEffect(drug.drug) !== 'avoid')
+
+  const alternatives = inGroup('alternative_discussion')
+  const doseReview = inGroup('dose_or_titration_review')
+  const usual = inGroup('usual_guidance')
   const noRule = result.shortlist.filter((drug) => drug.pgxCategory === 'no_gene_based_guidance')
   const cyp2d6 = result.pharmcat.genes.find((gene) => gene.gene === 'CYP2D6')
 
@@ -856,15 +943,15 @@ function MedicinesPanel({ result, onExplore }: { result: AnalysisResult; onExplo
         </details>
       )}
 
-      <MedicineGroup title="Discuss a different medicine" drugs={alternatives} result={result} onExplore={onExplore} />
-      <MedicineGroup title="Dose may need changing" drugs={doseReview} result={result} onExplore={onExplore} />
-      <MedicineGroup title="Usual starting dose" drugs={usual} result={result} onExplore={onExplore} />
+      <MedicineGroup title="Discuss a different medicine" drugs={alternatives} result={result} onExplore={onExplore} flagsByDrug={flagsByDrug} startedDrug={startedDrug} onStartedDrug={onStartedDrug} />
+      <MedicineGroup title="Dose may need changing" drugs={doseReview} result={result} onExplore={onExplore} flagsByDrug={flagsByDrug} startedDrug={startedDrug} onStartedDrug={onStartedDrug} />
+      <MedicineGroup title="Usual starting dose" drugs={usual} result={result} onExplore={onExplore} flagsByDrug={flagsByDrug} startedDrug={startedDrug} onStartedDrug={onStartedDrug} />
 
       {noRule.length > 0 && (
         <details className="no-rule-group">
           <summary>No supported gene guidance for {noRule.length} medicine{noRule.length === 1 ? '' : 's'}</summary>
           <p>This does not mean these medicines are safe or suitable.</p>
-          <div className="medicine-list">{noRule.map((drug) => <MedicineRow key={drug.drug} drug={drug} result={result} onExplore={onExplore} />)}</div>
+          <div className="medicine-list">{noRule.map((drug) => <MedicineRow key={drug.drug} drug={drug} result={result} onExplore={onExplore} flags={flagsByDrug.get(drug.drug) ?? []} started={startedDrug === drug.drug} onStarted={() => onStartedDrug(drug.drug)} />)}</div>
         </details>
       )}
 
@@ -955,9 +1042,18 @@ function Chips<T extends string>({
   )
 }
 
-function MyFirstWeeks({ result }: { result: AnalysisResult }) {
+function MyFirstWeeks({ result, historyConditions, history, das21Answers, startedDrug }: {
+  result: AnalysisResult
+  historyConditions: string[]
+  history: LifestyleMedicalHistory
+  das21Answers: string[]
+  startedDrug: string
+}) {
   const drugs = result.shortlist.map((entry) => entry.drug).filter(hasJourneyContent)
-  const [drug, setDrug] = useState(drugs[0] ?? '')
+  const [drug, setDrug] = useState(startedDrug || drugs[0] || '')
+
+  // Follow the medicine chosen on the Medicines tab rather than making them pick twice.
+  useEffect(() => { if (startedDrug) setDrug(startedDrug) }, [startedDrug])
   const [phase, setPhase] = useState<JourneyPhase>('first_weeks')
   const [dayLabel, setDayLabel] = useState('')
   const [signals, setSignals] = useState<Signal[]>([])
@@ -987,11 +1083,38 @@ function MyFirstWeeks({ result }: { result: AnalysisResult }) {
         signals,
         substances,
         goals,
-        diet: { pattern: dietPattern, allergies, eatingDisorderHistory: edHistory, budgetConscious: budget },
+        diet: {
+          pattern: dietPattern,
+          allergies,
+          // Eating-disorder history is answered once, on the history tab; honour it here too.
+          eatingDisorderHistory: edHistory || historyConditions.includes('eating_disorder'),
+          budgetConscious: budget,
+        },
       },
       result.genes,
     )
-    setResult_(await requestJourney(context))
+
+    // Everything the person told us, not just their genes: the conditions that shaped the
+    // medicine choice, their distress score, and the basics a plan should respect.
+    const das21Score = das21Answers
+      .map((answer) => Number(answer))
+      .filter((value) => Number.isFinite(value))
+      .reduce((total, value) => total + value, 0)
+    const answeredDas21 = das21Answers.filter((answer) => answer.trim() !== '').length
+
+    setResult_(await requestJourney({
+      ...context,
+      person: {
+        conditions: historyConditions
+          .map((id) => HISTORY_CONDITIONS.find((condition) => condition.id === id)?.label)
+          .filter((label): label is string => Boolean(label)),
+        historyFlags: historyFlagsFor(drug, historyConditions).map((flag) => `${flag.effect}: ${flag.reason}`),
+        age: history.age || null,
+        exerciseHours: history.exerciseHours || null,
+        chronicConditions: history.chronicConditions || null,
+        distress: answeredDas21 > 0 ? `DAS21 total ${das21Score} from ${answeredDas21} answered items` : null,
+      },
+    }))
     setLoading(false)
   }
 
@@ -1576,6 +1699,8 @@ export function ValidationConsole() {
   const [routine, setRoutine] = useState<RoutineAnswers>({ ...EMPTY_ROUTINE })
   const [medicalHistory, setMedicalHistory] = useState<LifestyleMedicalHistory>({ ...EMPTY_LIFESTYLE_MEDICAL_HISTORY })
   const [das21Answers, setDas21Answers] = useState<string[]>(() => Array(DAS21_ITEM_COUNT).fill(''))
+  const [historyConditions, setHistoryConditions] = useState<string[]>([])
+  const [startedDrug, setStartedDrug] = useState('')
   const [status, setStatus] = useState<RunStatus>('idle')
   const [error, setError] = useState<string | null>(null)
 
@@ -1592,6 +1717,8 @@ export function ValidationConsole() {
     setRoutine({ ...EMPTY_ROUTINE })
     setMedicalHistory({ ...EMPTY_LIFESTYLE_MEDICAL_HISTORY })
     setDas21Answers(Array(DAS21_ITEM_COUNT).fill(''))
+    setHistoryConditions([])
+    setStartedDrug('')
     setError(null)
     setStatus('idle')
     setTab('file')
@@ -1821,9 +1948,9 @@ export function ValidationConsole() {
           />
         )}
         {tab === 'genes' && result && receipt && <GenesPanel result={result} runManifest={receipt.runManifest} onNext={() => setTab('history')} />}
-        {tab === 'history' && result && <LifestyleMedicalHistoryPanel history={medicalHistory} onHistory={setMedicalHistory} das21Answers={das21Answers} onDas21Answers={setDas21Answers} onNext={() => setTab('medicines')} />}
-        {tab === 'medicines' && result && <MedicinesPanel result={result} onExplore={openDailyLife} />}
-        {tab === 'daily' && result && <MyFirstWeeks result={result} />}
+        {tab === 'history' && result && <LifestyleMedicalHistoryPanel history={medicalHistory} onHistory={setMedicalHistory} das21Answers={das21Answers} onDas21Answers={setDas21Answers} conditions={historyConditions} onConditions={setHistoryConditions} onNext={() => setTab('medicines')} />}
+        {tab === 'medicines' && result && <MedicinesPanel result={result} onExplore={openDailyLife} historyConditions={historyConditions} startedDrug={startedDrug} onStartedDrug={(drug) => { setStartedDrug(drug); setTab('daily') }} />}
+        {tab === 'daily' && result && <MyFirstWeeks result={result} historyConditions={historyConditions} history={medicalHistory} das21Answers={das21Answers} startedDrug={startedDrug} />}
         {tab === 'evidence' && result && receipt && <EvidencePanel result={result} receipt={receipt} selectedDrug={selectedDrug} productConfirmed={lifestyleProductConfirmed} routine={routine} />}
       </div>
     </main>
