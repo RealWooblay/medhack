@@ -49,7 +49,7 @@ import {
   sourceIdsForGene,
 } from '../validation/view-model'
 
-type TabId = 'file' | 'genes' | 'medicines' | 'daily' | 'ai' | 'evidence'
+type TabId = 'file' | 'genes' | 'history' | 'medicines' | 'daily' | 'evidence'
 type InputMode = 'genome' | 'example' | 'report'
 type RunStatus = 'idle' | 'reading' | 'uploading' | 'analysing' | 'running' | 'complete' | 'error'
 
@@ -98,6 +98,34 @@ const EMPTY_ROUTINE: RoutineAnswers = {
   missedDoses: '',
   eatingDisorderHistory: '',
 }
+
+interface LifestyleMedicalHistory {
+  chronicConditions: string
+  surgicalHistory: string
+  medications: string
+  familyHistory: string
+  ethnicity: string
+  age: string
+  heightCm: string
+  weightKg: string
+  exerciseHours: string
+  exerciseDetails: string
+}
+
+const EMPTY_LIFESTYLE_MEDICAL_HISTORY: LifestyleMedicalHistory = {
+  chronicConditions: '',
+  surgicalHistory: '',
+  medications: '',
+  familyHistory: '',
+  ethnicity: '',
+  age: '',
+  heightCm: '',
+  weightKg: '',
+  exerciseHours: '',
+  exerciseDetails: '',
+}
+
+const DAS21_ITEM_COUNT = 21
 
 const BASE_CARE_CONTEXT: CareContext = {
   checkIn: null,
@@ -505,6 +533,106 @@ function FilePanel({
   )
 }
 
+function LifestyleMedicalHistoryPanel({
+  history,
+  onHistory,
+  das21Answers,
+  onDas21Answers,
+  onNext,
+}: {
+  history: LifestyleMedicalHistory
+  onHistory: (history: LifestyleMedicalHistory) => void
+  das21Answers: string[]
+  onDas21Answers: (answers: string[]) => void
+  onNext: () => void
+}) {
+  const height = Number(history.heightCm)
+  const weight = Number(history.weightKg)
+  const bmi = height > 0 && weight > 0 ? weight / ((height / 100) ** 2) : null
+  const update = (key: keyof LifestyleMedicalHistory, value: string) => onHistory({ ...history, [key]: value })
+  const updateDas21 = (index: number, value: string) => onDas21Answers(das21Answers.map((answer, answerIndex) => answerIndex === index ? value : answer))
+
+  return (
+    <section className="screen screen--narrow" aria-labelledby="history-title">
+      <div className="screen-heading">
+        <h1 id="history-title">Lifestyle and Medical History</h1>
+        <p>Add the context that may be useful when discussing medicine options with your clinician.</p>
+      </div>
+
+      <div className="input-card history-form">
+        <label className="field">
+          <span>Past medical history — chronic conditions</span>
+          <textarea value={history.chronicConditions} onChange={(event) => update('chronicConditions', event.target.value)} placeholder="List any chronic conditions" />
+        </label>
+        <label className="field">
+          <span>Past surgical history</span>
+          <textarea value={history.surgicalHistory} onChange={(event) => update('surgicalHistory', event.target.value)} placeholder="List past surgeries, if any" />
+        </label>
+        <label className="field">
+          <span>Medications, including past medicines and dosage</span>
+          <textarea value={history.medications} onChange={(event) => update('medications', event.target.value)} placeholder="For example: medicine name, dosage, and dates taken" />
+        </label>
+        <label className="field">
+          <span>Family history <em>Required</em></span>
+          <textarea required value={history.familyHistory} onChange={(event) => update('familyHistory', event.target.value)} placeholder="Relevant family medical history" />
+        </label>
+
+        <div className="history-grid">
+          <label className="field">
+            <span>Ethnicity</span>
+            <input value={history.ethnicity} onChange={(event) => update('ethnicity', event.target.value)} autoComplete="off" />
+          </label>
+          <label className="field">
+            <span>Age</span>
+            <input type="number" min="0" value={history.age} onChange={(event) => update('age', event.target.value)} />
+          </label>
+          <label className="field">
+            <span>Height (cm)</span>
+            <input type="number" min="0" step="0.1" value={history.heightCm} onChange={(event) => update('heightCm', event.target.value)} />
+          </label>
+          <label className="field">
+            <span>Weight (kg)</span>
+            <input type="number" min="0" step="0.1" value={history.weightKg} onChange={(event) => update('weightKg', event.target.value)} />
+          </label>
+        </div>
+
+        <div className="bmi-readout" aria-live="polite"><strong>BMI</strong><span>{bmi ? bmi.toFixed(1) : 'Enter height and weight to calculate'}</span></div>
+
+        <div className="history-grid">
+          <label className="field">
+            <span>Physical activity (hours per week)</span>
+            <input type="number" min="0" step="0.5" value={history.exerciseHours} onChange={(event) => update('exerciseHours', event.target.value)} />
+          </label>
+          <label className="field">
+            <span>Physical exercise</span>
+            <input value={history.exerciseDetails} onChange={(event) => update('exerciseDetails', event.target.value)} placeholder="For example: walking, gym, swimming" />
+          </label>
+        </div>
+      </div>
+
+      <section className="input-card das21-card" aria-labelledby="das21-title">
+        <h2 id="das21-title">DAS21 questionnaire</h2>
+        <p>Record each response using the questionnaire item number and its 0–3 response. A clinician should interpret questionnaire results in context.</p>
+        <div className="das21-grid">
+          {das21Answers.map((answer, index) => (
+            <label className="compact-field" key={index}>
+              <span>Item {index + 1}</span>
+              <select value={answer} onChange={(event) => updateDas21(index, event.target.value)} aria-label={`DAS21 item ${index + 1}`}>
+                <option value="">Select</option>
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </select>
+            </label>
+          ))}
+        </div>
+      </section>
+      <div className="page-action"><button type="button" className="primary-button" onClick={onNext}>See medicine guidance</button></div>
+    </section>
+  )
+}
+
 function GenesPanel({ result, runManifest, onNext }: { result: AnalysisResult; runManifest?: PharmCATRunManifest; onNext: () => void }) {
   const reportedGenes = new Set(result.pharmcat.genes.map((gene) => gene.gene))
   const missingGenes = ANTIDEPRESSANT_PGX_GENES.filter((gene) => !reportedGenes.has(gene))
@@ -689,6 +817,16 @@ function MedicinesPanel({ result, onExplore }: { result: AnalysisResult; onExplo
   const noRule = result.shortlist.filter((drug) => drug.pgxCategory === 'no_gene_based_guidance')
   const cyp2d6 = result.pharmcat.genes.find((gene) => gene.gene === 'CYP2D6')
 
+  // Lived in the removed AI review panel; a medicine report belongs with the medicines.
+  const downloadReport = () => {
+    const url = URL.createObjectURL(buildMockMedicineReport(result))
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'medicine-report.pdf'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <section className="screen" aria-labelledby="medicines-title">
       <div className="screen-heading">
@@ -729,6 +867,10 @@ function MedicinesPanel({ result, onExplore }: { result: AnalysisResult; onExplo
           <div className="medicine-list">{noRule.map((drug) => <MedicineRow key={drug.drug} drug={drug} result={result} onExplore={onExplore} />)}</div>
         </details>
       )}
+
+      <div className="page-action">
+        <button type="button" className="secondary-button" onClick={downloadReport}>Download medicine report</button>
+      </div>
     </section>
   )
 }
@@ -1156,6 +1298,53 @@ export function DailyLifePanel({
 }
 
 
+function pdfSafeText(value: string): string {
+  return value.replace(/[^\x20-\x7E]/g, ' ').replace(/[\\()]/g, '\\$&')
+}
+
+function buildMockMedicineReport(result: AnalysisResult): Blob {
+  const medicines = result.shortlist.slice(0, 4)
+  const lines = [
+    'Mock medicine report',
+    `Generated ${new Date().toLocaleDateString()}`,
+    '',
+    'Top four suggested medicines',
+    ...medicines.flatMap((medicine, index) => [
+      `${index + 1}. ${capitalise(medicine.drug)}`,
+      `   PGx guidance: ${capitalise(medicine.headline)}`,
+    ]),
+    '',
+    'Prototype only. Confirm any medicine decision with a clinician.',
+  ]
+  const content = [
+    'BT',
+    '/F1 18 Tf',
+    '50 760 Td',
+    `(${pdfSafeText(lines[0])}) Tj`,
+    '/F1 11 Tf',
+    ...lines.slice(1).flatMap((line) => ['0 -22 Td', `(${pdfSafeText(line)}) Tj`]),
+    'ET',
+  ].join('\n')
+  const objects = [
+    '<< /Type /Catalog /Pages 2 0 R >>',
+    '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+    '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>',
+    `<< /Length ${content.length} >>\nstream\n${content}\nendstream`,
+    '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>',
+  ]
+  let pdf = '%PDF-1.4\n'
+  const offsets = [0]
+  objects.forEach((object, index) => {
+    offsets.push(pdf.length)
+    pdf += `${index + 1} 0 obj\n${object}\nendobj\n`
+  })
+  const xrefOffset = pdf.length
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`
+  offsets.slice(1).forEach((offset) => { pdf += `${String(offset).padStart(10, '0')} 00000 n \n` })
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`
+  return new Blob([pdf], { type: 'application/pdf' })
+}
+
 function EvidencePanel({ result, receipt, selectedDrug, productConfirmed, routine }: {
   result: AnalysisResult
   receipt: RunReceipt
@@ -1385,6 +1574,8 @@ export function ValidationConsole() {
   const [selectedDrug, setSelectedDrug] = useState('')
   const [lifestyleProductConfirmed, setLifestyleProductConfirmed] = useState<boolean | null>(null)
   const [routine, setRoutine] = useState<RoutineAnswers>({ ...EMPTY_ROUTINE })
+  const [medicalHistory, setMedicalHistory] = useState<LifestyleMedicalHistory>({ ...EMPTY_LIFESTYLE_MEDICAL_HISTORY })
+  const [das21Answers, setDas21Answers] = useState<string[]>(() => Array(DAS21_ITEM_COUNT).fill(''))
   const [status, setStatus] = useState<RunStatus>('idle')
   const [error, setError] = useState<string | null>(null)
 
@@ -1399,6 +1590,8 @@ export function ValidationConsole() {
     setSelectedDrug('')
     setLifestyleProductConfirmed(null)
     setRoutine({ ...EMPTY_ROUTINE })
+    setMedicalHistory({ ...EMPTY_LIFESTYLE_MEDICAL_HISTORY })
+    setDas21Answers(Array(DAS21_ITEM_COUNT).fill(''))
     setError(null)
     setStatus('idle')
     setTab('file')
@@ -1578,6 +1771,7 @@ export function ValidationConsole() {
   const tabs: Array<{ id: TabId; label: string; disabled: boolean }> = [
     { id: 'file', label: 'DNA', disabled: false },
     { id: 'genes', label: 'Gene results', disabled: !result },
+    { id: 'history', label: 'Lifestyle & history', disabled: !result },
     { id: 'medicines', label: 'Medicines', disabled: !result },
     { id: 'daily', label: 'My first weeks', disabled: !result },
     { id: 'evidence', label: 'Sources', disabled: !result },
@@ -1626,7 +1820,8 @@ export function ValidationConsole() {
             onRun={() => void run()}
           />
         )}
-        {tab === 'genes' && result && receipt && <GenesPanel result={result} runManifest={receipt.runManifest} onNext={() => setTab('medicines')} />}
+        {tab === 'genes' && result && receipt && <GenesPanel result={result} runManifest={receipt.runManifest} onNext={() => setTab('history')} />}
+        {tab === 'history' && result && <LifestyleMedicalHistoryPanel history={medicalHistory} onHistory={setMedicalHistory} das21Answers={das21Answers} onDas21Answers={setDas21Answers} onNext={() => setTab('medicines')} />}
         {tab === 'medicines' && result && <MedicinesPanel result={result} onExplore={openDailyLife} />}
         {tab === 'daily' && result && <MyFirstWeeks result={result} />}
         {tab === 'evidence' && result && receipt && <EvidencePanel result={result} receipt={receipt} selectedDrug={selectedDrug} productConfirmed={lifestyleProductConfirmed} routine={routine} />}
