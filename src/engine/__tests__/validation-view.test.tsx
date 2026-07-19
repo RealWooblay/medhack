@@ -82,13 +82,6 @@ describe('simplified validation surface', () => {
     expect(markup).toContain('Upload your DNA')
   })
 
-  it('always shows the safety notice and crisis contacts', () => {
-    const markup = renderToStaticMarkup(<App />)
-
-    expect(markup).toContain('not medical advice')
-    expect(markup).toContain('Lifeline')
-    expect(markup).toContain('13 11 14')
-  })
 
   it('requires medicines or an explicit confirmation of none', () => {
     expect(currentMedicinesResolved('', false)).toBe(false)

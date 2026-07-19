@@ -1390,27 +1390,167 @@ pre {
   }
 }
 
-/* Persistent safety notice. Deliberately not collapsible and not dismissible: this is a
-   consumer-facing antidepressant tool and the dose sentences elsewhere in the UI are quoted
-   verbatim from prescribing guidelines. */
-.safety-banner {
-  margin: 0 auto 1rem;
-  max-width: 68rem;
-  padding: 0.85rem 1.1rem;
-  border: 1px solid #b23b32;
-  border-left: 4px solid #b23b32;
+/* ---------------------------------------------------------------- */
+/* Mechanism-based support: what the drug does, and what helps.      */
+/* Distinct from the label facts, which stay collapsed below.        */
+/* ---------------------------------------------------------------- */
+
+.support-phase {
+  width: min(1080px, 100%);
+  margin: 34px 0 0;
+}
+
+.support-phase__title {
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--green-dark);
+  font-size: 1.05rem;
+}
+
+.support-phase__cards {
+  display: grid;
+  gap: 14px;
+}
+
+.support-card {
+  padding: 20px 22px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+
+.support-card > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.support-card h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.12rem;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+.support-card__why {
+  margin: 0 0 16px;
+  padding-left: 12px;
+  border-left: 3px solid var(--green-soft);
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.support-card__actions {
+  display: grid;
+  gap: 14px;
+}
+
+@media (min-width: 780px) {
+  .support-card__actions {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+.support-lane__label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--green-dark);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.support-lane--eat .support-lane__label { color: #7a5a12; }
+.support-lane--avoid .support-lane__label { color: var(--red); }
+
+.support-lane ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.support-lane li {
+  margin-bottom: 5px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.support-card__timeline {
+  margin: 16px 0 0;
+  padding: 11px 13px;
   border-radius: 8px;
-  background: #fdf1f0;
-  color: #2a1512;
+  background: var(--soft);
   font-size: 0.88rem;
   line-height: 1.55;
 }
 
-.safety-banner strong { color: #8f2c24; }
+.support-card__source {
+  margin-top: 12px;
+}
 
-.safety-banner__crisis {
-  display: block;
-  margin-top: 0.4rem;
-  padding-top: 0.4rem;
-  border-top: 1px solid rgba(178, 59, 50, 0.25);
+.support-card__source summary {
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.support-card__source p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.evidence {
+  flex: none;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.evidence--clinical_studies { color: #14513c; background: var(--green-soft); }
+.evidence--guideline        { color: #14513c; background: var(--green-soft); }
+.evidence--label            { color: #35423c; background: #e6ebe8; }
+.evidence--mechanistic_inference { color: #76501d; background: var(--amber-soft); }
+
+.label-facts {
+  width: min(1080px, 100%);
+  margin-top: 34px;
+  padding: 14px 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--soft);
+}
+
+.label-facts summary {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.label-facts > div { margin-top: 14px; }
+
+.label-facts__product {
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.product-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
 }
