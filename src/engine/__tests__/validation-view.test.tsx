@@ -60,7 +60,7 @@ describe('simplified validation surface', () => {
     expect(markup).toContain('DNA')
     expect(markup).toContain('Gene results')
     expect(markup).toContain('Medicines')
-    expect(markup).toContain('Daily life')
+    expect(markup).toContain('My first weeks')
     expect(markup).toContain('AI review')
     expect(markup).toContain('Sources')
     expect(markup).toContain('Current medicines and supplements')
