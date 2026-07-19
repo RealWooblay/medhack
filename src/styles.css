@@ -1554,3 +1554,117 @@ pre {
   font-size: 0.85rem;
   font-weight: 700;
 }
+
+/* ---------------------------------------------------------------- */
+/* Today: the AI-written daily plan.                                 */
+/* ---------------------------------------------------------------- */
+
+.today {
+  width: min(1080px, 100%);
+  margin-top: 30px;
+  padding: 22px 24px;
+  border: 1px solid #9fb9ad;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #f1f7f4 0%, var(--paper) 60%);
+  box-shadow: var(--shadow);
+}
+
+.today h2 {
+  margin-bottom: 4px;
+  color: var(--green-dark);
+  font-size: 1.35rem;
+  letter-spacing: -0.02em;
+}
+
+.today__lede {
+  margin-bottom: 18px;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.today__controls {
+  display: grid;
+  gap: 12px;
+  align-items: end;
+  margin-bottom: 6px;
+}
+
+@media (min-width: 720px) {
+  .today__controls { grid-template-columns: 2fr 1fr auto; }
+}
+
+.today__controls .compact-field { display: grid; gap: 6px; margin: 0; }
+
+.today__controls input,
+.today__controls select {
+  min-height: 44px;
+  padding: 9px 11px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.today__note {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.today__flags { font-family: ui-monospace, monospace; font-size: 0.78rem; }
+
+.today__plan { margin-top: 22px; }
+
+.today__plan h3 {
+  margin-bottom: 16px;
+  color: var(--ink);
+  font-size: 1.25rem;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.today__grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+@media (min-width: 720px) {
+  .today__grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.today__block {
+  padding: 13px 15px;
+  border-radius: 9px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+}
+
+.today__block p { margin: 0; font-size: 0.93rem; line-height: 1.55; }
+
+.today__block ul { margin: 0; padding-left: 18px; }
+
+.today__block li { margin-bottom: 6px; font-size: 0.93rem; line-height: 1.5; }
+
+.today__block--eat { border-color: #d8c79a; background: #fffdf6; }
+.today__block--skip { border-color: #dfa9a5; background: var(--red-soft); }
+.today__block--hard { border-color: #9fb9ad; background: var(--green-soft); }
+
+.today__label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--green-dark);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.today__block--eat .today__label { color: #7a5a12; }
+.today__block--skip .today__label { color: var(--red); }
+
+.today__provenance {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
