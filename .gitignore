@@ -31,3 +31,7 @@ pharmcat-out/
 *.phenotype.json
 *.preprocessed.vcf*
 *.missing_pgx_var.vcf
+
+# Never commit model credentials or built lambda bundles
+infra/lambda/*.zip
+infra/**/.env

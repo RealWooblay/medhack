@@ -10,6 +10,7 @@ import {
 } from '../ai/clinical-review'
 import { canonicalDrug } from '../data/drug-lexicon'
 import { labelFor } from '../data/openfda'
+import { dailyPlanConfigured, requestDailyPlan, type DailyPlan, type DailyPlanResult } from '../ai/daily-plan'
 import {
   EVIDENCE_LABEL,
   PHASE_LABEL,
@@ -757,6 +758,125 @@ function SupportCard({ protocol }: { protocol: SupportProtocol }) {
   )
 }
 
+
+const WHERE_OPTIONS: Array<{ value: SupportPhase; label: string; dayHint: string }> = [
+  { value: 'first_weeks', label: 'Just started, or the first few weeks', dayHint: 'e.g. day 9' },
+  { value: 'ongoing', label: 'Been on it a while', dayHint: 'e.g. month 4' },
+  { value: 'switching', label: 'Changing or coming off it', dayHint: 'e.g. tapering, week 2' },
+]
+
+function TodayPlan({ drug }: { drug: string }) {
+  const [phase, setPhase] = useState<SupportPhase>('first_weeks')
+  const [dayLabel, setDayLabel] = useState('')
+  const [result, setResult] = useState<DailyPlanResult | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const configured = dailyPlanConfigured()
+  const hint = WHERE_OPTIONS.find((option) => option.value === phase)?.dayHint ?? ''
+
+  async function build() {
+    setLoading(true)
+    setResult(null)
+    setResult(await requestDailyPlan({ drug, phase, dayLabel: dayLabel.trim() }))
+    setLoading(false)
+  }
+
+  const plan: DailyPlan | null = result?.status === 'ok' ? result.plan : null
+
+  return (
+    <section className="today" aria-labelledby="today-title">
+      <h2 id="today-title">Today</h2>
+      <p className="today__lede">
+        A plan for where you actually are, built from what {capitalise(drug)} is doing to your
+        body right now.
+      </p>
+
+      <div className="today__controls">
+        <label className="compact-field">
+          <span>Where are you with it?</span>
+          <select value={phase} onChange={(event) => setPhase(event.target.value as SupportPhase)}>
+            {WHERE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+        <label className="compact-field">
+          <span>How far in? <em>optional</em></span>
+          <input
+            type="text"
+            value={dayLabel}
+            placeholder={hint}
+            onChange={(event) => setDayLabel(event.target.value)}
+          />
+        </label>
+        <button type="button" className="primary-button" disabled={loading || !configured} onClick={() => void build()}>
+          {loading ? 'Building…' : plan ? 'Rebuild today' : "Build today's plan"}
+        </button>
+      </div>
+
+      {!configured && (
+        <p className="today__note">The plan service is not configured for this build.</p>
+      )}
+
+      {result?.status === 'error' && <p className="today__note">{result.message}</p>}
+
+      {result?.status === 'rejected' && (
+        <p className="today__note">
+          {result.note} <span className="today__flags">({result.problems.join(', ')})</span>
+        </p>
+      )}
+
+      {plan && (
+        <div className="today__plan">
+          <h3>{plan.today.headline}</h3>
+
+          <div className="today__grid">
+            <div className="today__block">
+              <span className="today__label">This morning</span>
+              <p>{plan.today.morning}</p>
+            </div>
+
+            <div className="today__block today__block--eat">
+              <span className="today__label">Eat today</span>
+              <ul>{plan.today.eat.map((item) => <li key={item}>{item}</li>)}</ul>
+            </div>
+
+            <div className="today__block">
+              <span className="today__label">Notice</span>
+              <p>{plan.today.watchFor}</p>
+            </div>
+
+            {plan.today.skip && (
+              <div className="today__block today__block--skip">
+                <span className="today__label">Skip today</span>
+                <p>{plan.today.skip}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="today__block">
+            <span className="today__label">This week</span>
+            <p>{plan.thisWeek}</p>
+          </div>
+
+          <div className="today__block today__block--hard">
+            <span className="today__label">If today is hard</span>
+            <p>{plan.ifItIsHard}</p>
+          </div>
+
+          {result?.status === 'ok' && (
+            <p className="today__provenance">
+              Written by {result.model} from {result.protocolsUsed} support protocols for{' '}
+              {drug}. It cannot give a dose or tell you to change your medicine — output
+              containing either is withheld.
+            </p>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
 function DailyLifePanel({
   result,
   selectedDrug,
@@ -810,6 +930,8 @@ function DailyLifePanel({
           <span>No mechanism-based support content is available for {capitalise(selectedDrug)} yet.</span>
         </div>
       )}
+
+      {selectedDrug && support.length > 0 && <TodayPlan drug={selectedDrug} />}
 
       {phases.map((phase) => {
         const inPhase = support.filter((item) => item.phase === phase)
