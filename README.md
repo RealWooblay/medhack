@@ -1,5 +1,8 @@
 # MERIDIAN
 
+**Hackathon winner.** A privacy-first pharmacogenomics system that turns a
+governed genome-processing run into source-bound medicine guidance.
+
 **Genome in → gene results → medicine guidance → daily instructions → constrained AI check → sources.**
 
 PharmCAT is the bioinformatics engine underneath the product. It is not the product screen and
